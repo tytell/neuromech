@@ -1,11 +1,34 @@
 function y = medsmooth(x, n)
 
-n2 = n/2;
+sz = size(x);
 
-wnd = repmat(1:n,[size(x,1) 1]) + repmat((0:size(x,1)-1)'-round(n2), [1 n]);
-p = find((wnd >= 1) & (wnd <= size(x,1)));
+if (mod(n,2) == 0),
+  n = n+1;
+end;
 
-val = zeros(size(wnd));
-val(p) = x(wnd(p));
+wdim = ndims(x)+1;
+wnd = shiftdim((1:n)',-(wdim-1));
+wnd = round(wnd - mean(wnd));
+wnd = repmat(wnd,[sz 1]);
 
-y = median(val,2);
+for dim = 1:wdim-1,
+  i = (1:size(x,dim))';
+  i = shiftdim(i,-(dim-1));
+
+  sz1 = sz;
+  sz1(dim) = 1;
+  
+  sub{dim} = repmat(i,[sz1 n]);
+end;
+
+sub{1} = sub{1} + wnd;
+p = find((sub{1} < 1) | (sub{1} > size(x,1)));
+sub{1}(p) = 1;
+
+ind = sub2ind(size(x),sub{:});
+
+val = x(ind);
+val(p) = NaN;
+
+y = nanmedian(val,wdim);
+

@@ -240,16 +240,19 @@ for j = 1:length(r1),
                     match = 0;
                     break
                 end;
-                sz(:,j) = size(p{j})';
+                sz(1:ndims(p{j}),j) = size(p{j})';
                 matchsz(2,1) = -1;
             end;
 
-            if (ndims(p{j}) ~= length(matchsz)),
+            if (ndims(p{j}) > length(matchsz)),
                 match = 0;
                 break;
             else
                 if (max(matchsz) > length(szlist)),
                     szlist(max(matchsz),1) = 0;
+                end;
+                if (max(matchsz) > size(sz,1)),
+                  sz(end+1:max(matchsz),:) = 1;
                 end;
 
                 checksz = zeros(size(matchsz));
