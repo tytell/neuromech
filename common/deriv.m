@@ -17,7 +17,11 @@ if (isempty(dim))
 	dim = dim+1;
 else
 	y = shiftdim(y,dim-1);
-	x = shiftdim(x,dim-1);
+	if (any(size(x) == 1)),
+		x = shiftdim(x);
+	else
+		x = shiftdim(x,dim-1);
+	end;
 end;
 
 if (size(x,1) ~= size(y,1))
