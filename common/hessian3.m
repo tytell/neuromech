@@ -1,4 +1,4 @@
-function H = hessian3(x,y,z, V, method)
+function H = hessian3(x,y,z, V, method, ind1,ind2,ind3)
 % function H = hessian3(x,y,z, V, method)
 % Calculates a 3D matrix of second derivatives using a 5th order
 % central difference algorithm.
@@ -9,6 +9,39 @@ if (nargin == 4),
 end;
 
 switch lower(method),
+ case 'bigdiff',
+  N = floor(min(size(V)-1)/2);
+  
+  k = (-N:N)';
+  CNk = mfactorial(N)^2./(mfactorial(N-k).*mfactorial(N+k));
+  ctr = N+1;
+  n = length(k);
+
+  nonzero = [1:ctr-1 ctr+1:length(k)];
+  first(nonzero,1) = (-1).^(k(nonzero)+1) .* 1./k(nonzero) .* CNk(nonzero);
+  first(ctr) = 0;
+  second(nonzero,1) = (-1).^(k(nonzero)+1) .* 2./k(nonzero).^2 .* CNk(nonzero);
+  second(ctr) = -2*sum(second(ctr+1:end));
+
+  mid = ceil(size(V)/2);
+  dx = x(2)-x(1);
+  dy = y(2)-y(1);
+  dz = z(2)-z(1);
+
+  H(1,1) = 1/dx^2 * sum(second.*V(mid(1),mid(2)+k,mid(3))');
+  H(2,2) = 1/dy^2 * sum(second.*V(mid(1)+k,mid(2),mid(3)));
+  H(3,3) = 1/dz^2 * sum(second.*squeeze(V(mid(1),mid(2),mid(3)+k)));
+
+  cross = first*first';
+  H(1,2) = 1/(dx*dy) * sum(sum(cross.*V(mid(1)+k,mid(2)+k,mid(3))));
+  H(1,3) = 1/(dx*dz) * sum(sum(permute(cross,[3 1 2]) .* ...
+                               V(mid(1),mid(2)+k,mid(3)+k)));
+  H(2,3) = 1/(dy*dz) * sum(sum(permute(cross,[1 3 2]) .* ...
+                               V(mid(1)+k,mid(2),mid(3)+k)));
+  H(2,1) = H(1,2);
+  H(3,1) = H(1,2);
+  H(3,2) = H(2,3);
+
  case 'difference',
   a1 = [-1 9 -45 0 45 -9 1]'/60;
   a2 = [2 -27 270 -490 270 -27 2]'/180;
@@ -24,25 +57,43 @@ switch lower(method),
     dz = 0;
   end;
 
-  [j,i,k] = meshgrid(1:size(V,2), 1:size(V,1), 1:size(V,3));
+  if (exist('ind1')),
+      error('This option doesn''t work.');
 
-  off = repmat(inda,[1 size(V)]);
-  aa1 = repmat(a1,[1 size(V)]);
-  aa2 = repmat(a2,[1 size(V)]);
+      i = ind1(1)-ord:ind1(end)+ord;
+      j = ind2(1)-ord:ind2(end)+ord;
+      k = ind3(1)-ord:ind3(end)+ord;
+      i = i((i >= 1) & (i <= size(V,1)));
+      j = j((j >= 1) & (j <= size(V,2)));
+      k = k((k >= 1) & (k <= size(V,3)));
+
+      [j,i,k] = meshgrid(j,i,k);
+
+      m1 = ind1-ind1(1)+ord+1;
+      m2 = ind2-ind2(1)+ord+1;
+      m3 = ind3-ind3(1)+ord+1;
+  else
+      [j,i,k] = meshgrid(1:size(V,2), 1:size(V,1), 1:size(V,3));
+      m1 = ord+1:size(V,1)-ord;
+      m2 = ord+1:size(V,2)-ord;
+      m3 = ord+1:size(V,3)-ord;
+  end;
+
+  off = repmat(inda,[1 size(i)]);
+  aa1 = repmat(a1,[1 size(i)]);
+  aa2 = repmat(a2,[1 size(i)]);
   ii = repmat(shiftdim(i,-1), [2*ord+1 1 1 1]);
   jj = repmat(shiftdim(j,-1), [2*ord+1 1 1 1]);
   kk = repmat(shiftdim(k,-1), [2*ord+1 1 1 1]);
 
-  H = repmat(NaN,[3 3 size(V)]);
+  H = repmat(NaN,[3 3 size(i)]);
 
-  m1 = ord+1:size(V,1)-ord;
   ind = sub2ind(size(V), ii(:,m1,:,:)+off(:,m1,:,:),...
                 jj(:,m1,:,:), kk(:,m1,:,:));
   H(2,2,m1,:,:) = 1/dy^2 * squeeze(sum(V(ind).*aa2(:,m1,:,:)));
 
   H(1,2,m1,:,:) = 1/dy * squeeze(sum(V(ind).*aa1(:,m1,:,:)));
 
-  m2 = ord+1:size(V,2)-ord;
   ind = sub2ind(size(V), ii(:,:,m2,:),...
                 jj(:,:,m2,:)+off(:,:,m2,:), kk(:,:,m2,:));
   H(1,1,:,m2,:) = 1/dx^2 * squeeze(sum(V(ind).*aa2(:,:,m2,:)));
@@ -55,7 +106,6 @@ switch lower(method),
   if (size(V,3) >= 2*ord+1),
     H(1,3,:,m2,:) = 1/dx * squeeze(sum(V(ind).*aa1(:,:,m2,:)));
 
-    m3 = ord+1:size(V,3)-ord;
     ind = sub2ind(size(V), ii(:,:,:,m3), ...
                   jj(:,:,:,m3), kk(:,:,:,m3)+off(:,:,:,m3));
     H(3,3,:,:,m3) = 1/dz^2 * squeeze(sum(V(ind).*aa2(:,:,:,m3)));
@@ -76,17 +126,36 @@ switch lower(method),
     H = H(1:2,1:2,:,:);
   end;
  case 'spline',
+  ord = 6;
+  noff = ceil(ord/2)+2;
+
+  if (exist('ind1')),
+      i = ind1(1)-noff:ind1(end)+noff;
+      j = ind2(1)-noff:ind2(end)+noff;
+      k = ind3(1)-noff:ind3(end)+noff;
+      i = i((i >= 1) & (i <= size(V,1)));
+      j = j((j >= 1) & (j <= size(V,2)));
+      k = k((k >= 1) & (k <= size(V,3)));
+  else
+      i = 1:size(V,1);
+      j = 1:size(V,2);
+      k = 1:size(V,3);
+      ind1 = i;
+      ind2 = j;
+      ind3 = k;
+  end;
+
   if (length(z) > 1),
-    sp = spapi({6,6,6}, {y,x,z}, V);
-    H(1,1,:,:,:) = fnval(fnder(sp,[0 2 0]),{y,x,z});
-    H(1,2,:,:,:) = fnval(fnder(sp,[1 1 0]),{y,x,z});
+    sp = spapi({ord,ord,ord}, {y(i),x(j),z(k)}, V(i,j,k));
+    H(1,1,:,:,:) = fnval(fnder(sp,[0 2 0]),{y(ind1),x(ind2),z(ind3)});
+    H(1,2,:,:,:) = fnval(fnder(sp,[1 1 0]),{y(ind1),x(ind2),z(ind3)});
     H(2,1,:,:,:) = H(1,2,:,:,:);
-    H(1,3,:,:,:) = fnval(fnder(sp,[0 1 1]),{y,x,z});
+    H(1,3,:,:,:) = fnval(fnder(sp,[0 1 1]),{y(ind1),x(ind2),z(ind3)});
     H(3,1,:,:,:) = H(1,3,:,:,:);
-    H(2,2,:,:,:) = fnval(fnder(sp,[2 0 0]),{y,x,z});
-    H(2,3,:,:,:) = fnval(fnder(sp,[1 0 1]),{y,x,z});
+    H(2,2,:,:,:) = fnval(fnder(sp,[2 0 0]),{y(ind1),x(ind2),z(ind3)});
+    H(2,3,:,:,:) = fnval(fnder(sp,[1 0 1]),{y(ind1),x(ind2),z(ind3)});
     H(3,2,:,:,:) = H(2,3,:,:,:);
-    H(3,3,:,:,:) = fnval(fnder(sp,[0 0 2]),{y,x,z});
+    H(3,3,:,:,:) = fnval(fnder(sp,[0 0 2]),{y(ind1),x(ind2),z(ind3)});
   else
     sp = spapi({6,6}, {x,y}, V);
     H(1,1,:,:,:) = fnval(fnder(sp,[0 2]),{y,x});
