@@ -1,4 +1,5 @@
-function C = normxcorr1(win, search)
+function [C,xs] = normxcorr1(win, search)
+% function [C,xs] = normxcorr1(win, search)
 
 if (length(win) == length(search)),
 	w2 = ceil(length(win)/2);
@@ -6,6 +7,9 @@ if (length(win) == length(search)),
 	search = shiftdim(search);
 	search = [repmat(NaN,[w2 1]); search; repmat(NaN,[w2 1])];
 end;
+
+w2 = (length(search)-length(win))/2;
+xs = -ceil(w2):floor(w2);
 
 win = shiftdim(win);
 
