@@ -305,6 +305,7 @@ if (ischar(model)),
                 k(end+1) = j;
                 [int1,nextint] = strtok(nextint,'*');
             end;
+            bin = zeros(1,size(model,2));
             bin(k) = 1;
             k = find(all(model == repmat(bin,[nmodel 1]),2));
             
