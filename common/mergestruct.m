@@ -5,13 +5,16 @@ function sm = mergeStruct(varargin)
 
 sm = varargin{1};
 
+k = length(sm)+1;
+
 for i = 2:length(varargin),
 	f1 = fieldnames(varargin{i});
 	n = length(varargin{i});
 	
 	for j = 1:length(f1),
-		sm = setfield(sm,{i:i+n-1},f1{j},getfield(varargin{i},f1{j}));
+		sm = setfield(sm,{k:k+n-1},f1{j},getfield(varargin{i},f1{j}));
 	end;
+	k = k+n;
 end;
 
 			
