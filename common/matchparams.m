@@ -9,7 +9,8 @@ end;
 for i = 1:length(req),
     r1 = req{i};
 
-    [match(i),len(i)] = matchparamtype(p,sz,req{i}, []);
+    [match(i),len(i),szlist,r1] = matchparamtype(p,sz,req{i}, []);
+    req{i} = r1;
 end;
 
 if (sum(match) == 0),
@@ -20,8 +21,25 @@ else
     [q,tp] = max(len.*match);
 end;
 
+r1 = req{tp};
+for i = 1:length(r1),
+    pmatch = r1{i}{end};
+    if (isnumeric(pmatch) & (length(pmatch) == 1)),
+        v = p{pmatch};
+    else
+        for j = 1:length(pmatch),
+            if (length(pmatch{j}) == 1),
+                v{j} = p{pmatch{j}};
+            else
+                v{j} = p(pmatch{j});
+            end;
+        end;
+    end;
+    assignin('caller',r1{i}{1},v);
+end;
+
 % -------------------------------------
-function [match,len,szlist] = matchparamtype(p,sz, r1, szlist)
+function [match,len,szlist,r1] = matchparamtype(p,sz, r1, szlist)
 
 match = 1;
 len = 0;
@@ -42,23 +60,31 @@ for j = 1:length(r1),
             match = 0;
             break;
         end;
+        pspec{end+1} = j;
     else
         done = 0;
         switch pspec{2},
          case {'*', '+'},
-          r2 = pspec([1 3:end]);
-          [m0,l,szlist] = matchparamtype(p(j:end),sz(:,j:end), {r2}, ...
+          if (iscell(pspec{3}) & (length(pspec) == 3)),
+              r2 = pspec{3};
+          else
+              r2 = {pspec([1 3:end])};
+          end;
+
+          [m0,l,szlist] = matchparamtype(p(j:end),sz(:,j:end), r2, ...
                                          szlist);
           if (~m0 & (pspec{2} == '+')),
               match = 0;
               break;
           end;
+          pspec{end+1} = {j:j+l-1};
 
-          k = j+1;
+          k = j+l;
           while (m0 & (k <= length(p))),
               [m0,l,szlist] = matchparamtype(p(k:end),sz(:,k:end), ...
-                                             {r2}, szlist);
-              k = k+1;
+                                             r2, szlist);
+              pspec{end} = {pspec{end} k:k+l-1};
+              k = k+l;
           end;
           len = k-1;
           done = 1;
@@ -86,6 +112,7 @@ for j = 1:length(r1),
                   break;
               else
                   done = 1;
+                  pspec{end+1} = j;
               end;
           else,
               matchsz = pspec{3};
@@ -128,8 +155,11 @@ for j = 1:length(r1),
                     break;
                 end;
                 szlist(matchsz(k)) = sz(k,j);
+
+                pspec{end+1} = j;
             end;
         end;
+        r1{j} = pspec;
     end;
 
     len = len+1;
