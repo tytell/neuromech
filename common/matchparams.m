@@ -1,4 +1,4 @@
-function tp = matchparams(p, req, opt)
+function [tp,num,ovals] = matchparams(p, req, opt)
 
 nd = 0;
 for i = 1:length(p),
@@ -9,12 +9,16 @@ end;
 for i = 1:length(req),
     r1 = req{i};
 
-    [match(i),len(i),szlist,r1] = matchparamtype(p,sz,req{i}, []);
+    [match(i),len(i),szlist1,r1] = matchparamtype(p,sz,req{i}, []);
+    szlist{i} = szlist1;
     req{i} = r1;
 end;
 
 if (sum(match) == 0),
     tp = 0;
+    num = 0;
+    ovals = struct;
+    return;
 elseif (sum(match) == 1),
     tp = find(match == 1);
 else
@@ -22,6 +26,8 @@ else
 end;
 
 r1 = req{tp};
+szlist = szlist{tp};
+
 for i = 1:length(r1),
     pmatch = r1{i}{end};
     if (isnumeric(pmatch) & (length(pmatch) == 1)),
@@ -37,12 +43,96 @@ for i = 1:length(r1),
     end;
     assignin('caller',r1{i}{1},v);
 end;
+num = length(r1);
+
+p = p(num+1:end);
+sz = sz(:,num+1:end);
+str = find(cellfun('isclass',p,'char'));
+
+if (nargin == 2),
+    return;
+end;
+
+for i = 1:length(opt),
+    o1 = opt{i};
+
+    if (length(o1) == 1),
+        o1{2} = o1{1};
+    elseif (ischar(o1{2})),
+        o1{2} = {o1{2}};
+    end;
+
+    o1{2} = {o1{1} o1{2}{:}};
+
+    match = 0;
+    for j = 1:length(o1{2}),
+        k = strmatch(lower(o1{2}{j}),lower(p(str)),'exact');
+        if (length(k) == 1),
+            match = k;
+            break;
+        elseif (length(k) > 1),
+            error(sprintf('Option %s cannot be repeated.\n',o1{2}{j}));
+        end;
+    end;
+    
+    if (match),
+        omatch = o1{2}{j};
+
+        if (length(o1) == 3),
+            if ((str(match) < length(p)) & ...
+                       (isscalar(p{str(match)+1}) | ...
+                        islogical(p{str(match)+1}))),
+                ovals.(o1{1}) = p{str(match)+1} > 0;
+            else
+                ovals.(o1{1}) = 1;
+            end;
+        else,
+            p2 = p(str(match)+1:end);
+            sz2 = sz(:,str(match)+1:end);
+
+            if (ischar(o1{4})),
+                o1{4} = {{'', o1{4:end}}};
+            end;
+
+            for k = 1:length(o1{4}),
+                if (ischar(o1{4}{k}{1})),
+                    o1{4}{k} = {o1{4}{k}};
+                end;
+                [m0,l,szlist,ospec] = matchparamtype(p2,sz2, o1{4}{k}, ...
+                                                     szlist);
+                if (m0),
+                    break;
+                end;
+            end;
+
+            if (~m0)
+                error(sprintf('Bad argument after option %s.\n',omatch));
+            end;
+
+            if (l == 1),
+                ovals.(o1{1}) = p2{1};
+            else
+                ovals.(o1{1}) = p2;
+            end;
+        end;
+    else
+       ovals.(o1{1}) = o1{3};
+    end;
+end;
+
 
 % -------------------------------------
 function [match,len,szlist,r1] = matchparamtype(p,sz, r1, szlist)
 
 match = 1;
 len = 0;
+
+if (length(r1) > length(p)),
+    match = 0;
+    len = 0;
+    return;
+end;
+
 for j = 1:length(r1),
     pspec = r1{j};
 
@@ -89,6 +179,22 @@ for j = 1:length(r1),
           len = k-1;
           done = 1;
 
+         case 'scalar',
+          if (~isnumeric(p{j})),
+              match = 0;
+              break;
+          end;
+          matchsz = [-1; -1];
+
+         case 'token',
+          if (~ischar(p{j}) | ~strmatch(lower(p{j}),lower(pspec{3}))),
+              match = 0;
+              break;
+          else
+              pspec{end+1} = j;
+              done = 1;
+          end;
+
          case 'cellstr',
           if (~iscellstr(p{j})),
               match = 0;
@@ -117,6 +223,7 @@ for j = 1:length(r1),
           else,
               matchsz = pspec{3};
           end;
+
          otherwise,
           if (~isa(p{j},pspec{2})),
               match = 0;
@@ -147,8 +254,13 @@ for j = 1:length(r1),
 
                 k = find(matchsz > 0);
                 checksz(k,1) = szlist(matchsz(k));
-                checksz(matchsz < 0) = -matchsz(matchsz < 0);
+                checksz(matchsz < 0,1) = -matchsz(matchsz < 0);
                 checksz(checksz == 0) = sz(checksz == 0,j);
+
+                if (length(checksz) < size(sz,1)),
+                    checksz = [checksz; ones(size(sz,1) - ...
+                                             length(checksz),1)];
+                end;
 
                 if (any(checksz ~= sz(:,j))),
                     match = 0;
