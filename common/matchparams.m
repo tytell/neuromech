@@ -80,7 +80,7 @@ for i = 1:length(opt),
 
         if (length(o1) == 3),
             if ((str(match) < length(p)) & ...
-                       (isscalar(p{str(match)+1}) | ...
+                       (isnumeric(p{str(match)+1}) | ...
                         islogical(p{str(match)+1}))),
                 ovals.(o1{1}) = p{str(match)+1} > 0;
             else
@@ -241,7 +241,7 @@ for j = 1:length(r1),
                     break
                 end;
                 sz(:,j) = size(p{j})';
-                matchsz(2) = -1;
+                matchsz(2,1) = -1;
             end;
 
             if (ndims(p{j}) ~= length(matchsz)),
@@ -252,6 +252,7 @@ for j = 1:length(r1),
                     szlist(max(matchsz),1) = 0;
                 end;
 
+                checksz = zeros(size(matchsz));
                 k = find(matchsz > 0);
                 checksz(k,1) = szlist(matchsz(k));
                 checksz(matchsz < 0,1) = -matchsz(matchsz < 0);
@@ -271,8 +272,8 @@ for j = 1:length(r1),
                 pspec{end+1} = j;
             end;
         end;
-        r1{j} = pspec;
     end;
+    r1{j} = pspec;
 
     len = len+1;
 end;
