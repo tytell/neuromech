@@ -1,4 +1,7 @@
 function C = combination(n,k)
+% function C = combination(n,k)
+% Calculates combinates for vector input n and k.  Both inputs need to be
+% the same size, or one can be a scalar.
 
 if (prod(size(n)) == 1),
     sz = size(k);
