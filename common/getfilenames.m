@@ -1,6 +1,6 @@
 function fn = getfilenames(d)
 
-k = find(d == '\');
+k = find((d == '\') | (d == '/'));
 if (~isempty(k)),
 	path = d(1:k(end));
 else
