@@ -15,7 +15,7 @@ fr = 1:length(x);
 
 k = find(isfinite(x) & isfinite(y));
 
-sp = spaps(fr(k), [x(k) y(k)]', err^2*range(fr(k)));
+sp = spaps(fr(k), [x(k) y(k)]', err^2*range(fr(k)), 3);
 xys = fnval(sp, fr);
 xys(:,[1:k(1)-1 k(end)+1:end]) = NaN;
 
