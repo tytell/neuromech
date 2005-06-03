@@ -1,4 +1,4 @@
-function H = hessian3(x,y,z, V, method, ind1,ind2,ind3)
+function varargout = hessian3(x,y,z, V, method, ind1,ind2,ind3)
 % function H = hessian3(x,y,z, V, method)
 % Calculates a 3D matrix of second derivatives using a 5th order
 % central difference algorithm.
@@ -9,19 +9,35 @@ if (nargin == 4),
 end;
 
 switch lower(method),
- case 'bigdiff',
-  N = floor(min(size(V)-1)/2);
+ case 'ndifference',
+  if ((nargin <= 6) | ((nargin == 8) & isempty(ind2))),
+      if (exist('ind1') & ~isempty(ind1)),
+          N = floor(ind1/2);
+          if (2*N+1 > min(size(V))),
+              error('Order is too large');
+          end;
+      else
+          N = floor(min(size(V)-1)/2);
+      end;
   
-  k = (-N:N)';
-  CNk = mfactorial(N)^2./(mfactorial(N-k).*mfactorial(N+k));
-  ctr = N+1;
-  n = length(k);
+      k = (-N:N)';
+      CNk = mfactorial(N)^2./(mfactorial(N-k).*mfactorial(N+k));
+      ctr = N+1;
+      n = length(k);
 
-  nonzero = [1:ctr-1 ctr+1:length(k)];
-  first(nonzero,1) = (-1).^(k(nonzero)+1) .* 1./k(nonzero) .* CNk(nonzero);
-  first(ctr) = 0;
-  second(nonzero,1) = (-1).^(k(nonzero)+1) .* 2./k(nonzero).^2 .* CNk(nonzero);
-  second(ctr) = -2*sum(second(ctr+1:end));
+      nonzero = [1:ctr-1 ctr+1:length(k)];
+      first(nonzero,1) = (-1).^(k(nonzero)+1) .* 1./k(nonzero) .* ...
+          CNk(nonzero);
+      first(ctr) = 0;
+      second(nonzero,1) = (-1).^(k(nonzero)+1) .* 2./k(nonzero).^2 .* ...
+          CNk(nonzero);
+      second(ctr) = -2*sum(second(ctr+1:end));
+  else
+      first = ind2;
+      second = ind3;
+      N = floor(length(first)/2);
+      k = (-N:N)';
+  end;
 
   mid = ceil(size(V)/2);
   dx = x(2)-x(1);
@@ -39,9 +55,13 @@ switch lower(method),
   H(2,3) = 1/(dy*dz) * sum(sum(permute(cross,[1 3 2]) .* ...
                                V(mid(1)+k,mid(2),mid(3)+k)));
   H(2,1) = H(1,2);
-  H(3,1) = H(1,2);
+  H(3,1) = H(1,3);
   H(3,2) = H(2,3);
 
+  if (nargout == 3),
+      varargout{2} = first;
+      varargout{3} = second;
+  end;
  case 'difference',
   a1 = [-1 9 -45 0 45 -9 1]'/60;
   a2 = [2 -27 270 -490 270 -27 2]'/180;
@@ -169,6 +189,8 @@ switch lower(method),
     H(3,3,:,:,:) = 0;
   end;
 end;
+
+varargout{1} = H;
 
 
 
