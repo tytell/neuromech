@@ -1,5 +1,5 @@
-function C = xcorr1(win, search)
-% function C = xcorr1(win, search)
+function C = normxcorr1(win, search)
+% function C = normxcorr1(win, search)
 % Partially normalized cross-correlation.
 
 if (length(win) == length(search)),
@@ -23,4 +23,5 @@ searchvar = nansum(search.^2);
 S = im2col(search, [length(win) 1], 'sliding');
 
 C = nansum(repmat(win, [1 size(S,2)]) .* S)  ./  sqrt(winvar .* searchvar);
+
 
