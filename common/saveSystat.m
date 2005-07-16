@@ -22,9 +22,9 @@ end;
 len = 0;
 for i = 1:nvar,
     if (ischar(data{i})),
-        tplt{i} = '%10c';
+        tplt{i} = '%c';
     elseif (isnumeric(data{i})),
-        tplt{i} = '%10g';
+        tplt{i} = '%g';
     else
         error(sprintf('Unsuported data type in variable %s.', ...
                       names{i}));
@@ -56,8 +56,8 @@ if (fid == -1),
     error('Couldn''t open file for output.');
 end;
 
-fprintf(fid,'%10s',names{1});
-fprintf(fid,', %10s',names{2:end});
+fprintf(fid,'%s',names{1});
+fprintf(fid,',%s',names{2:end});
 fprintf(fid,'\n');
 
 for i = 1:len,
@@ -66,18 +66,18 @@ for i = 1:len,
             if (isfinite(data{j}(i)) & isreal(data{j}(i))),
                 fprintf(fid,tplt{j},data{j}(i));
             else
-                fprintf(fid,'%10s','.');
+                fprintf(fid,'%s','.');
             end;
         else,
             if (data{j}(i) ~= ' '),
                 fprintf(fid,tplt{j},data{j}(i));
             else
-                fprintf(fid,'%10s','" "');
+                fprintf(fid,'%s','" "');
             end;
         end;
         
         if (j < nvar),
-            fprintf(fid,', ');
+            fprintf(fid,',');
         end;
     end;
     fprintf(fid,'\n');
