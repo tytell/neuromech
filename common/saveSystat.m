@@ -25,6 +25,8 @@ for i = 1:nvar,
         tplt{i} = '%c';
     elseif (isnumeric(data{i})),
         tplt{i} = '%g';
+    elseif (iscellstr(data{i})),
+        tplt{i} = '%s';
     else
         error(sprintf('Unsuported data type in variable %s.', ...
                       names{i}));
@@ -68,6 +70,8 @@ for i = 1:len,
             else
                 fprintf(fid,'%s','.');
             end;
+        elseif (iscell(data{j}(i))),
+            fprintf(fid,'%s',data{j}{i});
         else,
             if (data{j}(i) ~= ' '),
                 fprintf(fid,tplt{j},data{j}(i));
