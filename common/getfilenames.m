@@ -15,3 +15,5 @@ if (length(files) > 0),
 else
 	fn = {};
 end;
+
+fn = sortfiles(fn);
