@@ -24,9 +24,11 @@ if (~isempty(fn)),
     if (length(basenames) ~= length(fn)),
         for i = 1:length(basenames),
             k = find(baseind == i);
-            [a,jig] = sort(num(k));
-            fn(k) = fn(k(jig));
-            ind(k) = ind(k(jig));
+            if (length(k) > 1),
+                [a,jig] = sort(num(k));
+                fn(k) = fn(k(jig));
+                ind(k) = ind(k(jig));
+            end;
         end;
     end;
 end;
