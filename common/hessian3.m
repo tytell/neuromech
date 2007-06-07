@@ -20,6 +20,8 @@ switch lower(method),
           N = floor(min(size(V)-1)/2);
       end;
   
+      %NB: I have no idea what this section here is supposed to do, and the
+      %mfactorial program seems to have disappeared...  (ET 7/28/06)
       k = (-N:N)';
       CNk = mfactorial(N)^2./(mfactorial(N-k).*mfactorial(N+k));
       ctr = N+1;
@@ -62,6 +64,8 @@ switch lower(method),
       varargout{2} = first;
       varargout{3} = second;
   end;
+  
+  
  case 'difference',
   a1 = [-1 9 -45 0 45 -9 1]'/60;
   a2 = [2 -27 270 -490 270 -27 2]'/180;
@@ -145,6 +149,7 @@ switch lower(method),
   else
     H = H(1:2,1:2,:,:);
   end;
+  
  case 'spline',
   ord = 6;
   noff = ceil(ord/2)+2;
