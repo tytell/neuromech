@@ -13,11 +13,16 @@ if (nargin < 4)
 	end;
 end;
 
-if (isempty(dim))
-	[f, dim] = shiftdim(f);
-	dim = dim+1;
-else
-	f = shiftdim(f,dim-1);
+if (isempty(dim)),
+    if ((ndims(f) == 2) && (size(f,1) == 1)),
+        dim = 2;
+    else
+        dim = 1;
+    end;
+end;
+
+if (isempty(f) || (size(f,dim) < 2)),
+    return;
 end;
 
 if (isempty(delta))
@@ -25,25 +30,32 @@ if (isempty(delta))
 end;
 
 sz = size(f);
-rest = prod(sz(2:end));
+otherdims = [1:dim-1 dim+1:length(sz)];
+rest = prod(sz(otherdims));
+
+f = permute(f, [dim otherdims]);
+f = reshape(f, [sz(dim) rest]);
 
 % step through any dimensions of f beyond the first
 for i = 1:rest,
 	% only operate on the finite elements
-	q = find(isfinite(f(:,i)));
+	good = isfinite(f(:,i));
 	
 	% take their differences
-	d = diff(f(q,i));
+    if (sum(good) > 1),
+        f1 = f(good,i);
+        d = diff(f1);
 
-	% eliminate differences that are close to m
-	k = find((abs(m - abs(d)) < delta) & (d > 0));
-	d(k) = d(k) - m;
-	k = find((abs(m - abs(d)) < delta) & (d < 0));
-	d(k) = d(k) + m;
+        % eliminate differences that are close to m
+        jump = (abs(m - abs(d)) < delta) & (d > 0);
+        d(jump) = d(jump) - m;
+        jump = (abs(m - abs(d)) < delta) & (d < 0);
+        d(jump) = d(jump) + m;
 
-	% use a cumulative sum to get f back
-	f(q(2:end),i) = d;
-	f(q,i) = cumsum(f(q,i));
+        % use a cumulative sum to get f back
+        f(good,i) = cumsum([f1(1); d]);
+    end;
 end;
 
-f = shiftdim(f,ndims(f)-dim+1);
+f = reshape(f,[sz(dim) sz(otherdims)]);
+f = permute(f,[2:dim 1 dim+1:length(sz)]);
