@@ -25,6 +25,10 @@ if (isempty(f) || (size(f,dim) < 2)),
     return;
 end;
 
+if (isempty(m)),
+    m = 2*pi;
+end;
+
 if (isempty(delta))
 	delta = m/10;
 end;

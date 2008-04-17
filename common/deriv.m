@@ -49,8 +49,9 @@ d = zeros(size(y));
 d(2:np-1,:) = (y(3:end,:)-y(1:end-2,:))./(x(3:end,:)-x(1:end-2,:));
 d([np 1],:) = (y([end 2],:)-y([end-1 1],:))./(x([end 2],:)-x([end-1 1],:));
 
-%put d make in the original shape as y
-d = reshape(d,szy);
+%put d make in the permuted shape
+d = reshape(d,szy(pmt));
+%and undo the permutation
 d = permute(d,[2:dim 1 dim+1:length(szy)]);
 
 		
