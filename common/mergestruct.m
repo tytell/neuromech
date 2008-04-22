@@ -10,10 +10,17 @@ k = length(sm)+1;
 for i = 2:length(varargin),
 	f1 = fieldnames(varargin{i});
 	n = length(varargin{i});
-	
-	for j = 1:length(f1),
-		sm = setfield(sm,{k:k+n-1},f1{j},getfield(varargin{i},f1{j}));
-	end;
+
+    if (isempty(fieldnames(sm)) && isempty(f1)),
+        sm(k:k+n-1) = struct;
+    elseif (isempty(f1)),
+        f1 = fieldnames(sm);
+        sm(k:k+n-1).(f1{1}) = deal([]);
+    else
+        for j = 1:length(f1),
+            [sm(k:k+n-1).(f1{j})] = deal(varargin{i}.(f1{j}));
+        end;
+    end;
 	k = k+n;
 end;
 
