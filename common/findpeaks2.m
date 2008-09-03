@@ -27,7 +27,14 @@ maxflat = 1;
 isstrict = false;
 sortorder = 'none';
 
-i = 1;
+if (isnumeric(varargin{1}))
+    dim = varargin{1};
+    i = 2;
+else
+    dim = 1;
+    i = 1;
+end;
+
 while (i <= length(varargin)),
     switch lower(varargin{i}),
         case 'max',
