@@ -12,6 +12,8 @@ function varargout = findpeaks2(y, varargin)
 %         neighbor must be greater (less) than the successive neighbor on
 %         the peak's slope
 %     'sort' - Sorts the peaks.  Options are 'up','down','absup','absdown'
+%     'thresh' - Threshold for the peaks.  NB: for minmax, this is an absolute
+%         threshold, but for the others, its sign is not changed
 %
 % Returns:
 %     peak - The values of the peaks, in the same order as y.
@@ -26,6 +28,9 @@ numneighbors = 1;
 maxflat = 1;
 isstrict = false;
 sortorder = 'none';
+thresh = -Inf;
+minpeakdistance = 0;
+bias = 'morepeaks';
 
 if (isnumeric(varargin{1}))
     dim = varargin{1};
@@ -37,55 +42,69 @@ end;
 
 while (i <= length(varargin)),
     switch lower(varargin{i}),
-        case 'max',
-            findpeaksign = 1;
-            i = i+1;
-            
-        case 'min',
-            findpeaksign = -1;
-            i = i+1;
-            
-        case 'minmax',
-            findpeaksign = [1 -1];
-            i = i+1;
-            
-        case 'numneighbors',
-            numneighbors = varargin{i+1};
-            i = i+2;
-            
-        case 'maxflat',
-            maxflat = varargin{i+1};
-            i = i+2;
-            
-        case 'strict',
-            isstrict = true;
-            i = i+1;
+      case 'max',
+        findpeaksign = 1;
+        i = i+1;
+        
+      case 'min',
+        findpeaksign = -1;
+        i = i+1;
+        
+      case 'minmax',
+        findpeaksign = [1 -1];
+        i = i+1;
 
-        case 'sort',
-            sortorder = varargin{i+1};
-            i = i+2;
-            
-        otherwise,
-            error('Unrecognized option %s', varargin{i});
+      case 'thresh',
+        thresh = varargin{i+1};
+        i = i+2;
+        
+      case 'numneighbors',
+        numneighbors = varargin{i+1};
+        i = i+2;
+        
+      case 'maxflat',
+        maxflat = varargin{i+1};
+        i = i+2;
+        
+      case 'strict',
+        isstrict = true;
+        i = i+1;
+
+      case 'sort',
+        sortorder = varargin{i+1};
+        i = i+2;
+
+      case 'minpeakdistance',
+        minpeakdistance = varargin{i+1};
+        i = i+2;
+
+      case {'morepeaks','biggerpeaks'},
+        bias = lower(varargin{i});
+        i = i+1;
+
+      otherwise,
+        error('Unrecognized option %s', varargin{i});
     end;
 end;
 
 ispeak = false(size(y));
-if (maxflat > 1),
-    isflatpeak = false(size(y));
-    flatpeakoffset = zeros(size(y));
-end;
+isflatpeak = false(size(y));
+flatpeakoffset = zeros(size(y));
+
 if (length(findpeaksign) > 1),
     peaksign = zeros(size(y));
 end;
 
 for i = 1:length(findpeaksign),
-    ispeak1 = true(size(y));
+    %adjust for minima or maxima
+    thresh1 = findpeaksign(i) * thresh;
+    y1 = findpeaksign(i) * y;
+
+    %make sure we're over the threshold
+    ispeak1 = y1 >= thresh1;
     %can't detect peaks at the very beginning and end of the set
     ispeak1([1:numneighbors end-numneighbors+1:end]) = false;
 
-    y1 = findpeaksign(i) * y;
-    
     %run through the neighbors
     k = numneighbors+1:length(y)-numneighbors;
     for off = 1:numneighbors,
@@ -98,10 +117,14 @@ for i = 1:length(findpeaksign),
     %run through the number of flat points
     for flat = 1:maxflat-1,
         k = numneighbors+1:length(y)-numneighbors-flat;
-        isflatpeak1 = true(size(y));
+        isflatpeak1 = y1 >= thresh1;
         isflatpeak1([1:k(1)-1 k(end)+1:end]) = false;
-        
-        isflatpeak1(k) = isflatpeak1(k) & (y1(k) == y1(k+flat));
+
+        %to be a flat peak, all of the points at the top of the peak have to be equal
+        for off = 1:flat,
+            isflatpeak1(k) = isflatpeak1(k) & (y1(k) == y1(k+off));
+        end;
+        %and greater than the neighbors on either side
         for off = 1:numneighbors,
             isflatpeak1(k) = isflatpeak1(k) & (y1(k) > y1(k-off)) & (y1(k) > y1(k+flat+off));
             if (isstrict && (off > 1)),
@@ -125,10 +148,80 @@ if (maxflat > 1),
     ispeak = ispeak | isflatpeak;
 end;
 peaks = y(ispeak);
-peakind = find(ispeak);
-if (maxflat > 1),
-    isflatind = isflatpeak(ispeak);
-    peakind(isflatind) = peakind(isflatind) + floor(flatpeakoffset(isflatpeak));
+peakind = find(ispeak) + floor(flatpeakoffset(ispeak));
+
+if (minpeakdistance > 1),
+    %look for peaks that are separated by less than minpeakdistance, on either side
+    good = true(size(peakind));
+    good(1:end-1) = diff(peakind) >= minpeakdistance;
+
+    %now find blocks of peaks, each of which is separated by less than minpeakdistance
+    blockstart = makerow(find(good(1:end-1) & ~good(2:end))) + 1;
+    blockend = makerow(find(~good(1:end-1) & good(2:end))) + 1;
+    if (blockend(1) < blockstart(1)),
+        blockstart = [1 blockstart];
+    end;
+    if (blockstart(end) > blockend(end)),
+        blockend = [blockend length(peakind)];
+    end;
+    
+    %run through the blocks
+    for i = 1:length(blockstart),
+        block = blockstart(i):blockend(i);
+        peakind1 = peakind(block);
+        
+        %initially, assume we're going to get rid of all of the peaks
+        good(block) = false;
+
+        %this is the largest number of peaks that can (potentially) fit in the space
+        nmax = floor((peakind1(end)-peakind1(1))/minpeakdistance)+1;
+        
+        %sort the peaks from biggest to smallest
+        p = peaks(block);
+        [p,ord] = sort(p, 'descend');
+        block = block(ord);
+        peakind1 = peakind1(ord);
+        
+        good(block(1)) = true;        % always keep the biggest peak
+        
+        %step through and see if we can keep a few more peaks
+        switch bias,
+          case 'morepeaks',
+            %bias towards more peaks means that we might throw out a larger peak for a
+            %smaller one, if that means we can keep more
+            keep = 1;
+            b = 2;
+            n = 1;
+            while ((n < nmax) && (b <= length(block))),
+                %if we find two that are separated by minpeakdistance, then keep them
+                if (all(abs(peakind1(b) - peakind1(keep)) >= minpeakdistance)),
+                    good(block(b)) = true;
+                    keep = [keep b];
+                    b = b+1;
+                    n = n+1;
+                else
+                    %otherwise, look at the next smaller peak
+                    b = b+1;
+                end;
+            end;
+
+          case 'biggerpeaks',
+            %bias towards bigger peaks: step down the list of peaks in order of
+            %height.  If they're separated by >= minpeakdistance, then keep them.  Stop
+            %at the first pair separated by < minpeakdistance
+            b = 2;
+            n = 1;
+            while ((n < nmax) && (b <= length(block)) && ...
+                   (peakind1(b) - peakind1(b-1) >= minpeakdistance)),
+                good(block(b)) = true;
+                n = n+1;
+                b = b+1;
+            end;
+        end;
+    end;
+    
+    peaks = peaks(good);
+    peakind = peakind(good);
 end;
 
 switch lower(sortorder),
