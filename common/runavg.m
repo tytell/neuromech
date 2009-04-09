@@ -5,6 +5,10 @@ if (nargin == 2)
     dim = 1;
 end;
 
+if (size(m,dim) < n),
+    error('Too few data points');
+end;
+
 %permute and reshape m so that it has the dimension of interest along the
 %rows and everything else flatten along columns
 pmt = [dim 1:dim-1 dim+1:ndims(m)];

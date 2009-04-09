@@ -14,6 +14,11 @@ function varargout = findpeaks2(y, varargin)
 %     'sort' - Sorts the peaks.  Options are 'up','down','absup','absdown'
 %     'thresh' - Threshold for the peaks.  NB: for minmax, this is an absolute
 %         threshold, but for the others, its sign is not changed
+%     'minpeakdistance' - Minimum distance between peaks
+%     'morepeaks','biggerpeaks' - Defines the bias for how to sort peaks that are too
+%        close.  'morepeaks' will potentially throw out a large peak, if it allows the
+%        minpeakdistance criterion to hold, while 'biggerpeaks' always takes the largest
+%        peaks.  Default is 'morepeaks'
 %
 % Returns:
 %     peak - The values of the peaks, in the same order as y.
@@ -158,11 +163,14 @@ if (minpeakdistance > 1),
     %now find blocks of peaks, each of which is separated by less than minpeakdistance
     blockstart = makerow(find(good(1:end-1) & ~good(2:end))) + 1;
     blockend = makerow(find(~good(1:end-1) & good(2:end))) + 1;
-    if (blockend(1) < blockstart(1)),
-        blockstart = [1 blockstart];
-    end;
-    if (blockstart(end) > blockend(end)),
-        blockend = [blockend length(peakind)];
+    
+    if (~isempty(blockstart) & ~isempty(blockend)),
+        if (blockend(1) < blockstart(1)),
+            blockstart = [1 blockstart];
+        end;
+        if (blockstart(end) > blockend(end)),
+            blockend = [blockend length(peakind)];
+        end;
     end;
     
     %run through the blocks

@@ -1,4 +1,6 @@
 function aliasrawdata
+% function aliasrawdata
+% Creates symbolic links to data files on an external hard drive
 
 if (~ismac && ~isunix),
     error('Aliases do not work well under Windows');
