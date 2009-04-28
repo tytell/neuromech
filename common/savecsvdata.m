@@ -22,7 +22,7 @@ nvar = length(data);
 %handle the two old forms of parameters
 if ((numel(data) == 1) && iscell(data{1}) && (numel(data{1}) > 1)),
     %savecsvdata(file,{var1,var2...})
-    data = data{1};
+    data = data{1};    
 elseif ((numel(data) == 2) && iscell(data{1}) && iscellstr(data{2}) && ...
         (length(data{1}) == length(data{2}))),
     %savecsvdata(file,{var1,var2,...},{name1,name2,...})
@@ -48,15 +48,21 @@ else
         nc = size(data{i},2);
         
         data{i} = mat2cell(data{i},size(data{i},1),ones(1,nc));
-        vn1 = opt.varnames{i};
-        opt.varnames{i} = cell(1,nc);
-        
-        for j = 1:nc,
-            opt.varnames{i}{j} = sprintf('%s%d',vn1,j);
-        end;
     end;
+
+    if (length(opt.varnames) == nvar),
+        for i = 1:nvar,
+            vn1 = opt.varnames{i};
+            opt.varnames{i} = cell(1,nc);
+            
+            for j = 1:length(data{i}),
+                opt.varnames{i}{j} = sprintf('%s%d',vn1,j);
+            end;
+        end;
+        opt.varnames = cat(2,opt.varnames{:});
+    end;
+  
     data = cat(2,data{:});
-    opt.varnames = cat(2,opt.varnames{:});
 end;
 
 nvar = size(data,2);
