@@ -19,7 +19,7 @@ elseif ((size(varargin{1},1) == 1) && ...
         (ndims(varargin{2}) == length(varargin{1})) && ...
         all(size(varargin{2}) == [1 varargin{1}(2:end)]))
     [sz,r] = deal(varargin{:});
-elseif (numel(varargin{2}) == size(varargin{1},2)),
+elseif ((ndims(varargin{1}) == 2) && (numel(varargin{2}) == size(varargin{1},2))),
     [A,r] = deal(varargin{:});
     sz = size(A);
 elseif ((ndims(varargin{1}) == ndims(varargin{2})) && ...
@@ -27,6 +27,8 @@ elseif ((ndims(varargin{1}) == ndims(varargin{2})) && ...
         (numel(varargin{2}) == numel(varargin{1})/size(varargin{1},1))),
     [A,r] = deal(varargin{:});
     sz = size(A);
+else
+    error('rowind:badargs','Unrecognized arguments');
 end;
 
 if (any((r < 0) | (r > sz(1)))),
