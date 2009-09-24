@@ -102,7 +102,7 @@ end;
 
 for i = 1:length(findpeaksign),
     %adjust for minima or maxima
-    thresh1 = findpeaksign(i) * thresh;
+    thresh1 = thresh;
     y1 = findpeaksign(i) * y;
 
     %make sure we're over the threshold
@@ -164,7 +164,7 @@ if (minpeakdistance > 1),
     blockstart = makerow(find(good(1:end-1) & ~good(2:end))) + 1;
     blockend = makerow(find(~good(1:end-1) & good(2:end))) + 1;
     
-    if (~isempty(blockstart) & ~isempty(blockend)),
+    if (~isempty(blockstart) && ~isempty(blockend)),
         if (blockend(1) < blockstart(1)),
             blockstart = [1 blockstart];
         end;
