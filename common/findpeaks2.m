@@ -120,7 +120,9 @@ for i = 1:length(findpeaksign),
     end;
 
     %run through the number of flat points
-    for flat = 1:maxflat-1,
+    flatdone = false;
+    flat = 1;
+    while (~flatdone && (flat <= maxflat-1)),
         k = numneighbors+1:length(y)-numneighbors-flat;
         isflatpeak1 = y1 >= thresh1;
         isflatpeak1([1:k(1)-1 k(end)+1:end]) = false;
@@ -129,6 +131,10 @@ for i = 1:length(findpeaksign),
         for off = 1:flat,
             isflatpeak1(k) = isflatpeak1(k) & (y1(k) == y1(k+off));
         end;
+        
+        %we can declare ourselves done if we don't have any runs of length flat
+        flatdone = all(~isflatpeak1);
+        
         %and greater than the neighbors on either side
         for off = 1:numneighbors,
             isflatpeak1(k) = isflatpeak1(k) & (y1(k) > y1(k-off)) & (y1(k) > y1(k+flat+off));
@@ -141,6 +147,8 @@ for i = 1:length(findpeaksign),
         isflatpeak = isflatpeak | isflatpeak1;
         flatpeakoffset(isflatpeak1) = flat/2;
         peaksign(isflatpeak1) = findpeaksign(i);
+        
+        flat = flat+1;
     end;
 
     if (length(findpeaksign) > 1),
