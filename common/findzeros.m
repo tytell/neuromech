@@ -1,4 +1,6 @@
 function [ind,sgn] = findzeros(y,varargin)
+% function [ind,sgn] = findzeros(y, options...)
+% Returns the index and sign (1 for ascending, -1 for descending) of zeros in y.
 
 opt.numneighbors = 1;
 opt.isstrict = false;
@@ -10,7 +12,12 @@ if ((ndims(y) ~= 2) || all(size(y) ~= 1)),
     error('Can only operate on vectors');
 end;
 
-y = y(:);
+if (size(y,1) == 1)
+    y = y';
+    istranspose = true;
+else
+    istranspose = false;
+end;
 
 isasc = false(size(y));
 isdesc = false(size(y));
@@ -34,5 +41,12 @@ sgn = zeros(size(y));
 sgn(isasc) = 1;
 sgn(isdesc) = -1;
 sgn = sgn(iszero);
+
+if (istranspose),
+    ind = ind';
+    sgn = sgn';
+end;
+
+    
 
     
