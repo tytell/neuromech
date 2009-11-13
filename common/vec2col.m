@@ -1,0 +1,61 @@
+function C = vec2col(v,w,step, dim)
+
+if (nargin < 4),
+    dim = [];
+    if (nargin < 3),
+        step = 1;
+    end;
+end;
+
+sz = size(v);
+if (isempty(dim))
+    if ((ndims(v) == 2) && (sz(1) == 1)),
+        dim = 2;
+    else
+        dim = 1;
+    end;
+end;
+
+%permute v so that the dimension of interest is the first
+pmt = [dim 1:dim-1 dim+1:ndims(v)];
+v = permute(v,pmt);
+sz = sz(pmt);
+norig = sz(1);
+N = prod(sz(2:end));
+
+%flatten the other dimensions
+v = reshape(v, [norig N]);
+
+if (isempty(step)),
+    step = 1;
+end;
+
+%generate the index into v
+%first by stepping the center point
+ind = 1:step:norig;
+nnew = length(ind);
+
+%offsets for the window
+off = (0:w-1)' - floor((w-1)/2);
+
+%create the index into the main dimension
+ind = repmat(ind,[length(off) 1]) + repmat(off,[1 nnew]);
+good = (ind >= 1) & (ind <= norig);
+
+%replicate for the other dimensions
+ind = repmat(ind,[1 1 N]) + repmat(shiftdim((0:N-1)*norig,-1),[w nnew 1]);
+good = repmat(good,[1 1 N]);
+
+%do the indexing
+C = NaN(size(ind));
+C(good) = v(ind(good));
+
+%and make C the right shape
+C = reshape(C, [w nnew sz(2:end)]);
+C = ipermute(C, [1 pmt+1]);
+
+%handle row vectors correctly
+if ((dim == 2) && (ndims(C) == 3) && (size(C,2) == 1))
+    C = reshape(C, [w nnew]);
+end;
+
