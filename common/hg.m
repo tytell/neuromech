@@ -1,6 +1,6 @@
 function hg(varargin)
 
-opt.hgpath = '/usr/bin/hg';
+opt.hgpath = '/usr/local/bin/hg';
 
 [opt,args] = parsevarargin(opt,varargin,'leaveunknown');
 
