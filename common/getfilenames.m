@@ -1,19 +1,38 @@
-function fn = getfilenames(d)
+function filenames = getfilenames(d,varargin)
 
-k = find((d == '\') | (d == '/'));
-if (~isempty(k)),
-	path = d(1:k(end));
+opt.recursive = false;
+opt.exclude = {'.','..','.DS_Store'};
+
+opt = parsevarargin(opt,varargin,2);
+
+if (exist(d,'dir'))
+    pn = d;
+    fn = '';
+    ext = '';
 else
-	path = [];
+    [pn,fn,ext] = fileparts(d);
 end;
 
 files = dir(d);
-if (length(files) > 0),
+if (~isempty(files)),
+    a = 1;
+    filenames = cell(length(files),1);
 	for i = 1:length(files),
-		fn{i,1} = [path files(i).name];
+        if (~ismember(files(i).name, opt.exclude)),
+            fn1 = fullfile(pn,files(i).name);
+            if (opt.recursive && exist(fn1,'dir')),
+                rec = getfilenames(fullfile(fn1,[fn ext]));
+                filenames(a:a+length(rec)-1,1) = rec;
+                a = a+length(rec);
+            else
+                filenames{a,1} = fullfile(pn,files(i).name);
+                a = a+1;
+            end;
+        end;
 	end;
+    filenames = filenames(1:a-1);
 else
-	fn = {};
+	filenames = {};
 end;
 
-fn = sortfiles(fn);
+filenames = sortfiles(filenames);
