@@ -3,17 +3,7 @@ function packagefcn(fcns,dest, varargin)
 
 opt.maintaindirstruct = false;
 
-i = 1;
-while (i <= length(varargin)),
-    switch lower(varargin{i}),
-      case {'maintaindirstruct'},
-        opt.(varargin{i}) = true;
-        i = i+1;
-        
-      otherwise,
-        error('Unrecognized option %s', varargin{i});
-    end;
-end;
+opt = parsevarargin(opt, varargin, 2);
 
 if (nargin == 0),
     [fcns,pn] = uigetfile('*.m','Select function(s) to package', 'MultiSelect','on');
