@@ -1,11 +1,26 @@
-function sm = mergeStruct(varargin)
+function sm = mergestruct(varargin)
 % function sm = mergeStruct(a,b,c,...)
 % Merges a,b,c, etc. into a structure array, with sm(1) being a, sm(2) being b,
 % and so forth.  It assumes field names mostly overlap.
 
+isflat = false;
+if ((nargin > 1) && ischar(varargin{end})),
+    switch lower(varargin{end}),
+        case 'flat',
+            isflat = true;
+        otherwise,
+            error('Unrecognized option %s.', varargin{end})
+    end;
+    varargin = varargin(1:end-1);
+end;
+
 sm = varargin{1};
 
-k = length(sm)+1;
+if (isflat),
+    k = 1;
+else
+    k = length(sm)+1;
+end;
 
 for i = 2:length(varargin),
 	f1 = fieldnames(varargin{i});
@@ -21,7 +36,9 @@ for i = 2:length(varargin),
             [sm(k:k+n-1).(f1{j})] = deal(varargin{i}.(f1{j}));
         end;
     end;
-	k = k+n;
+    if (~isflat),
+        k = k+n;
+    end;
 end;
 
 			
