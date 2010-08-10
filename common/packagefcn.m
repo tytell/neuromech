@@ -1,14 +1,20 @@
 function packagefcn(fcns,dest, varargin)
 % function packagefcn(fcns,dest, options...)
 
-opt.maintaindirstruct = false;
+opt.maintaindirstruct = true;
 
 opt = parsevarargin(opt, varargin, 2);
 
 if (nargin == 0),
     [fcns,pn] = uigetfile('*.m','Select function(s) to package', 'MultiSelect','on');
+    if (~ischar(fcns) && (fcns == 0))
+        return;
+    end;
     
     dest = uigetdir('','Select destination direction');
+    if (~ischar(dest) && (dest == 0))
+        return;
+    end;
 end;
 
 if (~iscell(fcns)),

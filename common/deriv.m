@@ -3,6 +3,13 @@ function d = deriv(x,y,dim,ord,iseven)
 % calculates derivatives based on dy(i)/dx = (y(i+1)-y(i-1))/(x(i+1)-x(i-1))
 % approximates the end points by a single point difference, rather than the
 % central difference
+% ord is the order of the derivative (first derivative, second derivative,
+% etc)
+% iseven specifies whether the spacing is even.  If so, then x can be empty
+% or equal to a scalar that specifies the dx value.
+%
+% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Copyright (c) 2010, Eric Tytell
 
 if (nargin < 4),
     ord = 1;
