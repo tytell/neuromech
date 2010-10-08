@@ -1,6 +1,9 @@
 function [ind,sgn] = findzeros(y,varargin)
 % function [ind,sgn] = findzeros(y, options...)
 % Returns the index and sign (1 for ascending, -1 for descending) of zeros in y.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.numneighbors = 1;
 opt.isstrict = false;

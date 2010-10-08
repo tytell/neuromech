@@ -1,6 +1,13 @@
 function f = unmod(f,m,delta,dim)
 % function y = unmod(f,m,delta)
-% delta is optional.  Default is m/10
+% Removes the modulus from discrete data, by looking for large jumps and
+% assuming they represent points when the values have wrapped around in
+% modulus.  Similar to unwrap, but can work with any modulus.
+%
+% delta is optional and represents the size of the jump.  Default is m/10
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 % deal with optional arguments
 if (nargin < 4)

@@ -21,6 +21,9 @@ function M = mergematfiles(infiles,vars,varargin)
 %   'transposevectors' - How to handle vectors.  If this is true, it will transpose row
 %   and column vectors so that they all align, and then merge them.  Otherwise, it will
 %   merge them as is.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.mode = 'catuneven';
 opt.catvars = {};

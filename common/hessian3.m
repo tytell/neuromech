@@ -2,7 +2,14 @@ function varargout = hessian3(x,y,z, V, method, ind1,ind2,ind3)
 % function H = hessian3(x,y,z, V, method)
 % Calculates a 3D matrix of second derivatives using a 5th order
 % central difference algorithm.
-% Copyright (c) 2004 Eric Tytell
+%
+% Method can be 
+%   'difference' (default), for 5th order central difference.
+%   'ndifference', for nth order central difference
+%   'spline', for spline based differences
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 4),
   method = 'difference';
@@ -10,8 +17,8 @@ end;
 
 switch lower(method),
  case 'ndifference',
-  if ((nargin <= 6) | ((nargin == 8) & isempty(ind2))),
-      if (exist('ind1') & ~isempty(ind1)),
+  if ((nargin <= 6) || ((nargin == 8) && isempty(ind2))),
+      if (exist('ind1','var') && ~isempty(ind1)),
           N = floor(ind1/2);
           if (2*N+1 > min(size(V))),
               error('Order is too large');
@@ -81,7 +88,7 @@ switch lower(method),
     dz = 0;
   end;
 
-  if (exist('ind1')),
+  if (exist('ind1','var')),
       error('This option doesn''t work.');
 
       i = ind1(1)-ord:ind1(end)+ord;
@@ -110,7 +117,7 @@ switch lower(method),
   jj = repmat(shiftdim(j,-1), [2*ord+1 1 1 1]);
   kk = repmat(shiftdim(k,-1), [2*ord+1 1 1 1]);
 
-  H = repmat(NaN,[3 3 size(i)]);
+  H = NaN([3 3 size(i)]);
 
   ind = sub2ind(size(V), ii(:,m1,:,:)+off(:,m1,:,:),...
                 jj(:,m1,:,:), kk(:,m1,:,:));
@@ -154,7 +161,7 @@ switch lower(method),
   ord = 6;
   noff = ceil(ord/2)+2;
 
-  if (exist('ind1')),
+  if (exist('ind1','var')),
       i = ind1(1)-noff:ind1(end)+noff;
       j = ind2(1)-noff:ind2(end)+noff;
       k = ind3(1)-noff:ind3(end)+noff;

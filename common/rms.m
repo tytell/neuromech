@@ -1,6 +1,9 @@
 function r = rms(a, dim)
 % r = rms(a, dim)
 % Calculates the RMS value across a particular dimension.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 %handle when they don't pass in a dimension
 if (nargin == 1),

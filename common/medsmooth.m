@@ -1,4 +1,9 @@
 function y = medsmooth(x, n)
+% function y = medsmooth(x, n)
+% Median filter on the first dimension of x with length n.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 sz = size(x);
 
@@ -11,6 +16,7 @@ wnd = shiftdim((1:n)',-(wdim-1));
 wnd = round(wnd - mean(wnd));
 wnd = repmat(wnd,[sz 1]);
 
+sub = cell(wdim-1);
 for dim = 1:wdim-1,
   i = (1:size(x,dim))';
   i = shiftdim(i,-(dim-1));

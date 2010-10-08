@@ -1,6 +1,9 @@
 function aliasrawdata
 % function aliasrawdata
 % Creates symbolic links to data files on an external hard drive
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (~ismac && ~isunix),
     error('Aliases do not work well under Windows');
