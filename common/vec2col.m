@@ -1,4 +1,10 @@
 function C = vec2col(v,w,step, dim)
+% function C = vec2col(v,w,step, dim)
+% Splits a vector (or the columns of a matrix) into windows with length w,
+% stepping with length step.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin < 4),
     dim = [];

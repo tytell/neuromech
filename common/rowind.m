@@ -7,6 +7,17 @@ function varargout = rowind(varargin)
 % column i, for all columns i (or higher order dimensions).  Alternatively,
 % you can pass a matrix A and it will return the value of the matrix at the 
 % row values.   
+% 
+% Example:
+%   A = [1  2  3; ...
+%        4  5  6; ...
+%        7  8  9; ...
+%        10 11 12];
+%   rowind(A,[2 3 1]) = [4 8 3]
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
+
 
 if (nargin ~= 2)
     error('rowind:argnum','Wrong number of arguments');

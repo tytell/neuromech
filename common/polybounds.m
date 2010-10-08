@@ -17,6 +17,9 @@ function [y,dy] = polybounds(x,b,S,alpha,obs,simul)
 %
 % This procedure taken almost verbatim from polytool.m in the Matlab
 % Statistics toolbox, version 3.0.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 df = S.df;
 normr = S.normr;

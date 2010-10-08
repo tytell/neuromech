@@ -1,4 +1,10 @@
 function [x,y,u,v,err,I] = loadInsight(files,avi,frnum)
+% function [x,y,u,v,err,I] = loadInsight(files,avi,frnum)
+% Loads Insight/TecPlot data.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
+
 
 if (nargin == 1)
 	avi = [];

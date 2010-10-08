@@ -1,5 +1,16 @@
 function [B,t] = otsuthresh(I,block)
-% function t = otsuthresh(I)
+% function t = otsuthresh(I,blocksize)
+% Calculates optimal threshold for an image (potentially separated into
+% distinct blocks with size blocksize) according to the procedure from
+% Otsu, N. (1978). Discriminant and least squares threshold selection. 
+% In Proceedings of the Fourth International Joint Conference on Pattern
+% Recognition, pp. 592-596.
+%
+% B is the thresholded image and t are the thresholds.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
+
 
 I = im2double(I);
 
@@ -8,7 +19,7 @@ if (nargin == 2),
 	N = prod(block);
 else
 	C = I(:);
-	N = prod(size(I));
+	N = numel(I);
 end;
 
 L = 256;

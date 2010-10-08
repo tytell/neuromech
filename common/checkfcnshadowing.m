@@ -5,6 +5,9 @@ function checkfcnshadowing(varargin)
 % list of functions that shadow others, assuming that you can figure out
 % which ones are shadowed.
 % Option --verbose displays exactly which functions are shadowed.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 ind = strmatch('--verbose',varargin,'exact');
 if (~isempty(ind)),

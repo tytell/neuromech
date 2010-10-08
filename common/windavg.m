@@ -1,6 +1,11 @@
 function varargout = windavg(t,y,wind,twind,fcn)
 % function ywind = windavg(t,y,wind,twind,fcn)
 %    or    [ywind,twind] = windavg(...)
+% Splits a time series into blocks and applies the function fcn to those
+% blocks.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if ((nargin < 4) || isempty(twind)),
     tstart = floor(min(t(:))/wind)*wind - binsize/2;

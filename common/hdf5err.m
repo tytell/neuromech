@@ -1,4 +1,19 @@
 function varargout = hdf5err(fcn,varargin)
+% function [out...] = hdf5err(fcn,params...)
+% Catches errors in the HDF5 functions and returns an error as a return
+% parameter, rather than throwing an error.  Makes HDF5 error handling a
+% little simpler.
+%
+% Example:
+%   [datasetid1,err] = ...
+%      hdf5err(@H5D.open,fileid,gpdata.channels(ch).hwsdata);
+%   Calls H5D.open(fileid,gpdata.channels(ch).hwsdata)
+%   If it can't find the dataset, returns an error number in err, otherwise
+%   err is empty.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
+
 
 try
     fcnout = cell(1,nargout-1);

@@ -20,6 +20,7 @@ function addnote(aStr, noteNum)
 %
 % Peter Madden, July 6, 2005.
 %
+% Mercurial revision hash: $Revision$ $Date$
 
 ws = evalin('caller', 'myWorkspace', '[]');
 

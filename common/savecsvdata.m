@@ -10,6 +10,9 @@ function savecsvdata(file,varargin)
 %
 % If no variable names are passed in, the function attempts to guess them
 % using the names of the variables passed in as arguments
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.varnames = {};
 opt.nanstring = '.';

@@ -1,4 +1,12 @@
 function [xs,ys,us,vs,axs,ays] = interps(x,y, err)
+% function [xs,ys,us,vs,axs,ays] = interps(x,y, err)
+% Smooth and interpolate the x and y data using a smoothing spline.  Data
+% is smoothed so that the mean squared error between the smoothed and
+% original data in the 2D Cartesian space is approximately equal to err.
+% Also estimates velocity and acceleration.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 2),
 	err = 0.5;

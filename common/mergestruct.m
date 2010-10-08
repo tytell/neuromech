@@ -2,6 +2,11 @@ function sm = mergestruct(varargin)
 % function sm = mergeStruct(a,b,c,...)
 % Merges a,b,c, etc. into a structure array, with sm(1) being a, sm(2) being b,
 % and so forth.  It assumes field names mostly overlap.
+%
+% Option 'flat' just merges all of the fields into a single structure.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 isflat = false;
 if ((nargin > 1) && ischar(varargin{end})),

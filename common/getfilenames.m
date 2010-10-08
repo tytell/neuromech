@@ -1,4 +1,14 @@
 function filenames = getfilenames(d,varargin)
+% function filenames = getfilenames(d,options...)
+% Returns filenames on path d (potentially with wildcards).
+% 
+% Options:
+%   'recursive' - Recurses through directories
+%   'exclude' - Cell array of exact file patterns (not wildcards) that
+%     should be excluded from results.  Default is {'.','..','.DS_Store'}
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.recursive = false;
 opt.exclude = {'.','..','.DS_Store'};

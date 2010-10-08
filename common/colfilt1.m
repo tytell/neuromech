@@ -1,5 +1,10 @@
 function F = colfilt1(a,w,step, fcn, dim)
 % function F = colfilt1(a,w,step, fcn, dim)
+% Filter a 1D array in sliding or distinct blocks, much like the colfilt
+% function from the image processing toolbox.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin < 5),
     dim = [];

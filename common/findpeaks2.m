@@ -26,6 +26,9 @@ function varargout = findpeaks2(y, varargin)
 %        index of the central point (rounded down)
 %     peaksign - Only returned for 'minmax' finding.  Returns 1 for maxima
 %        and -1 for minima.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 
 findpeaksign = 1;

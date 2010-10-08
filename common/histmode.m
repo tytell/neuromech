@@ -6,6 +6,9 @@ function m = histmode(x,dim,nbins)
 % of bins can be specified in nbins.  If nbins is Inf or 'exact', then the
 % result is truly the most common value, meaning that that individual value
 % is repeated the most times.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin < 3),
     nbins = 10;
@@ -21,7 +24,7 @@ end;
 sz = size(x);
 if ((nargin == 1) || isempty(dim)),
     dim = 1;
-    if ((ndims(x) == 2) & (size(x,1) == 1)),
+    if ((ndims(x) == 2) && (size(x,1) == 1)),
         dim = 2;
         x = permute(x,[2 1]);
     end;

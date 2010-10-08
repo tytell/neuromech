@@ -5,6 +5,9 @@ function [fn,ind] = sortfiles(fn)
 % demo1, demo10, demo5, which is what sort would return.
 % Note: This is probably rather slow for long lists of unnumbered
 % files.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if (~isempty(fn)),
     [fn,ind] = sort(fn);

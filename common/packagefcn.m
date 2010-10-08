@@ -1,5 +1,12 @@
 function packagefcn(fcns,dest, varargin)
 % function packagefcn(fcns,dest, options...)
+% Finds the dependencies of a particular function(s) and copies them all
+% into a separate directory.
+% Option 'maintaindirstruct' keeps the overall directory structure, but
+% only copies the relevant files.
+%
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.maintaindirstruct = true;
 
