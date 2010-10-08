@@ -52,6 +52,10 @@ function stats = glm(y,factor,model,iscateg,facnames,varnames)
 %	- Handle nested effects and split plots
 %	- Return least square values for each effect
 %	- Automatically calculate appropriate error terms for mixed models.
+%
+% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
+
 
 tol = 1e-10;
 
