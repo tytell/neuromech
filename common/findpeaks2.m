@@ -43,7 +43,8 @@ opt.minpeakdistance = 0;
 opt.bias = 'morepeaks';
 
 opt = parsevarargin(opt,varargin, 'multival', ...
-    {'findpeaks',{'min','max','minmax'}, 'bias',{'morepeaks','biggerpeaks'}});
+    {'findpeaks',{'min','max','minmax'}, 'bias',{'morepeaks','biggerpeaks'}}, ...
+    'synonyms',{{'sortorder',{'sort'}}});
 
 switch opt.findpeaks,
     case 'max',
@@ -108,7 +109,7 @@ for i = 1:length(opt.findpeaksign),
         
         isflatpeak = isflatpeak | isflatpeak1;
         flatpeakoffset(isflatpeak1) = flat/2;
-        peaksign(isflatpeak1) = findpeaksign(i);
+        peaksign(isflatpeak1) = opt.findpeaksign(i);
         
         flat = flat+1;
     end;
