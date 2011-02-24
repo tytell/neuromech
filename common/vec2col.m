@@ -45,12 +45,17 @@ nnew = length(ind);
 off = (0:w-1)' - floor((w-1)/2);
 
 %create the index into the main dimension
-ind = repmat(ind,[length(off) 1]) + repmat(off,[1 nnew]);
+ind = ind(ones(w,1),:) + off(:,ones(1,nnew));
 good = (ind >= 1) & (ind <= norig);
 
 %replicate for the other dimensions
-ind = repmat(ind,[1 1 N]) + repmat(shiftdim((0:N-1)*norig,-1),[w nnew 1]);
-good = repmat(good,[1 1 N]);
+ind = ind(:,:,ones(1,N));
+off = zeros(1,1,N);
+off(1,1,:) = (0:N-1)*norig;
+off = off(ones(w,1),ones(1,nnew),:);
+ind = ind + off;
+
+good = good(:,:,ones(1,N));
 
 %do the indexing
 C = NaN(size(ind));
