@@ -24,7 +24,7 @@ end;
 
 L = 256;
 
-H = hist(C,L);
+[H,x] = hist(C,L);
 H = shiftdim(H);
 H = H / N;					% normalized histogram
 i = linspace(0,1,L)';
@@ -35,8 +35,8 @@ mu = cumsum(repmat(i,[1 size(H,2)]).*H);
 muT = mu(L,:);
 sigmaB = (repmat(muT,[L 1]) .* omega - mu).^2./(omega .* (1-omega));
 
-[s,t] = max(sigmaB);
-t = t/L;
+[~,t] = max(sigmaB);
+t = x(round(t));
 
 C = C > repmat(t,[N 1]);
 

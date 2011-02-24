@@ -1,6 +1,6 @@
 function varargout = findpeaks2(y, varargin)
+%FINDPEAKS2   Finds peaks in y.
 % function [peak,peakind,...] = findpeaks2(y, ...)
-% Finds peaks in y.
 % Options:
 %     'max','min',or 'minmax' - Finds maxima, minima or both (default = max)
 %     'numneighbors' - Makes sure each peak is greater (less) than
@@ -44,7 +44,8 @@ opt.bias = 'morepeaks';
 
 opt = parsevarargin(opt,varargin, 'multival', ...
     {'findpeaks',{'min','max','minmax'}, 'bias',{'morepeaks','biggerpeaks'}}, ...
-    'synonyms',{{'sortorder',{'sort'}}});
+    'synonyms',{{'sortorder',{'sort'}}}, ...
+    'exact');
 
 switch opt.findpeaks,
     case 'max',
