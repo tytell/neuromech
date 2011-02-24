@@ -4,16 +4,17 @@ function packagefcn(fcns,dest, varargin)
 % into a separate directory.
 % Option 'maintaindirstruct' keeps the overall directory structure, but
 % only copies the relevant files.
-%
+
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.maintaindirstruct = true;
+opt.dryrun = false;
 
 opt = parsevarargin(opt, varargin, 2);
 
-if (nargin == 0),
-    [fcns,pn] = uigetfile('*.m','Select function(s) to package', 'MultiSelect','on');
+if ((nargin == 0) || isempty(fcns)),
+    [fcns,~] = uigetfile('*.m','Select function(s) to package', 'MultiSelect','on');
     if (~ischar(fcns) && (fcns == 0))
         return;
     end;
@@ -31,12 +32,12 @@ end;
 package = {};
 for i = 1:length(fcns),
     fullname = which(fcns{i});
-    [pn,fn,ext] = fileparts(fullname);
+    [pn,fn,~] = fileparts(fullname);
     cd(pn);
     
     dep = depfun(fn);
     
-    builtin = strmatch(matlabroot,dep);
+    builtin = strncmp(matlabroot,dep,length(matlabroot));
     isbuiltin = false(size(dep));
     isbuiltin(builtin) = true;
     
@@ -61,7 +62,7 @@ if (opt.maintaindirstruct),
         end;
         
         if (~ismatch),
-            makedirs{end+1} = tok;
+            makedirs{end+1} = tok;      %#ok
         end;
     end;
     
@@ -88,20 +89,32 @@ if (opt.maintaindirstruct),
         if (length(makedirs{i}) > common),
             dirname = fullfile(dest,makedirs{i}{common+1:end});
         
-            mkdir(dirname);
+            if (opt.dryrun)
+                fprintf('mkdir(%s)\n',dirname);
+            else
+                mkdir(dirname);
+            end;
         end;
     end;
     
     cutlen = length(commonbasedir);
     for i = 1:length(package),
-        [pn,fn,ext] = fileparts(package{i});
+        [pn,~,~] = fileparts(package{i});
         pn = pn(cutlen+1:end);
         
-        copyfile(package{i},fullfile(dest,pn));
+        if (opt.dryrun)
+            fprintf('copyfile(%s,%s)\n', package{i}, fullfile(dest,pn));
+        else
+            copyfile(package{i},fullfile(dest,pn));
+        end;
     end;
 else                       
     for i = 1:length(package),
-        copyfile(package{i},dest);
+        if (opt.dryrun)
+            fprintf('copyfile(%s,%s)\n', package{i}, dest);
+        else
+            copyfile(package{i},dest);
+        end;
     end;
 end;
 
