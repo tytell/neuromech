@@ -1,15 +1,18 @@
-function C = vec2col(v,w,step, dim)
-% function C = vec2col(v,w,step, dim)
+function C = vec2col(v,w,step, dim, ctr)
+% function C = vec2col(v,w,step, dim, ctr)
 % Splits a vector (or the columns of a matrix) into windows with length w,
 % stepping with length step.
 %
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
-if (nargin < 4),
-    dim = [];
-    if (nargin < 3),
-        step = 1;
+if (nargin < 5)
+    ctr = [];
+    if (nargin < 4),
+        dim = [];
+        if (nargin < 3),
+            step = 1;
+        end;
     end;
 end;
 
@@ -20,6 +23,10 @@ if (isempty(dim))
     else
         dim = 1;
     end;
+end;
+
+if (isempty(ctr))
+    ctr = floor((w-1)/2);
 end;
 
 %permute v so that the dimension of interest is the first
@@ -42,7 +49,7 @@ ind = 1:step:norig;
 nnew = length(ind);
 
 %offsets for the window
-off = (0:w-1)' - floor((w-1)/2);
+off = (0:w-1)' - ctr;
 
 %create the index into the main dimension
 ind = ind(ones(w,1),:) + off(:,ones(1,nnew));
