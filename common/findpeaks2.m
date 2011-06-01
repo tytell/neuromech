@@ -13,7 +13,7 @@ function varargout = findpeaks2(y, varargin)
 %         the peak's slope
 %     'sort' - Sorts the peaks.  Options are 'up','down','absup','absdown'
 %         or 'none'
-%     'thresh' - Threshold for the peaks.  NB: for minmax, this is an absolute
+%     'threshold' - Threshold for the peaks.  NB: for minmax, this is an absolute
 %         threshold, but for the others, its sign is not changed
 %     'minpeakdistance' - Minimum distance between peaks
 %     'morepeaks','biggerpeaks' - Defines the bias for how to sort peaks that are too
