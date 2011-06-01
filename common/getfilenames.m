@@ -11,7 +11,8 @@ function filenames = getfilenames(d,varargin)
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 opt.recursive = false;
-opt.exclude = {'.','..','.DS_Store'};
+opt.exclude = {};
+opt.baseexclude = {'^\.\.?$','^\.DS_Store$'};
 
 opt = parsevarargin(opt,varargin,2);
 
@@ -23,16 +24,29 @@ else
     [pn,fn,ext] = fileparts(d);
 end;
 
+exclude = [opt.exclude opt.baseexclude];
+
 files = dir(d);
 if (~isempty(files)),
     a = 1;
     filenames = cell(length(files),1);
 	for i = 1:length(files),
-        if (~ismember(files(i).name, opt.exclude)),
+        good = true;
+        for j = 1:length(exclude),
+            if (~isempty(regexp(files(i).name, exclude{j}, 'once')))
+                good = false;
+                break;
+            end;
+        end;
+        
+        if (good)
             fn1 = fullfile(pn,files(i).name);
             if (opt.recursive && exist(fn1,'dir')),
-                rec = getfilenames(fullfile(fn1,[fn ext]));
-                filenames(a:a+length(rec)-1,1) = rec;
+                rec = getfilenames(fullfile(fn1,[fn ext]),'recursive',opt.recursive, ...
+                    'exclude',opt.exclude, 'baseexclude',opt.baseexclude);
+                if (~isempty(rec))
+                    filenames(a:a+length(rec)-1,1) = rec;
+                end;
                 a = a+length(rec);
             else
                 filenames{a,1} = fullfile(pn,files(i).name);
