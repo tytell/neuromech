@@ -1,8 +1,10 @@
 function M = mergematfiles(infiles,vars,varargin)
+%MERGEMATFILES  Merges variables in multiple .mat files
 % function M = mergematfiles(infiles,vars,...)
 %
 % Merges variables in multiple .mat files.  infiles specifies the files and vars specifies
-% the variables to merge.
+% the variables to merge.  If vars is empty or equal to '-all', then merges
+% all of the variables.
 %
 % Options:
 %
@@ -38,6 +40,10 @@ opt = parsevarargin(opt,varargin,'multival',{'mode',{'cat','catuneven','cell'}},
 %disable warnings for variables not found in a .mat file - we'll handle the problem
 %ourselves
 warnstate = warning('off','MATLAB:load:variableNotFound');
+
+if (isempty(vars) || (ischar(vars) && strcmp(vars,'-all')))
+    vars = who('-file',infiles{1});
+end;
 
 nvar = length(vars);
 nfile = length(infiles);
@@ -122,7 +128,12 @@ for i = 1:nvar,
     end;
     
     %cat certain variables
-    if (ismember(vars{i},opt.catvars)),
+    if (isstruct(A{i,firstgood}))
+        A1 = cellfun(@(x) (shiftdim(x,-1)), A(i,:), ...
+            'UniformOutput',false);
+        V1 = mergestruct(A1{:});
+        V1 = makecol(V1);
+    elseif (ismember(vars{i},opt.catvars)),
         iscat = false;
         nd1 = nd(firstgood);
         
@@ -161,8 +172,29 @@ for i = 1:nvar,
         V0 = catuneven(1,A1{good});
         
         sz = size(V0);
-        V1 = zeros([nfile sz(2:end)],class(A1{firstgood}));
-        V1(good,:) = V0(:,:);
+        skip = false;
+        switch class(V0),
+            case 'cell',
+                V1 = cell([nfile sz(2:end)]);
+            case 'logical',
+                V1 = false([nfile sz(2:end)]);
+            case 'char',
+                V1 = spaces([nfile sz(2:end)]);
+            otherwise
+                if (isnumeric(A1{firstgood}))
+                    V1 = zeros([nfile sz(2:end)],class(A1{firstgood}));
+                else
+                    warning('mergematfiles:badclass',...
+                        'Cannot handle class %s in var %s.  Skipping...',...
+                        class(A1{firstgood}),vars{i});
+                    skip = true;
+                end;
+        end;
+        if (skip)
+            V1 = [];
+        else
+            V1(good,:) = V0(:,:);
+        end;
     else
         %save in a cell array
         V1 = A(i,:);
