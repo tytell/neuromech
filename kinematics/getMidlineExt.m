@@ -13,7 +13,7 @@ function [mx,my,good] = getMidlineExt(avi,frames, varargin)
 % If hx,hy and tx,ty are passed, it tries to subdivide the region between
 % the two sets of points.
 %
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 hx = varargin{1};

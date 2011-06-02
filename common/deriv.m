@@ -8,7 +8,7 @@ function d = deriv(x,y,dim,ord,iseven)
 % iseven specifies whether the spacing is even.  If so, then x can be empty
 % or equal to a scalar that specifies the dx value.
 %
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 if (nargin < 4),

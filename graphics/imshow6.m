@@ -3,7 +3,7 @@ function varargout = imshow6(varargin)
 %
 % imshow with the version 6 parameter layout
 %
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 v = ver('images');

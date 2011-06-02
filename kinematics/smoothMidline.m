@@ -1,6 +1,6 @@
 function [mxs,mys,oxs,oys] = smoothMidline(t,mx,my,len,width, method,varargin)
 % function [mxs,mys,oxs,oys] = smoothMidline(t,mx,my,len,width, method,varargin)
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 nfr = size(mx,2);

@@ -2,7 +2,7 @@ function varargout = addplot3(varargin)
 % function h = addplot3(...)
 % Same as plot3, but adds a plot to the existing plot
 %
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 if ((numel(varargin{1}) == 1) && ishandle(varargin{1}) && ...

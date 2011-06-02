@@ -4,7 +4,7 @@ function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr)
 % the total length of the midline.  serr and terr are the errors along
 % space and time, respectively.
 %
-% Mercurial revision hash: $Revision: 0570ba7d7b2b $ $Date: 2010/08/16 19:33:05 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 nfr = size(mx,2);

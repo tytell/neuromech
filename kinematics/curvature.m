@@ -13,7 +13,7 @@ function varargout = curvature(x,y,varargin)
 %       works when points are missing or aren't evenly distributed along the body length.
 %       This method is *much* slower than 'spline'.
 %
-% Mercurial revision hash: $Revision: 0570ba7d7b2b $ $Date: 2010/08/16 19:33:05 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 opt.dim = [];

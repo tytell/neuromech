@@ -1,5 +1,5 @@
 function [opts,param,ismatch] = matchQuivercOption(opts,param,name,nick,def)
-% Mercurial revision hash: $Revision: dd099ded8eec $ $Date: 2010/08/11 13:58:29 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 if (nargin == 4),

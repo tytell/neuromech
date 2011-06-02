@@ -68,7 +68,7 @@ function [st,p] = tpapslong(x,y,p)
 %   See also CSAPS, SPAPS.
 
 %   Copyright 1987-2001 C. de Boor and The MathWorks, Inc.
-%   $Revision: 571e5e8d26a0 $  $Date: 2002/11/27 16:37:22 $
+%   $Revision$  $Date$
 
 [d,nx] = size(x);
 dd = d+1;

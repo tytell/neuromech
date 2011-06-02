@@ -11,7 +11,7 @@ function install_existing(varargin)
 %          Should always have '^\..*' to exclude '.' and '..' on
 %          MacOS/Linux systems.
 %
-% Mercurial revision hash: $Revision: 19b704643c3a $ $Date: 2010/08/16 19:18:45 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 opt.maxdepth = 2;

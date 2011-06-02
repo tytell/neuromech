@@ -13,7 +13,7 @@ function [on,off,lab] = findruns(L,varargin)
 % SEE ALSO
 %  BWLABEL
 
-% Mercurial revision hash: $Revision: 28d3e87efa15 $ $Date: 2010/10/08 19:01:08 $
+% Mercurial revision hash: $Revision$ $Date$
 % See https://bitbucket.org/tytell/matlab/overview
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 

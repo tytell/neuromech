@@ -4,7 +4,7 @@ function tf = inputyn(str,default)
 % Returns default if the user doesn't type anything.
 % Default is optional and defaults to true.
 %
-% Mercurial revision hash: $Revision: dd099ded8eec $ $Date: 2010/08/11 13:58:29 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 if (nargin == 1),

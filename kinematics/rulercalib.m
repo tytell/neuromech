@@ -11,7 +11,7 @@ function [scale,err,N,distpix,distmm] = rulercalib(im,space)
 % NB: assumes that pixels are square.  The ruler can be at any angle in the frame,
 % but it doesn't allow any pixel aspect ratio.
 %
-% Mercurial revision hash: $Revision: 18f43cd9074e $ $Date: 2010/08/10 21:11:58 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 if (ischar(im)),

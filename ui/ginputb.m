@@ -12,7 +12,7 @@ function [x,y,h] = ginputb(n, style)
 % in h.  That way you can get rid of them without replotting the
 % image (use delete(h))
 %
-% Mercurial revision hash: $Revision: dd099ded8eec $ $Date: 2010/08/11 13:58:29 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 % Sort out the number of parameters

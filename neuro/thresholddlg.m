@@ -10,7 +10,7 @@ function thresh = thresholddlg(t,data, varargin)
 %      threshold.
 %   'name', str - Name of the dialog
 %
-% Mercurial revision hash: $Revision: 28d3e87efa15 $ $Date: 2010/10/08 19:01:08 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 

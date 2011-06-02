@@ -3,7 +3,7 @@ function [tx,ty] = manualTrackPoint(varargin)
 % Tracks points through an avi, stepping every step frames.  tx and ty are
 % defaults for previously clicked points.
 %
-% Mercurial revision hash: $Revision: 0570ba7d7b2b $ $Date: 2010/08/16 19:33:05 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 global mmfile cur step off N imfiles;

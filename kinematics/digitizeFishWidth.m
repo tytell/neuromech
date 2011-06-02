@@ -3,7 +3,7 @@ function widthL = digitizeFishWidth(I, n)
 % Digitizes the fish width from an image I, producing n evenly spaced
 % points.
 %
-% Mercurial revision hash: $Revision: dd099ded8eec $ $Date: 2010/08/11 13:58:29 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 if (nargin == 1),

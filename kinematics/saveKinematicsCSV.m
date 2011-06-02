@@ -3,7 +3,7 @@ function saveKinematicsCSV(outfile,kinfile)
 % Converts kinematic data in kinfile (a .mat file) and saves in CSV form to
 % outfile
 %
-% Mercurial revision hash: $Revision: dd099ded8eec $ $Date: 2010/08/11 13:58:29 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 K = load(kinfile);

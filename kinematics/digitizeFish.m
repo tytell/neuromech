@@ -2,7 +2,7 @@ function digitizeFish(datafile)
 % function digitizeFish(datafile)
 % datafile is a .mat file, which allows you to restart if you like.  If you
 % don't pass it in, it creates a new file
-% Mercurial revision hash: $Revision: 85afe46abd03 $ $Date: 2010/08/10 19:46:11 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 Menu = {'C','Calibrate',@dfCalibrate; ...

@@ -38,7 +38,7 @@ function varargout = analyzeKinematics(s,t,x,y, varargin)
 % Note - you can edit indpeak, if it made errors, and rerun the program
 % on it to calculate all the more useful parameters
 %
-% Mercurial revision hash: $Revision: 0570ba7d7b2b $ $Date: 2010/08/16 19:33:05 $
+% Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
 opt.allowreverse = true;
