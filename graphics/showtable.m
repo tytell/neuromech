@@ -59,6 +59,7 @@ opt.rownames = {};
 opt.colnames = {};
 opt.font = 'Times New Roman';
 opt.colnamesfont = {'FontAngle','italic'};
+opt.colnamesheight = [];
 opt.rownamesfont = {'FontWeight','bold'};
 opt.align = 'bc';
 opt.format = {};
@@ -90,7 +91,7 @@ end;
 
 %parse the options
 opt = parsevarargin(opt, varargin(p:end), p, 'typecheck',false,...
-    'multival',{'mode',{'plot','latex'}});
+    'multival',{'mode',{'plot','latex'}},'exact');
 
 %set up the X matrix
 if (ndims(X) ~= 2),
@@ -124,7 +125,6 @@ end;
 numfmt = '%g';
 if (isempty(opt.format)),
     fmt = cell(size(X));
-    numfmt = opt.format;
 elseif (ischar(opt.format)),
     fmt = cell(size(X));
     numfmt = opt.format;
@@ -407,18 +407,28 @@ end;
 if (~isempty(opt.rowheight) && ~strcmp(opt.rowheightmode,'span')),
     opt.rowheightmode = 'manual';
 end;
+rowheight = zeros(nr,1);
+if (isempty(opt.colnamesheight))
+    r1 = 1;
+    nr1 = nr;
+else
+    rowheight(1) = opt.colnamesheight;
+    r1 = 2;
+    nr1 = nr - 1;
+end;
 switch lower(opt.rowheightmode),
     case 'even',
-        rowheight = max(height(:));
+        rowheight = max(flatten(height(r1:end,:)));
         rowheight = repmat(rowheight,[nr 1]);
     case 'span',
         if (isempty(opt.rowheight)),
-            rowheight = (axheight - sum(rowgap)) / nr * ones(nr,1);
+            rowheight(r1:end) = (axheight - sum(rowgap) - rowheight(1)) / nr1 * ones(nr1,1);
         else
-            rowheight = (axheight - sum(rowgap)) / nr * rowheight / sum(rowheight);
+            rowheight(r1:end) = (axheight - sum(rowgap) - rowheight(1)) / nr1 * ...
+                rowheight(r1:end) / sum(rowheight(r1:end));
         end;
     case 'tight',
-        rowheight = max(height,[],2);
+        rowheight(r1:end) = max(height(r1:end,:),[],2);
         if (isrownames),
             zeroheight = all(height(:,2:end) == 0, 2);
         else
