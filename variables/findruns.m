@@ -1,4 +1,4 @@
-function [on,off,lab] = findruns(L,varargin)
+function [on,off,lab,len] = findruns(L,varargin)
 %FINDRUNS  Finds runs of true values in a logical vector
 % function [on,off,lab] = findruns(L,varargin)
 %   Looks for repeated true values in a logical vector.  Returns
@@ -20,6 +20,13 @@ function [on,off,lab] = findruns(L,varargin)
 opt.mingap = 0;
 
 opt = parsevarargin(opt,varargin,2);
+
+if (size(L,1) == 1)
+    istrans = true;
+    L = L';
+else
+    istrans = false;
+end;
 
 on = find(~L(1:end-1) & L(2:end)) + 1;
 off = find(L(1:end-1) & ~L(2:end));
@@ -45,3 +52,13 @@ lab = cumsum(lab);
 if (L(end))
     lab(end) = lab(end-1);
 end;
+
+len = off - on + 1;
+
+if (istrans)
+    on = on';
+    off = off';
+    lab = lab';
+    len = len';
+end;
+
