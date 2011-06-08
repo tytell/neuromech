@@ -19,6 +19,7 @@ opt.postamble = { ...
 opt.tableenvironment = 'longtable';
 opt.numfmt = '%g';
 opt.strfmt = '%s';
+opt.multifmt = 'spark';
 opt.outfile = '';
 opt.runlatex = true;
 opt.latex = '/usr/texbin/pdflatex';
@@ -26,6 +27,7 @@ opt.sparkwidth = 30;
 opt.midrule = [];
 opt.rowcolorstyle = 'whitegray';
 opt.replacenan = '---';
+opt.header = '';
 
 opt = parsevarargin(opt, varargin, 2);
 
@@ -63,6 +65,18 @@ for i = 1:length(rownames),
     end;
 end;
 
+%add header if necessary
+if (~isempty(opt.header))
+    opt.preamble = [opt.preamble { ...
+        '\usepackage{fancyhdr}' ...
+        '\pagestyle{fancy}' ...
+        ['\fancyhead[LE,LO]{' opt.header '}'] ...
+        '\renewcommand{\footrulewidth}{0pt}' ...
+        '\renewcommand{\headrulewidth}{0pt}' ...
+        '' ...
+        }];
+end;
+        
 %sort out multicolumn column names
 colnames = opt.colnames;
 nhead = size(colnames,1);
@@ -110,6 +124,7 @@ fmt = cell(nrow,ncol);
 
 numfmt = opt.numfmt;
 strfmt = opt.strfmt;
+multifmt = opt.multifmt;
 
 if (ischar(opt.format))
     numfmt = opt.format;
@@ -117,6 +132,8 @@ elseif (iscell(opt.format) && (numel(opt.format) == ncol))
     fmt = repmat(opt.format(:)',[nrow 1]);
 elseif (iscell(opt.format) && (numel(opt.format) == nrow))
     fmt = repmat(opt.format(:), [1 ncol]);
+elseif (iscell(opt.format) && (numel(opt.format) > 1))
+    warning('latextable:fmtsize','Format is not empty but does not match table size.  Ignoring.');
 end;
 
 for i = 1:nrow,
@@ -132,6 +149,10 @@ for i = 1:nrow,
             if (isempty(fmt{i,j}))
                 fmt{i,j} = strfmt;
             end;
+        elseif (iscell(tab{i,j}))
+            if (isempty(fmt{i,j}))
+                fmt{i,j} = multifmt;
+            end;
         end;
     end;
 end;
@@ -143,7 +164,7 @@ for i = 1:nrow,
         if (isempty(tab{i,j}))
             fmt{i,j} = '';
             tab{i,j} = '';
-        elseif (iscell(tab{i,j}))
+        elseif (iscell(tab{i,j}) && strcmpi(fmt{i,j},'spark'))
             plt = tab{i,j};
             if ((numel(plt) == 1) || ...
                     (numel(plt) >= 2) && isnumeric(plt{1}) && ischar(plt{2}))
@@ -318,7 +339,11 @@ for i = 1:nrow,
         fprintf(fid, '%s & ',rownames{i});
     end
     for j = 1:ncol,
-        fprintf(fid, fmt{i,j}, tab{i,j});
+        if (iscell(tab{i,j}))
+            fprintf(fid, fmt{i,j}, tab{i,j}{:});
+        else
+            fprintf(fid, fmt{i,j}, tab{i,j});
+        end;
         if (j < ncol)
             fprintf(fid, ' & ');
         else
@@ -338,15 +363,31 @@ if (fid ~= 1)
     fclose(fid);
     
     if (opt.runlatex)
-        [status,~] = system([opt.latex ' -halt-on-error ' opt.outfile]);
+        [pn,fn,ext] = fileparts(opt.outfile);
+        pdffile = fullfile(pn,[fn '.pdf']);
+
+        if (exist(pdffile,'file'))
+            delete(pdffile);
+        end;
+        
+        done = false;
+        rep = 1;
+        while (~done && (rep < 5))
+            [status,res] = system([opt.latex ' -halt-on-error -output-directory ' pn ...
+                ' ' opt.outfile]);
+            
+            warnind = regexp(res,'Warning.*Rerun','once');
+            if (isempty(warnind))
+                done = true;
+            elseif (status == 1)
+                done = true;
+            end;
+            rep = rep+1;
+        end;
         if (status == 1)
             error('LaTeX error');
         end;
-        [status,~] = system([opt.latex ' -halt-on-error ' opt.outfile]);
-        [status,~] = system([opt.latex ' -halt-on-error ' opt.outfile]);
         
-        [pn,fn,ext] = fileparts(opt.outfile);
-        pdffile = fullfile(pn,[fn '.pdf']);
         if (exist(pdffile,'file'))
             open(pdffile);
         end;
