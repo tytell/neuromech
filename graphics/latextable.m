@@ -22,6 +22,7 @@ opt.strfmt = '%s';
 opt.multifmt = 'spark';
 opt.outfile = '';
 opt.runlatex = true;
+opt.showpdf = true;
 opt.latex = '/usr/texbin/pdflatex';
 opt.sparkwidth = 30;
 opt.midrule = [];
@@ -212,7 +213,7 @@ for i = 1:nrow,
             pltopt = parsevarargin(pltopt, plt(p:end), p);
             
             if (~isempty(pltopt.LineWidth))
-                drawspec0 = {sprintf('line width=%fpt',pltopt.LineWidth)};
+                drawspec0 = {sprintf('line width=%gpt',pltopt.LineWidth)};
             end;
             
             id = ['\spark' num2code(i,j)];
@@ -242,24 +243,32 @@ for i = 1:nrow,
                         drawspec = [drawspec {'dotted'}];
                 end;
                 
-                if (~isempty(drawspec))
-                    str = '  \draw[';
-                    for m = 1:length(drawspec)-1,
-                        str = [str drawspec{m} ','];
-                    end;
-                    str = [str drawspec{end} '] '];
-                else
-                    str = '  \draw ';
-                end;
-                
                 x1 = pltcmd{c,1};
                 y1 = pltcmd{c,2};
-                y1(~isfinite(y1)) = 0;
-                for m = 1:length(y1)-1,
-                    str = [str sprintf('(%.2fpt,%.2fpt)--',x1(m),y1(m))];
+                if (~isempty(y1))
+                    if (~isempty(drawspec))
+                        str = '  \draw[';
+                        for m = 1:length(drawspec)-1,
+                            str = [str drawspec{m} ','];
+                        end;
+                        str = [str drawspec{end} '] '];
+                    else
+                        str = '  \draw ';
+                    end;
+                    
+                    y1(~isfinite(y1)) = 0;
+                    if (length(y1) > 1)
+                        for m = 1:length(y1)-1,
+                            str = [str sprintf('(%.2fpt,%.2fpt)--',x1(m),y1(m))];
+                        end;
+                    else
+                        m = 0;
+                    end;
+                    str = [str sprintf('(%.2fpt,%.2fpt);%%',x1(m+1),y1(m+1))];
+                    sp1{c+2} = str;
+                else
+                    sp1{c+2} = '';
                 end;
-                str = [str sprintf('(%.2fpt,%.2fpt);%%',x1(m+1),y1(m+1))];
-                sp1{c+2} = str;
             end;
             
             sp1{c+3} = '  \end{tikzpicture}%';
@@ -388,7 +397,9 @@ if (fid ~= 1)
             error('LaTeX error');
         end;
         
-        if (exist(pdffile,'file'))
+        [pn,fn,ext] = fileparts(opt.outfile);
+        pdffile = fullfile(pn,[fn '.pdf']);
+        if (opt.showpdf && exist(pdffile,'file'))
             open(pdffile);
         end;
     end;
