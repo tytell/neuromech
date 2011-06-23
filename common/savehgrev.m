@@ -153,6 +153,7 @@ if (~isempty(opt.datafile))
     else
         datafiles = opt.datafile;
     end;
+    issub = false;
     for i = 1:length(datafiles),
         dfinfo1 = dir(datafiles{i});
         datafile1 = datafiles{i};
@@ -162,15 +163,29 @@ if (~isempty(opt.datafile))
             if (isempty(dfinfo1))
                 error('savehgrev:unknowndatafile','Data file %s not found',datafiles{i});
             end;
+            ismatfile = true;
+        else
+            ismatfile = strcmp(datafile1(end-3:end),'.mat');
         end;
-        [s,dfhash1] = system(['openssl sha1 ' datafile1]);
         
+        %get SHA1 hash of data file
+        [s,dfhash1] = system(['openssl sha1 ' datafile1]);        
         if (s == 0)
             hash1 = regexp(dfhash1,'=\s*([0-9a-f]+)','tokens','once');
             dfinfo1.sha1 = hash1{1};
         end;
         
+        %also check to see if it has an HGREV
+        if (ismatfile && ~isempty(who('-file',datafile1,'HGREV')))
+            F = load(datafile1,'HGREV');
+            sub(i) = F.HGREV;
+            issub = true;
+        end;
         dfinfo(i) = dfinfo1;
+    end;
+    
+    if (issub)
+        HGREV.sub = sub;
     end;
     
     HGREV.datafiles = dfinfo;
