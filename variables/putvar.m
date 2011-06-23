@@ -128,52 +128,44 @@ end;
 %remove excepted variables
 remove = ismember(vars,except);
 vars = vars(~remove);
-    
-if (tostruct),
-    %save to a structure
-    for i = 1:length(vars),
-        outdata.(vars{i}) = getvarval(vars{i});
-    end;
-    
-    if (nargout == 1),
-        varargout = {outdata};
-    end;
-elseif (~isempty(outfile)),
-    %save to a file
-    for i = 1:length(vars),
-        F.(vars{i}) = getvarval(vars{i});
-    end;
-    
-    save(outfile,'-append','-struct','F');
-elseif (ishidden),
-    %save to hidden data
+
+if (ishidden)
     if (isappdata(0,'HiddenData')),
         outdata = getappdata(0,'HiddenData');
     else
         outdata = struct;
     end;
-    
-    for i = 1:length(vars),
-        var = getvarval(vars{i});
-        outdata.(vars{i}) = var;
+end;
+
+for i = 1:length(vars)
+    if (fromstruct)
+        val = indata.(vars{i});
+    else
+        val = evalin('caller',vars{i});
     end;
-    setappdata(0,'HiddenData',outdata);
-else
-    %save to the base workspace
-    for i = 1:length(vars),
-        var = getvarval(vars{i});
-        assignin('base',vars{i},var);
+    
+    if (tostruct),
+        %save to a structure
+        outdata.(vars{i}) = val;
+    elseif (~isempty(outfile)),
+        %save to a file
+        F.(vars{i}) = val;
+    elseif (ishidden),
+        outdata.(vars{i}) = val;
+    else
+        %save to the base workspace
+        assignin('base',vars{i},val);
     end;
 end;
 
-    %nested function to get a variable value, either from a struct or the
-    %calling workspace
-    function val = getvarval(name)
-        if (fromstruct)
-            val = indata.(name);
-        else
-            val = evalin('caller',name);
-        end;
-    end
+if (tostruct),
+    %save to a structure
+    if (nargout == 1),
+        varargout = {outdata};
+    end;
+elseif (~isempty(outfile)),
+    save(outfile,'-append','-struct','F');
+elseif (ishidden),
+    setappdata(0,'HiddenData',outdata);
+end;
 
-end
