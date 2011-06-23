@@ -11,7 +11,6 @@ function out = savehgrev(out, varargin)
 %
 % OPTIONS
 % General options:
-%   'caller' - Identifies the calling function that generates a data file.
 %   'datafile' - Identifies the input data file to the calling function
 %     (ie, the raw data).
 %
@@ -34,7 +33,6 @@ function out = savehgrev(out, varargin)
 opt.uncommitted = 'warning';
 opt.untracked = 'none';
 opt.nottip = 'warning';
-opt.caller = '';
 opt.datafile = '';
 opt.savemainrepo = true;
 opt.mainrepolocation = '/Users/eric/Documents/Matlab';
@@ -51,11 +49,8 @@ end;
 
 opt = parsevarargin(opt,varargin(p:end), p+1, 'typecheck',false);
 
-if (~isempty(opt.caller) && exist(opt.caller,'file') && ...
-        isempty(dir(opt.caller)) && ~isempty(dir([opt.caller '.m'])))
-    %check for missing .m extension and add it if necessary
-    opt.caller = [opt.caller '.m'];
-end;
+st = dbstack(1);
+callfcns = {st.file};
     
 [s,res] = hg(repo{:},'summary','echo',false);
 if (s ~= 0)
@@ -75,20 +70,8 @@ switch lower(opt.uncommitted)
 end;
 if (~isempty(warnfunc))
     isuncom = false;
-    if (~isempty(opt.caller))
-        [~,stat] = hg(repo{:},'status -A',opt.caller,'echo',false);
-        sttok = regexp(stat, '^([MARC!?I])', 'once','tokens');
-   
-        if (sttok{1} ~= 'C')
-            isuncom = true;
-        end;
-    else
-        [~,stat] = hg(repo{:},'status -mard','echo',false);
-        if (~isempty(stat))
-            isuncom = true;
-        end;
-    end;
-    if (isuncom)
+    [~,stat] = hg(repo{:},'status -mard','echo',false);
+    if (~isempty(stat))
         feval(warnfunc,'savehgrev:uncommitted','Files are uncommitted in %s.',repoloc);
     end;
 end;
@@ -143,9 +126,7 @@ HGREV.changeset = cshash;
 HGREV.description = desc;
 HGREV.branch = branch;
 HGREV.date = revdate;
-if (~isempty(opt.caller))
-    HGREV.caller = opt.caller;
-end;
+HGREV.caller = callfcns;
 
 if (~isempty(opt.datafile))
     if (ischar(opt.datafile))
@@ -194,11 +175,11 @@ end;
 if (opt.savemainrepo)
     opt1 = opt;
     opt1.savemainrepo = false;
-    opt1.caller = '';
     opt1.datafile = '';
     kv = opt2keyvalue(opt1);
     
     mainrepo = savehgrev([], opt.mainrepolocation, kv{:});
+    mainrepo.caller = {};
     
     HGREV.main = mainrepo;
     HGREV.main.location = opt.mainrepolocation;
