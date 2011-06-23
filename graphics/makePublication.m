@@ -104,6 +104,9 @@ if (opt.copyfig)
     %figcopy = copyobj(fig,0);
     set(figcopy,'Name','publication copy','UserData',fig,'Tag','publicationfigure');
     fig = figcopy;
+
+    uicontrol(fig, 'Style','pushbutton','String','Export', ...
+        'Position',[20 20 100 35], 'Callback',{@exportpubfig,fig});
 end;
 
 set(fig,'Units','inches');
@@ -204,3 +207,11 @@ set(allaxes, 'XTickMode','manual','YTickMode','manual','ZTickMode','manual');
 
 
 
+function exportpubfig(hobj,event, fig)     %#ok
+
+set(hobj, 'Visible','off');
+[fn,pn] = uiputfile({'*.pdf';'*.jpg';'*.png';'*.tif';'*.eps';'*.*'}, 'Export figure');
+
+export_fig(fullfile(pn,fn),fig);
+
+set(hobj, 'Visible','on');

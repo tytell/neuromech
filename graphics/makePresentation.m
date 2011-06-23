@@ -125,7 +125,7 @@ if (opt.copyfig)
         'Color',opt.bgcolor);
     fig = figcopy;
     
-    extportbutt = uicontrol(fig, 'Style','pushbutton','String','Export', ...
+    exportbutt = uicontrol(fig, 'Style','pushbutton','String','Export', ...
         'Position',[20 20 100 35], 'Callback',{@exportpresfig,fig});
 end;
 
