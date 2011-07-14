@@ -36,6 +36,8 @@ opt.nottip = 'warning';
 opt.datafile = '';
 opt.savemainrepo = true;
 opt.mainrepolocation = '/Users/eric/Documents/Matlab';
+opt.disablewarnings = false;
+opt.hash = true;
 
 if ((length(varargin) >= 1) && exist(varargin{1},'dir'))
     repo = {'-R ',varargin{1}};
@@ -48,6 +50,11 @@ else
 end;
 
 opt = parsevarargin(opt,varargin(p:end), p+1, 'typecheck',false);
+if (opt.disablewarnings)
+    opt.uncommitted = 'none';
+    opt.untracked = 'none';
+    opt.nottip = 'none';
+end;
 
 st = dbstack(1);
 callfcns = {st.file};
@@ -148,12 +155,16 @@ if (~isempty(opt.datafile))
         else
             ismatfile = strcmp(datafile1(end-3:end),'.mat');
         end;
-        
-        %get SHA1 hash of data file
-        [s,dfhash1] = system(['openssl sha1 ' datafile1]);        
-        if (s == 0)
-            hash1 = regexp(dfhash1,'=\s*([0-9a-f]+)','tokens','once');
-            dfinfo1.sha1 = hash1{1};
+        %the output of dir doesn't include the path, so add it on here
+        dfinfo1.name = datafiles{i};
+
+        if (opt.hash)
+            %get SHA1 hash of data file
+            [s,dfhash1] = system(['openssl sha1 ' datafile1]);
+            if (s == 0)
+                hash1 = regexp(dfhash1,'=\s*([0-9a-f]+)','tokens','once');
+                dfinfo1.sha1 = hash1{1};
+            end;
         end;
         
         %also check to see if it has an HGREV
