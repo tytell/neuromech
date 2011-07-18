@@ -12,7 +12,7 @@ function install_here(varargin)
 %          MacOS/Linux systems.
 
 % Mercurial revision hash: $Revision$ $Date$
-% See https://bitbucket.org/tytell/matlab/overview
+% See https://bitbucket.org/tytell/matlab/wiki/Home
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
 opt.maxdepth = 2;

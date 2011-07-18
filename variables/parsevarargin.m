@@ -80,7 +80,7 @@ function [opt,rest,indrest] = parsevarargin(opt,varargs,varargin)
 % See also INPUTPARSER.
 
 % Mercurial revision hash: $Revision$ $Date$
-% See https://bitbucket.org/tytell/matlab_variables/overview
+% See https://bitbucket.org/tytell/matlab/wiki/Home
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
 
