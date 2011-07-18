@@ -1,11 +1,39 @@
-function diffs = verifyhgrev(hgold, varargin)
+function varargout = verifyhgrev(hgold, varargin)
 
 opt.datafilepath = '';
 opt.comparehashes = false;
 opt.quiet = false;
 
+if ((nargin == 0) || ~isstruct(hgold))
+    if (nargin > 0)
+        varargin = [hgold varargin];
+    end;
+    if (~getvar('HGREV'))
+        error('Cannot find HGREV structure');
+    end;
+    hgold = HGREV;
+    
+end;
+
 opt = parsevarargin(opt, varargin, 2);
 
+if (isempty(opt.datafilepath) && ~isempty(hgold(1).datafiles))
+    f1 = hgold(1).datafiles(1).name;
+    
+    [pn,fn1,ext] = fileparts(f1);
+    if (~exist(f1,'file'))
+        [fn2, dfpath] = uigetfile(['*' ext],sprintf('Please locate file %s',fn1),pn);
+        
+        [~,fn2] = fileparts(fn2);
+        if (isempty(f1) || ~strcmpi(fn1,fn2))
+            fprintf('Cancelled.');
+            return;
+        end;
+        
+        opt.datafilepath = dfpath;
+    end;
+end;
+    
 analysisfiles = {};
 csets = {};
 revs = [];
@@ -113,11 +141,11 @@ end;
 if (~opt.quiet)
     if (isempty(diffs))
         fprintf('No differences!\n');
-    else        
-        if (strcmp(diffs(1).type, 'analysis'))
+    else    
+        i = 1;
+        if (strcmp(diffs(i).type, 'analysis'))
             fprintf('Analysis file differences.\n');
             
-            i = 1;
             while ((i <= length(diffs)) && strcmp(diffs(i).type,'analysis')),
                 [~,diff] = hg('diff -r ',[diffs(i).old{2} ':' hgcurr.changeset], ...
                     diffs(i).file, '--stat', 'echo',false);
@@ -131,6 +159,22 @@ if (~opt.quiet)
                 i = i+1;
             end;
         end;
+        if ((i <= length(diffs)) && strcmp(diffs(i).type,'data'))
+            fprintf('Data file differences.\n');
+
+            while ((i <= length(diffs)) && strcmp(diffs(i).type,'data')),
+                fprintf('  %s:\n    old %s\n    new %s\n', diffs(i).file, ...
+                    diffs(i).old.date, diffs(i).new.date);
+                i = i+1;
+            end;
+        else
+            fprintf('No data file differences.\n');
+        end;
     end;
 end;
+
+if (nargout == 1)
+    varargout = {diffs};
+end;
+
     
