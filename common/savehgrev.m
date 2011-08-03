@@ -9,10 +9,22 @@ function out = savehgrev(out, varargin)
 %  calculations that produced a particular data file.  Takes an optional
 %  parameter, repo, that specifies the repository directory.
 %
+%  If the datafile specified in the options is a .mat file and has a 
+%  structure called HGREV, we save that in HGREV.sub.  So if you have
+%  several layers of processing, you may end up with several levels of
+%  HGREV.sub.sub....sub.
+%
 % OPTIONS
 % General options:
 %   'datafile' - Identifies the input data file to the calling function
 %     (ie, the raw data).
+%   'savemainrepo' - Saves the state of a repository containing common
+%     functions.
+%   'mainrepolocation' - Location of the common repository.  Default:
+%     '~/matlab'.
+%   'disablewarnings' - Disable all the warning options
+%   'hash' - Save the SHA hash of the data file.  If false, just save the
+%     size and date modified.
 %
 % Warning options:  Each of these can have the value 'error','warning', or
 %      'none', and produces an error, warning, or nothing.
@@ -25,7 +37,7 @@ function out = savehgrev(out, varargin)
 %     'warn'
 %
 % SEE ALSO
-%   HG
+%   HG, VERIFYHGREV
 
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
@@ -35,7 +47,7 @@ opt.untracked = 'none';
 opt.nottip = 'warning';
 opt.datafile = '';
 opt.savemainrepo = true;
-opt.mainrepolocation = '/Users/eric/Documents/Matlab';
+opt.mainrepolocation = '~/matlab';
 opt.disablewarnings = false;
 opt.hash = true;
 

@@ -1,4 +1,29 @@
 function varargout = verifyhgrev(hgold, varargin)
+%VERIFYHGREV  Verifies a data file containing an HGREV structure.
+%      verifyhgrev()
+%  or 
+%      verifyhgrev(HGREV, options...)
+%  or
+%      diffs = verifyhgrev(...)
+%
+% Compares the state of the current repository to the state when a data
+% file was generated, based on an HGREV structure.  Looks for differences
+% in raw data files and for differences in the analysis routines.
+%
+% Options:
+%   'datafilepath',path - If the data file(s) are no longer where it was originally,
+%      this overrides the existing path.
+%   'comparehashes' - Compares SHA hashes of the data files.  Can take a
+%      while if there are a lot of files.  Otherwise just compares dates
+%      and sizes of the data files.
+%   'quiet' - Just return a structure containing the differences.
+%
+% SEE ALSO
+%   HG, SAVEHGREV
+
+% Mercurial revision hash: $Revision$ $Date$
+% Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
+
 
 opt.datafilepath = '';
 opt.comparehashes = false;
