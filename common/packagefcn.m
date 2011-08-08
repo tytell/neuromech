@@ -10,6 +10,8 @@ function packagefcn(fcns,dest, varargin)
 
 opt.maintaindirstruct = true;
 opt.dryrun = false;
+opt.usehg = false;
+opt.repo = '~/Documents/Matlab';
 
 opt = parsevarargin(opt, varargin, 2);
 
@@ -44,11 +46,26 @@ for i = 1:length(fcns),
     package = union(package,dep(~isbuiltin));
 end;
 
-if (opt.maintaindirstruct),
-    makedirs = {};
+if (opt.usehg)   
+    hginc = cell(size(package));
     for i = 1:length(package),
+        tok = regexp(package{i},'[Mm]atlab/(.*)', 'tokens','once');
+        fcn1 = tok{1};
+        
+        hginc{i} = ['-I ' fcn1];
+    end;
+    
+    if (opt.dryrun)
+        fprintf('hg -R %s distribute ', opt.repo);
+        fprintf('%s ',hginc{:});
+        fprintf('%s\n', dest);
+    else
+        hg('-R ',opt.repo, 'distribute', hginc{:}, dest);
+    end;
+elseif (opt.maintaindirstruct),
+    makedirs = {};
+    for i = 1:length(package)
         tok = regexp(package{i},'/', 'split');
-        tok = tok(2:end-1);
 
         j = 1;
         ismatch = false;
