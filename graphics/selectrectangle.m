@@ -2,7 +2,7 @@ function finalrect = selectrectangle(varargin)
 
 opt.color = 'r';
 
-if ((nargin >= 1) && ishandle(varargin{1}) && (numel(varargin{1}) == 1) && ...
+if ((nargin >= 1) && (numel(varargin{1}) == 1) && ishandle(varargin{1}) && ...
         strcmp(get(varargin{1},'Type'), 'axes'))
     hax = varargin{1};
     p = 2;
@@ -37,7 +37,7 @@ yr = initialrect([3 3 4 4 3]);
 him = findobj(gca, 'Type','image');
 set(him,'HitTest','off');
 
-hbox = line(xr,yr, 'Color','r', 'LineStyle',':');
+hbox = line(xr,yr, 'Color',opt.color, 'LineStyle',':');
 
 xresize = initialrect(1) + [0   w/2 w   w    w   w/2 0   0];
 yresize = initialrect(3) + [0   0   0   h/2  h   h   h   h/2];

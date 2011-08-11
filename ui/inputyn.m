@@ -89,6 +89,7 @@ if (~issaved)
         yn = input(showstr,'s');
         if (opt.strict)
             tf = strcmpi(yn,'yes');
+            done = true;
         else
             switch lower(yn)
                 case {'y','yes'}
