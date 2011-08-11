@@ -59,10 +59,17 @@ while (p <= length(vars)),
         case '-tostruct',
             if ((p+1 <= length(vars)) && isstruct(vars{p+1}))
                 outdata = vars{p+1};
-                isvar(p:p+1) = false;     
+                isvar(p:p+1) = false;   
+                outdataname = '';
+                p = p+2;
+            elseif ((p+1 <= length(vars)) && ischar(vars{p+1}) && (vars{p+1}(1) ~= '-'))
+                outdata = struct;
+                outdataname = vars{p+1};
+                isvar(p:p+1) = false;
                 p = p+2;
             else
                 outdata = struct;
+                outdataname = '';
                 isvar(p) = false;
                 p = p+1;
             end;
@@ -156,6 +163,10 @@ for i = 1:length(vars)
         %save to the base workspace
         assignin('base',vars{i},val);
     end;
+end;
+
+if (tostruct && ~isempty(outdataname))
+    assignin('caller',outdataname,outdata);
 end;
 
 if (tostruct),
