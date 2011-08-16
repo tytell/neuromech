@@ -28,6 +28,14 @@ else
     istrans = false;
 end;
 
+if (all(~L))
+    on = [];
+    off = [];
+    lab = zeros(size(L));
+    len = [];
+    return;
+end;
+
 on = find(~L(1:end-1) & L(2:end)) + 1;
 off = find(L(1:end-1) & ~L(2:end));
 
