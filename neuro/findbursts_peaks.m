@@ -7,13 +7,12 @@ else
     binsize = opt.binsize;
 end;
 
-[tbin,spikerate] = firingrate(t,opt.binsize,0);
-smoothrate = runavg(spikerate,opt.smooth,2);
+[tbin,spikerate,~,spikeind] = firingrate(t,opt.binsize,opt.smooth,'gaussian');
 
 %sort out options to findpeaks
 findpeakopt = {};
 if (isfield(opt,'threshold') && ~isempty(opt.threshold)),
-    findpeakopt = [findpeakopt,{'thresh',opt.threshold}];
+    findpeakopt = [findpeakopt,{'threshold',opt.threshold}];
 else
     opt.threshold = 0;
 end;
@@ -28,16 +27,17 @@ if (isfield(opt,'interburstdur') && ~isempty(opt.interburstdur)),
                    opt.interburstdur / (tbin(2)-tbin(1))}];
 end;
 
-[peakrate,peakind] = findpeaks2(smoothrate,'max',findpeakopt{:});
+[peakrate,peakind] = findpeaks2(spikerate,'max',findpeakopt{:});
 peakind = peakind(:)';
 peakrate = peakrate(:)';
-
-%this gives us the index of the first spike in each bin
-spikeind = round(cumsum(spikerate*binsize) + 1 - spikerate*binsize/2);
 
 %and this gives us the index of the first spike in the bin that corresponds to the peak
 %firing rate in each burst
 peakspikeind = spikeind(peakind);
+
+if (any(peakspikeind == 0))
+    error('Problems!');
+end;
 
 %now we'll step to either side of the peakspikeind and look for spikes that are
 %separated by more than 1/threshold
