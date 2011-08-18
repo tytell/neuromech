@@ -38,7 +38,7 @@ for i = 2:length(varargin),
 
     if (isempty(fieldnames(sm)) && isempty(f1)),
         sm(k:k+n-1) = struct;
-    elseif (isempty(f1)),
+    elseif (isempty(f1) && ~isflat),
         f1 = fieldnames(sm);
         sm(k:k+n-1).(f1{1}) = deal([]);
     else
