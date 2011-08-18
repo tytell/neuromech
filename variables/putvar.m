@@ -60,22 +60,15 @@ while (p <= length(vars)),
             if ((p+1 <= length(vars)) && isstruct(vars{p+1}))
                 outdata = vars{p+1};
                 isvar(p:p+1) = false;   
-                outdataname = '';
-                p = p+2;
-            elseif ((p+1 <= length(vars)) && ischar(vars{p+1}) && (vars{p+1}(1) ~= '-'))
-                outdata = struct;
-                outdataname = vars{p+1};
-                isvar(p:p+1) = false;
                 p = p+2;
             else
                 outdata = struct;
-                outdataname = '';
                 isvar(p) = false;
                 p = p+1;
             end;
             tostruct = true;
             optind(end+1) = p;
-           
+            
         case '-fromstruct',
             indata = varargin{p+1};
             isvar(p:p+1) = false;
@@ -101,9 +94,17 @@ while (p <= length(vars)),
             p = p+1;
             
         otherwise,
+            if (vars{p}(1) == '-')
+                error('Unrecognized option %s',vars{p});
+            end;
+            
             isvar(p) = true;
             p = p+1;
     end;
+end;
+
+if (tostruct && (nargout == 0))
+    warning('putvar:tostruct','-tostruct option does not make sense without an output');
 end;
 
 %find exceptions
@@ -163,10 +164,6 @@ for i = 1:length(vars)
         %save to the base workspace
         assignin('base',vars{i},val);
     end;
-end;
-
-if (tostruct && ~isempty(outdataname))
-    assignin('caller',outdataname,outdata);
 end;
 
 if (tostruct),
