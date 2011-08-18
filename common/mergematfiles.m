@@ -131,7 +131,7 @@ for i = 1:nvar,
     if (isstruct(A{i,firstgood}))
         A1 = cellfun(@(x) (shiftdim(x,-1)), A(i,:), ...
             'UniformOutput',false);
-        V1 = mergestruct(A1{:});
+        V1 = makestructarray(A1{:});
         V1 = makecol(V1);
     elseif (ismember(vars{i},opt.catvars)),
         iscat = false;

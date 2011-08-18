@@ -70,10 +70,10 @@ for i = 1:length(hgold)
     if (isfield(hgold(i),'sub'))
         kv = opt2keyvalue(opt);
         diffs1 = verifyhgrev(hgold(i).sub, kv{:}, 'quiet');
-        diffs = mergestruct(diffs, diffs1);
+        diffs = makestructarray(diffs, diffs1);
     end;
     
-    oldfiles = mergestruct(oldfiles,hgold(i).datafiles);
+    oldfiles = makestructarray(oldfiles,hgold(i).datafiles);
     
     af1 = hgold(i).caller;
     cset1 = repmat({hgold(i).changeset},[1 length(af1)]);

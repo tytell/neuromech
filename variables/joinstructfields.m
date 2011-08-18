@@ -1,10 +1,12 @@
-function s = appendstruct(s,app)
-%APPENDSTRUCT   Appends the fields of one structure on to another
-%   S = appendstruct(A,B)
+function s = joinstructfields(s,app)
+%JOINSTRUCTFIELDS   Joins the fields of one structure to another
+%   S = joinstructfields(A,B)
 %   Adds the fields of B (and their contents) to A.  Correctly handles
-%   structure arrays, but A and B must be the same size.
+%   structure arrays, but A and B must be the same size.  If fields in A
+%   are also present in B, then the values from B overwrite the values from
+%   A.
 %
-% See also MERGESTRUCT
+% See also MAKESTRUCTARRAY
 
 % Mercurial revision hash: $Revision$ $Date$
 % See https://bitbucket.org/tytell/matlab_variables/overview

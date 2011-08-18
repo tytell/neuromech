@@ -1,7 +1,6 @@
 % VARIABLES
 %
 % Files
-%   appendstruct  - Appends the fields of one structure on to another
 %   appxeq        - Test for two values equal to within a percent tolerance
 %   catuneven     - Concatenates matrices when some dimensions may not match
 
@@ -12,6 +11,7 @@
 %   getfieldsonly - Gets a structure with only certain fields
 %   getvar        - Loads variables out of the base workspace into a function
 %   gp2col        - Separates grouped data into columns
+%   joinstructfields  - Joins the fields of one structure on to another
 %   last          - Returns the last value that meets a condition
 %   makecol       - Converts a row vector into a column, if necessary. 
 %   makerow       - Converts a column vector into a row, if necessary. 
@@ -26,4 +26,4 @@
 %   testfirst     - 
 %   testlast      - 
 %   use           - function [ok,missingvars] = use(S,varnames,options)
-%   mergestruct   - Merges similar (but not identical) structures into an array
+%   makestructarray - Merges similar (but not identical) structures into an array
