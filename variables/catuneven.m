@@ -61,6 +61,10 @@ switch class(vals{1}),
         
     case 'cell',
         addval = [];
+        
+    case {'int8','uint8','int16','uint16','int32','uint32', ...
+            'int64','uint64'}
+        addval = zeros(1,1,class(vals{1}));
 
     otherwise,
         error('Unsupported class');
