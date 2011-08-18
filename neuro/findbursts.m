@@ -178,6 +178,13 @@ switch opt.method,
           burst.ctr = burstctr;
           burst.spikeratepk = peakrate;
           
+          %save burst identification parameters
+          burst.interburstdur = opt.interburstdur;
+          burst.ratethresh = opt.threshold;
+          burst.binsize = opt.binsize;
+          burst.smoothwindow = opt.smooth;
+          burst.method = 'peaks';
+          
           for ch = 1:nchan,
               good = isfinite(t(ch,:));
               spike.t{ch} = t(ch,good);
@@ -203,12 +210,21 @@ switch opt.method,
               end;
           end;
           
-          if (~opt.isoutcell),
-              burst = structfun(@(x) (catuneven(1,x{:})), burst,'UniformOutput',false);
-              spike = structfun(@(x) (catuneven(1,x{:})), spike,'UniformOutput',false);              
-          elseif (nchan == 1),
-              burst = structfun(@(x) (x{1}), burst);
-              spike = structfun(@(x) (x{1}), spike);
+          if (~opt.isoutcell || (nchan == 1)),
+              fields = fieldnames(burst)';
+              for f = 1:length(fields),
+                  f1 = fields{f};
+                  if (iscell(burst.(f1)))
+                      burst.(f1) = catuneven(1,burst.(f1){:});
+                  end;
+              end;
+              fields = fieldnames(spike)';
+              for f = 1:length(fields),
+                  f1 = fields{f};
+                  if (iscell(spike.(f1)))
+                      spike.(f1) = catuneven(1,spike.(f1){:});
+                  end;
+              end;
           end;
           varargout = {burst,spike};
       else
