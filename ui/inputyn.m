@@ -17,6 +17,7 @@ opt.quiet = false;
 opt.clearsaved = false;
 opt.saveanswer = {};
 opt.requireanswer = false;
+opt.returnsaved = false;
 
 helpstr = {'''y'' or ''yes'' - yes', ...
     '''n'' or ''no'' - no', ...
@@ -45,6 +46,14 @@ elseif (~isempty(opt.saveanswer))
     %programmatically save the answer to a question
     savedanswers(end+(1:size(opt.saveanswer,1)),1:3) = opt.saveanswer;
     return;
+elseif (opt.returnsaved)
+    %just return the saved answer to this question, if one exists
+    ind = find(strcmp(str,savedanswers(:,1)));
+    if (length(ind) == 1)
+        tf = savedanswers{ind,3};
+    else
+        tf = [];
+    end;
 end;
     
 if (opt.showdefault)
