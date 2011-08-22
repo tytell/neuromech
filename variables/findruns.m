@@ -53,12 +53,21 @@ on = on([true; good]);
 off = off([good; true]);
 
 lab = zeros(size(L));
-lab(on) = 1:length(on);
-lab(off) = -(1:length(off));
-lab = cumsum(lab);
-
-if (L(end))
-    lab(end) = lab(end-1);
+if (nargout >= 3)
+    for i = 1:length(on),
+        lab(on(i):off(i)) = i;
+    end;
+    if (~isempty(on))
+        lab(1:on(1)-1) = -1;
+        lab(off(end)+1:end) = -(length(on)+1);
+    end;
+    for i = 1:length(on)-1,
+        lab(off(i)+1:on(i+1)-1) = -(i+1);
+    end;
+    
+    if (L(end))
+        lab(end) = lab(end-1);
+    end;
 end;
 
 len = off - on + 1;
