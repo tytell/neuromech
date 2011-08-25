@@ -33,6 +33,7 @@ opt.catunevenvars = {};
 opt.missingvar = 'fail';
 opt.outfile = '';
 opt.transposevectors = true;
+opt.exclude = {};
 
 opt = parsevarargin(opt,varargin,'multival',{'mode',{'cat','catuneven','cell'}}, ...
                     'firstoptionnumber',3);
@@ -44,6 +45,15 @@ warnstate = warning('off','MATLAB:load:variableNotFound');
 if (isempty(vars) || (ischar(vars) && strcmp(vars,'-all')))
     vars = who('-file',infiles{1});
 end;
+
+good = true(size(vars));
+for i = 1:length(opt.exclude),
+    ind = regexp(vars, opt.exclude{i}, 'start');
+    
+    good1 = cellfun(@isempty, ind);
+    good = good & good1;
+end;
+vars = vars(good);
 
 nvar = length(vars);
 nfile = length(infiles);
@@ -59,6 +69,16 @@ for f = 1:nfile,
     F = load(infiles{f},vars{:});
 
     loadedvars = fieldnames(F);
+    
+    good = true(size(loadedvars));
+    for i = 1:length(opt.exclude),
+        ind = regexp(loadedvars, opt.exclude{i}, 'start');
+        
+        good1 = cellfun(@isempty, ind);
+        good = good & good1;
+    end;
+    loadedvars = loadedvars(good);
+    
     %check to make sure we got all of the variables
     if (length(loadedvars) ~= length(vars)),
         switch lower(opt.missingvar),
