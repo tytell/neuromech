@@ -30,6 +30,7 @@ for i = 2:length(varargin),
             [sm(k:k+n-1).(f1{j})] = deal(varargin{i}.(f1{j}));
         end;
     end;
+    k = k+n;
 end;
 
 			
