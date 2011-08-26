@@ -154,6 +154,7 @@ if (~isempty(opt.datafile))
         datafiles = opt.datafile;
     end;
     issub = false;
+    sub = cell(1,length(datafiles));
     for i = 1:length(datafiles),
         dfinfo1 = dir(datafiles{i});
         datafile1 = datafiles{i};
@@ -182,14 +183,14 @@ if (~isempty(opt.datafile))
         %also check to see if it has an HGREV
         if (ismatfile && ~isempty(who('-file',datafile1,'HGREV')))
             F = load(datafile1,'HGREV');
-            sub(i) = F.HGREV;
+            sub{i} = F.HGREV;
             issub = true;
         end;
         dfinfo(i) = dfinfo1;
     end;
     
     if (issub)
-        HGREV.sub = sub;
+        HGREV.sub = makestructarray(sub{:});
     end;
     
     HGREV.datafiles = dfinfo;
