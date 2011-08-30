@@ -28,6 +28,7 @@ function varargout = verifyhgrev(hgold, varargin)
 opt.datafilepath = '';
 opt.comparehashes = false;
 opt.quiet = false;
+opt.depth = 0;
 
 if ((nargin == 0) || ~isstruct(hgold))
     if (nargin > 0)
@@ -48,10 +49,14 @@ if (isempty(opt.datafilepath) && ~isempty(hgold(1).datafiles))
     [pn,fn1,ext] = fileparts(f1);
     if (~exist(f1,'file'))
         [fn2, dfpath] = uigetfile(['*' ext],sprintf('Please locate file %s',fn1),pn);
-        
-        [~,fn2] = fileparts(fn2);
-        if (isempty(f1) || ~strcmpi(fn1,fn2))
+
+        if (isempty(fn2))
             fprintf('Cancelled.');
+            return;
+        end;
+        [~,fn2] = fileparts(fn2);
+        if (~strcmpi(fn1,fn2))
+            fprintf('Cancelled');
             return;
         end;
         
@@ -67,8 +72,13 @@ mainrevs = [];
 oldfiles = struct([]);
 diffs = struct('type',{},'file',{},'old',{},'new',{});
 for i = 1:length(hgold)
-    if (isfield(hgold(i),'sub'))
-        kv = opt2keyvalue(opt);
+    if (isfield(hgold(i),'sub') && ~isempty(hgold(i).sub))
+        if (opt.depth > 4)
+            keyboard;
+        end;
+        opt1 = opt;
+        opt1.depth = opt1.depth + 1;
+        kv = opt2keyvalue(opt1);
         diffs1 = verifyhgrev(hgold(i).sub, kv{:}, 'quiet');
         diffs = makestructarray(diffs, diffs1);
     end;
