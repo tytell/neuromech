@@ -4,6 +4,29 @@ function sm = makestructarray(varargin)
 %  Merges a,b,c, etc. into a structure array, with sm(1) being a, sm(2) being b,
 %  and so forth.  It assumes field names mostly overlap.
 %
+%  Option 'skipempty' defines how empty structures are handled.  Default
+%  (skipempty = false) fills empty structure fields so that the length of
+%  the final array is equal to the number of structures passed in.
+%  
+%    e.g. >> S1 = struct('test',4,'thing',12);
+%         >> S = makestructarray(S1,[],S1)
+%         S = 
+%         1x3 struct array with fields:
+%             test
+%             thing
+%         >> S(2)
+%         ans = 
+%              test: []
+%              thing: []
+%
+% but
+%         >> S = makestructarray(S1,[],S1,'skipempty')
+%         S = 
+%         1x2 struct array with fields:
+%             test
+%             thing
+% (skipempty=true is similar to the behavior of cat with empty elements)
+%
 %  Option 'flat' is no longer allowed.  Use joinstructfields instead.
 %
 % See also JOINSTRUCTFIELDS.
@@ -12,25 +35,45 @@ function sm = makestructarray(varargin)
 % See https://bitbucket.org/tytell/matlab_variables/overview
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
-sm = varargin{1};
+opt.skipempty = false;
 
-k = length(sm)+1;
+[opt,S] = parsevarargin(opt,varargin,'leaveunknown');
 
-for i = 2:length(varargin),
-	f1 = fieldnames(varargin{i});
-	n = length(varargin{i});
-
-    if (isempty(fieldnames(sm)) && isempty(f1)),
-        sm(k:k+n-1) = struct;
-    elseif (isempty(f1)),
-        f1 = fieldnames(sm);
-        sm(k:k+n-1).(f1{1}) = deal([]);
-    else
-        for j = 1:length(f1),
-            [sm(k:k+n-1).(f1{j})] = deal(varargin{i}.(f1{j}));
+if (length(S) >= 1)
+    sm = S{1};
+    
+    k = length(sm)+1;
+    
+    for i = 2:length(S),
+        if (isempty(S{i}))
+            if (opt.skipempty)
+                n = 0;
+                f1 = {};
+            else
+                n = 1;
+                f1 = {};
+            end;
+        else
+            f1 = fieldnames(S{i});
+            n = length(S{i});
+        end;
+        
+        if (n > 0)
+            if (isempty(fieldnames(sm)) && isempty(f1)),
+                sm(k:k+n-1) = struct;
+            elseif (isempty(f1)),
+                f1 = fieldnames(sm);
+                sm(k:k+n-1).(f1{1}) = deal([]);
+            else
+                for j = 1:length(f1),
+                    [sm(k:k+n-1).(f1{j})] = deal(S{i}.(f1{j}));
+                end;
+            end;
+            k = k+n;
         end;
     end;
-    k = k+n;
+else
+    sm = struct({});
 end;
 
 			
