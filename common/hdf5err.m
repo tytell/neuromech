@@ -29,7 +29,7 @@ catch except
             throw(except);
             
         otherwise,
-            match = regexp(except.identifier, 'H5ML_hdf5', 'once');
+            match = regexp(except.identifier, '(H5ML_hdf5|hdf5lib)', 'once');
             if (~isempty(match)),
                 varargout = cell(1,nargout);
                 varargout{nargout} = except;
