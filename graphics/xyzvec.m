@@ -35,7 +35,12 @@ elseif ((nargin >= 2) && all(cellfun(@isnumeric,varargin(1:2))) && ...
     p = 3;
 elseif ((nargin >= 1) && isnumeric(varargin{1}))
     X = varargin{1};
-    sz = [size(X,2) 1];
+    sz = size(X);
+    if (length(sz) == 2)
+        sz = [sz(2) 1];
+    else
+        sz = sz(2:end);
+    end;
     tovec = false;
     p = 2;
 end;
