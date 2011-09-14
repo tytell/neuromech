@@ -29,7 +29,7 @@ end;
 
 narg = length(varargin);
 
-dim = 1;
+dim = [];
 start = 1;
 if (narg == 4)
     ismat = true;
@@ -77,9 +77,12 @@ if (~ismat && (nargout == 2))
 end;
 
 %check to see if we have a row vector, and, if so, operate across the
-%columns
-if ((ndims(cond) == 2) && (size(cond,1) == 1))
-    dim = 2;
+%columns (or the first non-singleton dimension)
+if (isempty(dim) && (size(cond,1) == 1))
+    sz = size(cond);
+    dim = find(sz > 1, 1, 'first');
+else
+    dim = 1;
 end;
 
 %permute and reshape so that we have a 2D matrix with the dimension of
