@@ -258,7 +258,7 @@ else
         k = 1:step:p;
         k = k + floor((p-k(end))/2);
     else
-        k = round(linspace(1,p,shw(3)*p));
+        k = round(linspace(1,p,ceil(shw(3)*p)));
     end;
 
     x = x(i,j,k);
