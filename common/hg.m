@@ -17,7 +17,7 @@ else
     echo = {};
 end;
     
-cmd = sprintf('%s ',opt.hgpath,args{:});
+cmd = sprintf('%s ',opt.hgpath,args{:},'--config ui.editor=fail');
 
 [status,result] = system(cmd,echo{:});
 
