@@ -71,7 +71,7 @@ if (opt.debug)
 end;
 
 if (~isempty(opt.fluidvals))
-    S = mergestruct(S,opt.fluidvals,'flat');
+    S = joinstructfields(S,opt.fluidvals);
     fr0 = last(~cellfun(@isempty,S.s));
 elseif (~isempty(opt.continuationfile) && exist(opt.continuationfile,'file'))
     load(opt.continuationfile, 'S','samraidirs','fr');

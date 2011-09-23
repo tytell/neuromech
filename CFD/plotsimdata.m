@@ -84,7 +84,13 @@ if (ismember(1,opt.showfig)),
     clf;
     
     ampmn = nanmean(amp(end,steadycycles));
-    Umn = nanmean(comspeed(issteady));
+    if (exist('flowspeed','var'))
+        Umn = flowspeed;
+        istether = true;
+    else
+        Umn = nanmean(comspeed(issteady));
+        istether = false;
+    end;
     Rebody = diground(Umn .* 4*pi / viscosity,100);
     Utail = nanmean(sqrt(um(end,issteady).^2 + vm(end,issteady).^2));
     widthtail = nanmean(width(end-2,:));
@@ -99,6 +105,9 @@ if (ismember(1,opt.showfig)),
     rownames = {'Simulation';'Frequency';'Amplitude';'Wave speed';...
         'Wave length';'Activ. speed';...
         'Wave/Activ';'Swim speed';'Re_{body}';'Re_{tail}';'St';'N steady cycles'};
+    if (istether)
+        rownames{8} = 'Flow speed';
+    end;
     [~,fn] = fileparts(file);
     dat(:,1) = {fn; freq; ampmn / opt.bodylen; ...
         wavespeedmn/opt.bodylen; ...

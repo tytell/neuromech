@@ -18,6 +18,7 @@ if (nargin == 1)
     unattended = false;
 end;
 
+inputyn('','clearsaved');
 if (ischar(dirname) || (iscellstr(dirname) && exist(dirname{1},'dir'))),
     if (ischar(dirname)),
         datadirs = getdirectorynames(dirname);
