@@ -19,6 +19,8 @@ opt.nregions = 10;
 opt.continuationfile = '';
 opt.fluidvals = struct;
 opt.normaldistance = 2;
+opt.savepressure = false;
+opt.savevorticity = false;
 
 opt = parsevarargin(opt,varargin, 4);
 
@@ -41,6 +43,14 @@ S.nearboundx = cell(1,nfr);
 S.nearboundy = cell(1,nfr);
 S.normstress = cell(1,nfr);
 S.tanstress = cell(1,nfr);
+if (opt.savepressure)
+    S.nearboundp = cell(1,nfr);
+end;
+if (opt.savevorticity)
+    S.nearboundut = cell(1,nfr);
+    S.nearboundun = cell(1,nfr);
+    S.vorticity = cell(1,nfr);
+end;
 S.s = cell(1,nfr);
 S.n = cell(1,nfr);
 S.axialstresst = cell(1,nfr);
@@ -95,6 +105,14 @@ if (~isempty(samraidirs))
         S.nearboundy{fr} = S1.nearboundy;
         S.normstress{fr} = S1.normstress;
         S.tanstress{fr} = S1.tanstress;
+        if (opt.savepressure)
+            S.nearboundp{fr} = S1.nearboundp;
+        end;
+        if (opt.savevorticity)
+            S.nearboundut{fr} = S1.nearboundut;
+            S.nearboundun{fr} = S1.nearboundun;
+            S.vorticity{fr} = S1.vorticity;
+        end;
         
         if (nargout == 0),
             putvar S;
@@ -139,6 +157,19 @@ end;
 if (numel(swimvecx) == 1)
     swimvecx = swimvecx*ones(1,N);
     swimvecy = swimvecy*ones(1,N);
+end;
+
+
+s0 = S.s{1}(1,:);
+s0(s0 <= stail) = s0(s0 <= stail)/stail;
+s0(s0 > stail) = (s0(s0 > stail) - stail) / (s0(end) - stail) + 1;
+
+S.s0 = s0;
+S.p = zeros(length(s0),nfr);
+
+if (opt.savevorticity)
+    S.nearboundvort = S.vorticity;
+    S.vorticity = zeros(length(s0),nfr);
 end;
 
 %change coordinate systems from normal/tangential to axial/lateral and
@@ -241,6 +272,21 @@ for fr = 1:N,
     end;
     S.Faxialtot(fr) = trapz(s1,S.axialstresst{fr}+ ...
                             S.axialstressn{fr});
+    
+    if (opt.savepressure)
+        ss = S.s{fr}(1,:);
+        ss(ss <= stail1) = ss(ss <= stail1)/stail;
+        ss(ss > stail1) = (ss(ss > stail1) - stail) / (S.s{fr}(1,end) - stail) + 1;
+        
+        S.p(:,fr) = interp1(ss',S.nearboundp{fr}(2,:)', s0');
+    end;
+    if (opt.savevorticity)
+        ss = S.s{fr}(1,:);
+        ss(ss <= stail1) = ss(ss <= stail1)/stail;
+        ss(ss > stail1) = (ss(ss > stail1) - stail) / (S.s{fr}(1,end) - stail) + 1;
+        
+        S.vorticity(:,fr) = interp1(ss',S.nearboundvort{fr}(2,:)', s0');
+    end;
     
     if (floor(10*(fr-1)/N) ~= floor(10*fr/N))
         fprintf('.');

@@ -153,6 +153,11 @@ dundt(:,1) = (nearboundun(:,2)-nearboundun(:,end-1)) ./ ...
 dundt(:,end) = (nearboundun(:,2)-nearboundun(:,end-1)) ./ ...
     (tdist(:,1) + tdist(:,end));
 
+S1.nearboundp = nearboundp;
+S1.nearboundun = nearboundun;
+S1.nearboundut = nearboundut;
+S1.vorticity = dundt - dutdn;
+
 % mu [g/cm/s] * dundn [cm/s/cm] -> g/cm/s^2 = dynes/cm^2
 % p [dynes/cm^2] = [g cm /s^2 / cm^2] = [g / cm / s^2]
 S1.normstress = 2*opt.mu*dundn - nearboundp;
