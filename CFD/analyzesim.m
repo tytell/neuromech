@@ -9,6 +9,7 @@ function analyzesim(varargin)
 opt.curvesmoothcutoff = 0.025;      % filter cutoff for curvature
 % opt.nboundarypts = 30;
 opt.steadythresh = 0.05;            % threshold velocity fluctuation.  Less than this is "steady"
+opt.steadydX = 0.03;            % threshold velocity fluctuation.  Less than this is "steady"
 opt.leftsidecurvature = -1;         % definition of "left" in terms of curvature
 opt.leftsidepeak = 1;               % definition of "left" in terms of peak direction
 % peak finding procedure
@@ -18,14 +19,18 @@ opt.pkthresh = 0.9;
 opt.outfile = '';                   % output file name
 opt.samraibasedir = '';             % base directory for all the samrai data files
 opt.rho = 1;                        % density in CGS units
+opt.savepressure = false;
+opt.savevorticity = false;
 
 if ((nargin >= 1) && ischar(varargin{1}) && ...
         exist(varargin{1},'file')),
+    datafilename = varargin{1};
     fprintf('**** File %s\n', varargin{1});
     filenameopt = {'-file',varargin{1}};
     p = 2;
 else
     fprintf('Base workspace\n');
+    datafilename = '';
     filenameopt = {};
     p = 1;
 end;
@@ -116,6 +121,24 @@ s0 = [zeros(1,nfr); cumsum(sqrt(diff(xm).^2 + diff(ym).^2))];
 s = nanmean(s0,2);
 
 disp('  Estimating com speed...');
+if (all(abs(xm(1,:) - xm(1,1)) < 1e-3))
+    disp('  -> appears to be a tethered head simulation');
+    istether = true;
+    
+    comspeed = zeros(size(t));
+    if (isempty(opt.samraibasedir))
+        disp('  ... cannot get flow speed without samrai dirs');
+        flowspeed = 0;
+    else
+        samraidirs = getdirectorynames(fullfile(opt.samraibasedir,'visit*'))';
+        
+        [x,y,V] = importsamrai(samraidirs{2},'vars',{'U_0','U_1'}, ...
+            'interpolaten',[100 50]);
+        flowspeed = mean(V.U_0(x < xm(1,1)-1));
+    end;
+end;
+
+    
 [width,area,sn, comx,comy,comvelx,comvely] = ...
     estcomspeed(t,xm,ym,xn,yn,xl,xr,yl,yr);
 
@@ -125,15 +148,20 @@ else
     forcetaper = ones(npt,1);
 end;
 
-comspeed = sqrt(comvelx.^2 + comvely.^2);
-
-%unit vector pointing in the direction of the swimming speed, as a cubic
-%spline in 3 parts, which should get rid of any fluctuation at the level of
-%the tail beat frequency
-sp = spap2(3,4, t, cat(1,comx,comy));
-swimvec = fnval(fnder(sp),t);
-swimvecx = swimvec(1,:) ./ sqrt(sum(swimvec.^2));
-swimvecy = swimvec(2,:) ./ sqrt(sum(swimvec.^2));
+if (~istether)
+    comspeed = sqrt(comvelx.^2 + comvely.^2);
+    
+    %unit vector pointing in the direction of the swimming speed, as a cubic
+    %spline in 3 parts, which should get rid of any fluctuation at the level of
+    %the tail beat frequency
+    sp = spap2(3,4, t, cat(1,comx,comy));
+    swimvec = fnval(fnder(sp),t);
+    swimvecx = swimvec(1,:) ./ sqrt(sum(swimvec.^2));
+    swimvecy = swimvec(2,:) ./ sqrt(sum(swimvec.^2));
+else
+    swimvecx = -1 * ones(size(t));
+    swimvecy = zeros(size(t));
+end;
 
 %now average speeds over cycles to look for "steady"
 %define cycles
@@ -144,17 +172,34 @@ cyclenum = floor(cycle)+1;
 cyclenum2 = floor(cycle*2)+1;
 
 disp('  Looking for steady speed...');
-%average comspeed in each cycle
-comspeedbycycle = accumarray(cyclenum(:), comspeed(:), [], @nanmean);
-%and the amount it changes, relative to the current value
-dcomspeed = diff(comspeedbycycle) ./ comspeedbycycle(1:end-1);
-
-%look for those cycles that change less than opt.steadythresh
-steadycycle = length(comspeedbycycle)-1;
-while ((steadycycle >= 1) && all(dcomspeed(steadycycle:end) < opt.steadythresh)),
-    steadycycle = steadycycle-1;
-end;
+if (istether)
+    ncycle = max(cyclenum);
+    dt = t(2) - t(1);
+    cycleindlen = round(1/freq/dt);
     
+    k = 1:length(t)-cycleindlen;
+    dX = NaN(size(t));
+    dX(k+cycleindlen) = mean(sqrt((xm(:,k+cycleindlen) - xm(:,k)).^2 + ...
+        (ym(:,k+cycleindlen) - ym(:,k)).^2));
+    
+    dXbycycle = accumarray(cyclenum(:), dX(:), [], @nanmean);
+    steadycycle = length(dXbycycle) - 1;
+    while ((steadycycle >= 1) && all(dXbycycle(steadycycle:end) < opt.steadydX))
+        steadycycle = steadycycle-1;
+    end;
+else
+    %average comspeed in each cycle
+    comspeedbycycle = accumarray(cyclenum(:), comspeed(:), [], @nanmean);
+    %and the amount it changes, relative to the current value
+    dcomspeed = diff(comspeedbycycle) ./ comspeedbycycle(1:end-1);
+    
+    %look for those cycles that change less than opt.steadythresh
+    steadycycle = length(comspeedbycycle)-1;
+    while ((steadycycle >= 1) && all(dcomspeed(steadycycle:end) < opt.steadythresh)),
+        steadycycle = steadycycle-1;
+    end;
+end;
+
 %at least three cycles must pass
 if (steadycycle <= 2)
     steadycycle = 3;
@@ -352,7 +397,58 @@ disp('  Calculating fluid forces...');
 Force = fluidforces(t,freq, swimvecx,swimvecy, xm,ym, fxmtot,fymtot, ...
     xl,yl,fxltot,fyltot, xr,yr,fxrtot,fyrtot);
 
-if (~isempty(opt.samraibasedir))
+out.freq = freq;
+out.viscosity = viscosity;
+out.sfo = sfo;
+out.sfo2 = sfo2;
+out.ps = ps;
+out.gridres = gridres;
+out.isforcetaper = isforcetaper;
+out.t = t;
+out.s = s;
+out.s0 = s0;
+out.sn = sn;
+out.nfr = nfr;
+out.npt = npt;
+out.comx = comx;
+out.comy = comy;
+out.comvelx = comvelx;
+out.comvely = comvely;
+out.swimvecx = swimvecx;
+out.swimvecy = swimvecy;
+out.comspeed = comspeed;
+out.width = width;
+out.area = area;
+out.curve = curve;
+out.ampcont = ampcont;
+out.amp = amp;
+out.wavespeed = wavespeed;
+out.wavelen = wavelen;
+out.indact = indact;
+out.indactoff = indactoff;
+out.isactleft = isactleft;
+out.actspeed = actspeed;
+out.actlen = actlen;
+out.indzero = indzero;
+out.sgnzero = sgnzero;
+out.indpeak = indpeak;
+out.sgnpeak = sgnpeak;
+out.indpeakcurve = indpeakcurve;
+out.sgnpeakcurve = sgnpeakcurve;
+out.issteady = issteady;
+out.steadycycle = steadycycle;
+out.cyclenum = cyclenum;
+out.lennorm = lennorm;
+out.worktot = worktot;
+out.workpos = workpos;
+out.workneg = workneg;
+out.workposact = workposact;
+out.worknegact = worknegact;
+out.Force = Force;
+    
+out = savehgrev(out, 'datafile',datafilename);
+
+if (~isempty(opt.samraibasedir) && inputyn('Load fluid data? '))
     disp('  Calculating fluid quantities...');
     samraidirs = getdirectorynames(fullfile(opt.samraibasedir,'visit*'))';
 
@@ -386,6 +482,8 @@ if (~isempty(opt.samraibasedir))
         
         opt1.rho = 1;               % in g/cm^3
         opt1.mu = viscosity;
+        opt1.savepressure = opt.savepressure;
+        opt1.savevorticity = opt.savevorticity;
         
         N = min(length(samraidirs)-1, nfr);
         for fr = fr0:N,
@@ -410,40 +508,34 @@ if (~isempty(opt.samraibasedir))
             Stress.nearboundy{fr} = S1.nearboundy;
             Stress.normstress{fr} = S1.normstress;
             Stress.tanstress{fr} = S1.tanstress;
+            if (opt.savepressure)
+                Stress.nearboundp{fr} = S1.nearboundp;
+            end;
+            if (opt.savevorticity)
+                Stress.nearboundut{fr} = S1.nearboundut;
+                Stress.nearboundun{fr} = S1.nearboundun;
+                Stress.vorticity{fr} = S1.vorticity;
+            end;
             
             if (~isempty(cont) && (mod(fr,10) == 0))
                 save(cont,'Stress','samraidirs','fr','Energy');
             end;
         end;
         
-        saveextra = {'Energy','Stress'};
+        out.Energy = Energy;
+        out.Stress = Stress;
     end;
-else
-    saveextra = {};
+end;
+
+if (istether)
+    out.flowspeed = flowspeed;
 end;
 
 disp('  Saving data...');
 if (~isempty(opt.outfile)),
-    save(opt.outfile, 'freq','viscosity','sfo','sfo2','ps','gridres','isforcetaper', ...
-        't','s','s0','sn','nfr','npt', ...
-        'comx','comy','comvelx','comvely','swimvecx','swimvecy','comspeed','width','area', ...
-        'curve', ...
-        'ampcont','amp','wavespeed','wavelen',...
-        'indact','indactoff','isactleft','actspeed','actlen', ...
-        'indzero','sgnzero','indpeak','sgnpeak','indpeakcurve','sgnpeakcurve',...
-        'issteady','steadycycle','cyclenum', ...
-        'lennorm','worktot','workpos','workneg','workposact','worknegact', ...
-        'Force',saveextra{:});
+    save(opt.outfile, '-struct','out');
 else
-    putvar(filenameopt{:}, 's','s0','sn','nfr','npt', ...
-        'comx','comy','comvelx','comvely','swimvecx','swimvecy','comspeed','width','area', ...
-        'curve', ...
-        'ampcont','amp','wavespeed','wavelen',...
-        'indact','indactoff','isactleft','actspeed','actlen', ...
-        'indzero','sgnzero','indpeak','sgnpeak','indpeakcurve','sgnpeakcurve',...
-        'issteady','steadycycle','cyclenum', ...
-        'lennorm','worktot','workpos','workneg','workposact','worknegact', ...
-        'Force',saveextra{:});
+    putvar(filenameopt{:}, '-fromstruct','out');
 end;
 
     
