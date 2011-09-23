@@ -391,10 +391,10 @@ if (ismember(5,opt.showfig)),
     end;
     
     [~,worktot,workpos,workneg,workposact,worknegact] = workloop(t,xr,yr,fmusPr,actr, xl,yl,fmusPl,actl, ...
-        'plot',false,'per',1/freq,'forcetaper',forcetaper);
+        'plot',false,'per',1/freq,'forcetaper',forcetaper, 'ps',ps);
     hax = workloop(t,xr,yr,fmusPr,actr, 'plot', ...
         'plotrange',[steady1 steady2], 'sidecol','r', 'plotpts',pts, ...
-        'per',1./freq,'forcetaper',forcetaper);
+        'per',1./freq,'forcetaper',forcetaper, 'ps',ps);
     
     for i = 1:length(pts),
         ispk = steadycycles & ~iscurveleft;
