@@ -16,7 +16,7 @@ opt.per = 1;
 opt.forcetaper = [];
 opt.usevelocities = true;
 
-[opt,args] = parsevarargin(opt, varargin, 1, 'allowno', 'leaveunknown');
+[opt,args] = parsevarargin(opt, varargin, 1, 'allowno', 'leaveunknown', 'exact');
 
 if ((opt.usevelocities) && ((length(args) == 7) || (length(args) == 13)))
     [t, x,y,u,v, fmus,act] = deal(args{1:7});
@@ -43,6 +43,8 @@ elseif ((length(args) == 5) || (length(args) == 9))
         nsides = 2;
     end;
     opt.usevelocities = false;
+else
+    error('Could not figure out parameters...');
 end;
 
 nfr = size(x,2);
