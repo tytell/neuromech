@@ -37,6 +37,9 @@ if (ischar(dirname) || (iscellstr(dirname) && exist(dirname{1},'dir'))),
         name1 = strcat(tok{:});
         basematfiles{i} = fullfile(pathnm, ['sim' name1 '.mat']);
         samraibasedirs{i} = fullfile(pathnm, [tok{1} 'viz_IB2d']);
+        if (~exist(samraibasedirs{i},'dir'))
+            samraibasedirs{i} = fullfile(datadirs{i}, [tok{1} 'viz_IB2d']);
+        end;
         
         if (useexisting),
             goodfiles(i) = exist(basematfiles{i},'file');

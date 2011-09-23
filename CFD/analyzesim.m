@@ -446,7 +446,8 @@ out.workposact = workposact;
 out.worknegact = worknegact;
 out.Force = Force;
     
-out = savehgrev(out, 'datafile',datafilename);
+out.HGREV = savehgrev([], 'datafile',datafilename);
+
 
 if (~isempty(opt.samraibasedir) && inputyn('Load fluid data? '))
     disp('  Calculating fluid quantities...');
