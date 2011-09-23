@@ -67,6 +67,12 @@ if (ischar(dirname) || (iscellstr(dirname) && exist(dirname{1},'dir'))),
 elseif (iscellstr(dirname)),
     basematfiles = dirname;
     goodfiles = true(size(basematfiles));
+    samraibasedirs = cell(size(basematfiles));
+    for i = 1:length(basematfiles)
+        [pathnm,name] = fileparts(basematfiles{i});
+        
+        samraibasedirs{i} = fullfile(pathnm, [name(4:end) 'viz_IB2d']);
+    end;        
 end;
 
 figure(1);
@@ -125,7 +131,8 @@ for i = 1:sum(goodfiles),
         
     if (~goodfile || (~unattended && ~inputyn('Use existing results? '))),
         analyzesim(basematfiles{i}, 'outfile',analysisfiles{i}, ...
-            'samraibasedir',samraibasedirs{i});
+            'samraibasedir',samraibasedirs{i}, ...
+            'savepressure','savevorticity');
         getvar('-file', analysisfiles{i}, 't','comspeed','issteady','steadycycle',...
             's','ampcont','amp','wavespeed','actspeed',...
             'wavelen','actlen','sfo','sfo2','viscosity','ps','freq','width',...
