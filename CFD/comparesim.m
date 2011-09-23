@@ -19,22 +19,22 @@ if (ischar(opt.col)),
     opt.col = opt.col(:);
 end;
 
-s = [];
-t = [];
-comspeed = [];
-comx = [];
-comy = [];
-xm = [];
-ym = [];
-ampcont = [];
-env = [];
-Ithrust = [];
-Idrag = [];
-worktot = [];
-skinfricthrust = [];
-skinfricdrag = [];
-rmslateralt = [];
-rmslateraln = [];
+s = cell(1,N);
+t = cell(1,N);
+comspeed = cell(1,N);
+comx = cell(1,N);
+comy = cell(1,N);
+xm = cell(1,N);
+ym = cell(1,N);
+ampcont = cell(1,N);
+env = cell(1,N);
+Ithrust = cell(1,N);
+Idrag = cell(1,N);
+worktot = cell(1,N);
+skinfricthrust = cell(1,N);
+skinfricdrag = cell(1,N);
+rmslateralt = cell(1,N);
+rmslateraln = cell(1,N);
 freq = zeros(1,N);
 for i = 1:N,
     F = load(files{i}, 't','freq','xm','ym','xl','yl','xr','yr','xn','yn',...
@@ -51,49 +51,64 @@ for i = 1:N,
     end;
     
     freq(i) = F.freq;
-    t = catuneven(3,t,F.t);
-    s = catuneven(3,s,F.s);
-    comspeed = catuneven(3,comspeed, F.comspeed);
-    comx = catuneven(3,comx, F.comx);
-    comy = catuneven(3,comy, F.comy);
-    xm = catuneven(3,xm, F.xm);
-    ym = catuneven(3,ym, F.ym);
+    t{i} = F.t;
+    s{i} = F.s;
+    comspeed{i} = F.comspeed;
+    comx{i} = F.comx;
+    comy{i} = F.comy;
+    xm{i} = F.xm;
+    ym{i} = F.ym;
     
-    env = catuneven(3,env, F.ampcont(:,F.cyclenum >= F.steadycycle));
-
+    env{i} = F.ampcont(:,F.cyclenum >= F.steadycycle);
+    
     c = max(F.cyclenum) - 1;
     a = first(F.cyclenum == c);
     b = last(F.cyclenum == c) + 1;
     ind = round(linspace(a,b, opt.nphase+1));
-    ampcont = catuneven(3,ampcont, F.ampcont(:,ind(1:end-1)));
+    ampcont{i} = F.ampcont(:,ind(1:end-1));
     
-    worktot = catuneven(3,worktot,F.worktot(:,F.steadycycle:end)*F.ps);
+    worktot{i} = F.worktot(:,F.steadycycle:end)*F.ps;
     
-    F.Stress = fluidstressnearboundary(makeib(F),{},F.swimvecx,F.swimvecy, 'fluidvals',F.Stress);
-    F.Stress = stress2thrustdrag(F.t,F.cyclenum,F.Stress);
+    if (isfield(F,'Stress'))
+        F.Stress = fluidstressnearboundary(makeib(F),{},F.swimvecx,F.swimvecy, 'fluidvals',F.Stress);
+        F.Stress = stress2thrustdrag(F.t,F.cyclenum,F.Stress);
     
-    Ithrust1 = sum(F.Stress.Ithrustt(:,F.steadycycle:end,:) + ...
-        F.Stress.Ithrustn(:,F.steadycycle:end,:),3);
-    Ithrust = catuneven(3,Ithrust, Ithrust1);
-    Idrag1 = sum(F.Stress.Idragt(:,F.steadycycle:end,:) + ...
-        F.Stress.Idragn(:,F.steadycycle:end,:),3);
-    Idrag = catuneven(3,Idrag, Idrag1);
-    skinfricthrust = catuneven(3,skinfricthrust, ...
-        sum(F.Stress.Ithrustt(:,F.steadycycle:end,:),3));
-    skinfricdrag = catuneven(3,skinfricdrag, ...
-        sum(F.Stress.Idragt(:,F.steadycycle:end,:),3));
-    
-    rmslateralt1 = NaN(size(F.Stress.Ithrustt,1),size(F.Stress.Ithrustt,2));
-    rmslateraln1 = NaN(size(F.Stress.Ithrustt,1),size(F.Stress.Ithrustt,2));
-    for c = F.steadycycle:max(F.cyclenum)-1,
-        iscycle = F.cyclenum == c;
-        rmslateralt1(:,c) = sqrt(nanmean(sum(F.Stress.Flateralt(:,iscycle,:).^2,3),2));
-        rmslateraln1(:,c) = sqrt(nanmean(sum(F.Stress.Flateraln(:,iscycle,:).^2,3),2));
+        Ithrust{i} = sum(F.Stress.Ithrustt(:,F.steadycycle:end,:) + ...
+            F.Stress.Ithrustn(:,F.steadycycle:end,:),3);
+        Idrag{i} = sum(F.Stress.Idragt(:,F.steadycycle:end,:) + ...
+            F.Stress.Idragn(:,F.steadycycle:end,:),3);
+        skinfricthrust{i} = sum(F.Stress.Ithrustt(:,F.steadycycle:end,:),3);
+        skinfricdrag{i} = sum(F.Stress.Idragt(:,F.steadycycle:end,:),3);
+        
+        rmslateralt1 = NaN(size(F.Stress.Ithrustt,1),size(F.Stress.Ithrustt,2));
+        rmslateraln1 = NaN(size(F.Stress.Ithrustt,1),size(F.Stress.Ithrustt,2));
+        for c = F.steadycycle:max(F.cyclenum)-1,
+            iscycle = F.cyclenum == c;
+            rmslateralt1(:,c) = sqrt(nanmean(sum(F.Stress.Flateralt(:,iscycle,:).^2,3),2));
+            rmslateraln1(:,c) = sqrt(nanmean(sum(F.Stress.Flateraln(:,iscycle,:).^2,3),2));
+        end;
+        
+        rmslateralt{i} = rmslateralt1;
+        rmslateraln{i} = rmslateraln1;
     end;
-    
-    rmslateralt = catuneven(3,rmslateralt,rmslateralt1);
-    rmslateraln = catuneven(3,rmslateraln,rmslateraln1);
 end;
+
+s = catuneven(3,s{:});
+t = catuneven(3,t{:});
+comspeed = catuneven(3,comspeed{:});
+comx = catuneven(3,comx{:});
+comy = catuneven(3,comy{:});
+xm = catuneven(3,xm{:});
+ym = catuneven(3,ym{:});
+ampcont = catuneven(3,ampcont{:});
+env = catuneven(3,env{:});
+Ithrust = catuneven(3,Ithrust{:});
+Idrag = catuneven(3,Idrag{:});
+worktot = catuneven(3,worktot{:});
+skinfricthrust = catuneven(3,skinfricthrust{:});
+skinfricdrag = catuneven(3,skinfricdrag{:});
+rmslateralt = catuneven(3,rmslateralt{:});
+rmslateraln = catuneven(3,rmslateraln{:});
 
 figure(1);
 clf;
