@@ -19,11 +19,14 @@ opt.springrectype = struct('i1',uint8(0),'j1',uint8(0),'i2',uint8(0),'j2',uint8(
 
 opt = parsevarargin(opt,varargin,2);
 
+datafiles = {};
+
 %xy coordinates of the IB points
 fn = fullfile(datadir,opt.xyfile);
 if (exist(fn,'file')),
     fprintf('Importing xy coordinates...\n');
     XY = dlmread(fn);
+    datafiles = [datafiles fn];
     
     %check number of frames
     nfr = size(XY,1) / (opt.nlines * opt.npt);
@@ -68,6 +71,7 @@ if (~exist(fn,'file')),
 else    
     fprintf('Importing uv velocities...\n');
     UV = dlmread(fn);
+    datafiles = [datafiles fn];
     
     %check number of frames
     nfr1 = size(UV,1) / (opt.nlines * opt.npt);
@@ -111,6 +115,7 @@ if (~exist(fn,'file')),
 else    
     fprintf('Importing activation data...\n');
     actdata = dlmread(fn);
+    datafiles = [datafiles fn];
     
     %these are the indices for which activation is defined
     good = actdata(:,2) ~= 0;
@@ -151,6 +156,7 @@ if (~exist(fn,'file')),
 else    
     fprintf('Importing muscle force...\n');
     M = dlmread(fn);
+    datafiles = [datafiles fn];
     
     nfr1 = size(M,1) / (opt.nlines * opt.npt);
     if (nfr1 ~= floor(nfr1)),
@@ -182,6 +188,7 @@ if (~exist(fn,'file')),
 else    
     fprintf('Importing total force...\n');
     T = dlmread(fn);
+    datafiles = [datafiles fn];
     
     %check number of frames
     nfr1 = size(T,1) / (opt.nlines * opt.npt);
@@ -224,6 +231,7 @@ if (~exist(fn,'file')),
 else    
     fprintf('Importing ODE solution data...\n');
     odedata = dlmread(fn);
+    datafiles = [datafiles fn];
     
     %these are the indices for which activation is defined
     if ((size(odedata,2) == 2) || ...
@@ -280,6 +288,7 @@ else
     nspring = length(opt.springbinfiles);
     for i = 1:length(opt.springbinfiles),
         fn = fullfile(datadir,opt.springbinfiles{i});
+        datafiles = [datafiles fn];
         
         S1 = readfortranrecs(fn,opt.springrectype);
         %stupid error - we wrote out the points from 1:320ish in an 8bit
@@ -413,6 +422,8 @@ if ((length(ufr) >= 2) && (ufr(end-1) ~= 1)),
         end;
     end;
 end;
+
+out.HGREV = savehgrev([],'datafile',datafiles);
 
 save(outfile,'-struct','out');
 
