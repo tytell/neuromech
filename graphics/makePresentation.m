@@ -177,7 +177,8 @@ end;
 %first on the edges of markers
 markeredges = findobj(fig,'Type','line','LineStyle','none',...
     '-not','MarkerEdgeColor','none');
-markeredgewidth = cat(1,get(markeredges,'LineWidth'));
+markeredgewidth = get(markeredges,'LineWidth');
+markeredgewidth = cat(1,markeredgewidth{:});
 
 set(markeredges(markeredgewidth < opt.minlinewidth),...
     'LineWidth',opt.minlinewidth);
