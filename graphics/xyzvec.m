@@ -1,5 +1,7 @@
 function varargout = xyzvec(x,y,z,varargin)
 
+opt.flatten = true;
+
 switch nargin,
     case 1,
         varargin = {x};
@@ -45,18 +47,28 @@ elseif ((nargin >= 1) && isnumeric(varargin{1}))
     p = 2;
 end;
 
-% opt = parsevarargin(opt,varargin(p:end),p);
+opt = parsevarargin(opt,varargin(p:end),p,'allowno');
 
 if (tovec)
     sz = size(x);
     n = numel(x);
     
-    x = reshape(x,[1 n]);
-    y = reshape(y,[1 n]);
+    if (opt.flatten)
+        x = reshape(x,[1 n]);
+        y = reshape(y,[1 n]);
+        if (~isempty(z))
+            z = reshape(z,[1 n]);
+        end;
+    else
+        x = shiftdim(x,-1);
+        y = shiftdim(y,-1);
+        if (~isempty(z))
+            z = shiftdim(z,-1);
+        end;
+    end;
     if (isempty(z))
         X = cat(1,x,y);
     else
-        z = reshape(z,[1 n]);
         X = cat(1,x,y,z);
     end;
     varargout = {X, sz};
