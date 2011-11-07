@@ -49,6 +49,7 @@ opt.copyfig = true;
 opt.width = 10.5;
 opt.bgcolor = 'white';
 opt.replaceblack = false;
+opt.rescale = true;
 
 if ((nargin >= 1) && (numel(varargin{1}) == 1) && ishandle(varargin{1}))
     fig = varargin{1};
@@ -129,31 +130,33 @@ if (opt.copyfig)
         'Position',[20 20 100 35], 'Callback',{@exportpresfig,fig});
 end;
 
-set(fig,'Units','inches');
-
-%set all axes on the figure to have normalized units, so that they scale
-%with the figure when we resize it
 allaxes = findobj(fig,'Type','axes');
-set(allaxes,'Units','normalized','ActivePositionProperty','OuterPosition', ...
-    'Clipping','off');
-
-%and resize the figure
-%now set the figure position
-figpos = get(fig,'Position');
-
-scale = opt.width/figpos(3);
-figpos(3) = opt.width;
-
-h0 = figpos(4);
-figpos(4) = h0*scale;
-figpos(2) = figpos(2)+h0 - figpos(4);
-
-set(fig,'Position',figpos);
-
-drawnow;
-%for some reason, a brief pause here seems to help Matlab get the figure
-%sizes right...
-pause(0.05);
+if (opt.rescale)
+    set(fig,'Units','inches');
+    
+    %set all axes on the figure to have normalized units, so that they scale
+    %with the figure when we resize it
+    set(allaxes,'Units','normalized','ActivePositionProperty','OuterPosition', ...
+        'Clipping','off');
+    
+    %and resize the figure
+    %now set the figure position
+    figpos = get(fig,'Position');
+    
+    scale = opt.width/figpos(3);
+    figpos(3) = opt.width;
+    
+    h0 = figpos(4);
+    figpos(4) = h0*scale;
+    figpos(2) = figpos(2)+h0 - figpos(4);
+    
+    set(fig,'Position',figpos);
+    
+    drawnow;
+    %for some reason, a brief pause here seems to help Matlab get the figure
+    %sizes right...
+    pause(0.05);
+end;
 
 %check for markers that are too small
 markers = findobj(fig,'Type','line','-not','Marker','none');
