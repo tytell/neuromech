@@ -122,6 +122,8 @@ for a = 1:length(vals),
         vs1(good) = v;
         
         vals{a} = vs1;
+    else
+        vals{a} = zeros(0,0,class(vs));
     end;
 end;
 
