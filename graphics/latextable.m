@@ -165,8 +165,12 @@ for i = 1:nrow,
         if (isempty(tab{i,j}))
             fmt{i,j} = '';
             tab{i,j} = '';
-        elseif (iscell(tab{i,j}) && strcmpi(fmt{i,j},'spark'))
-            plt = tab{i,j};
+        elseif (strcmpi(fmt{i,j},'spark'))
+            if (isnumeric(tab{i,j}))
+                plt = tab(i,j);
+            else
+                plt = tab{i,j};
+            end;
             if ((numel(plt) == 1) || ...
                     (numel(plt) >= 2) && isnumeric(plt{1}) && ischar(plt{2}))
                 y1 = plt{1};
@@ -373,6 +377,9 @@ if (fid ~= 1)
     
     if (opt.runlatex)
         [pn,fn,ext] = fileparts(opt.outfile);
+        if (isempty(pn))
+            pn = '.';
+        end;
         pdffile = fullfile(pn,[fn '.pdf']);
 
         if (exist(pdffile,'file'))
