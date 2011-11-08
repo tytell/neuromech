@@ -126,6 +126,10 @@ else
         fclose(fid);
         
         addpath(pathnames{:},'-begin');
-        savepath;
+        upath = userpath;
+        if (upath(end) == ':')
+            upath = upath(1:end-1);
+        end;
+        savepath(fullfile(upath,'pathdef.m'));
     end;
 end;
