@@ -86,9 +86,9 @@ if (~isempty(opt.fluidvals))
         i0 = 1;
     end;
 elseif (~isempty(opt.continuationfile) && exist(opt.continuationfile,'file'))
-    load(opt.continuationfile, 'S','samraidirs','fr','frames');
+    load(opt.continuationfile, 'S','fr','frames');
     i0 = find(frames == fr);
-    fprintf('Continuing from frame %d...\n', fr0);
+    fprintf('Continuing from frame %d...\n', i0);
 else
     i0 = 1;
 end;
