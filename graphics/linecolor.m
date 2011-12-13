@@ -1,4 +1,5 @@
 function h = linecolor(x,y,w,c,varargin)
+% LINECOLOR  Plots a line with varying color and width
 
 if ((numel(x) == 1) && ishandle(x) && strcmp(get(x,'Type'),'axes'))
     ax = x;
@@ -50,10 +51,13 @@ else
     xx = cat(1,x1(1,1:end-1,:),x2(1,1:end-1,:),x2(1,2:end,:),x1(1,2:end,:));
     yy = cat(1,y1(1,1:end-1,:),y2(1,1:end-1,:),y2(1,2:end,:),y1(1,2:end,:));
     
-    c = c(:)';
-    c = cat(1,c([1 1],1:end-1),c([1 1],2:end));
+    c = shiftdim(c,-1);
+    c = cat(1,c([1 1],1:end-1,:),c([1 1],2:end,:));
     
-    h = patch(xx,yy,c,'Parent',ax);
+    h = zeros(size(xx,3),1);
+    for i = 1:size(xx,3)
+        h(i) = patch(xx(:,:,i),yy(:,:,i),c(:,:,i),'Parent',ax);
+    end;
     set(h,'FaceColor','interp', 'EdgeColor','none', varargin{:});
 end;
 
