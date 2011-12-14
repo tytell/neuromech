@@ -20,7 +20,7 @@ end;
 
 if (strcmp(opt.method,'timing')),
     sig = diff(t);
-    thresh = interburstdur;
+    thresh = opt.interburstdur;
 else
     sig = 1./spike;
     if (isempty(opt.threshold)),
