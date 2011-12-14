@@ -1,5 +1,14 @@
 function h = linecolor(x,y,w,c,varargin)
 % LINECOLOR  Plots a line with varying color and width
+%   h  = linecolor(x,y,w,c,...)
+%    or  linecolor(ax,x,y,w,c,...)
+%
+%   Similar to SCATTER, x and y are the coordinates of the line, w is its
+%   width (in image coordinates - NOT points), and c is its color (scaled
+%   into the colormap).
+%
+%   Can take any options that are valid for patch.
+
 
 if ((numel(x) == 1) && ishandle(x) && strcmp(get(x,'Type'),'axes'))
     ax = x;
