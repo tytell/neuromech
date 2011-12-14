@@ -227,7 +227,7 @@ if (isempty(h2)),
     if (iscreate),
         %we didn't find anything, so create a top axes for h
         b = h;
-        t = axes('Position',pos);
+        t = axes('Position',pos,'Parent',par);
         
         %set it transparent
         set(t,'Color','none');

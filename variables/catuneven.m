@@ -48,6 +48,7 @@ end;
 %and figure out the final output size
 totalsz = max(sz,[],2);
 totalsz(dim) = sum(sz(dim,:));
+totalsz = totalsz';
 
 switch class(vals{1}),
     case 'double',
@@ -70,26 +71,60 @@ switch class(vals{1}),
         error('Unsupported class');
 end;
 
+totalsz1 = totalsz;
+totalsz1(dim) = 1;
+switch class(vals{1}),
+    case 'double',
+        vs = NaN(totalsz1);
+    case 'char',
+        vs = repmat(' ',totalsz1);
+    case 'logical',
+        vs = false(totalsz1);
+    case 'cell',
+        vs = cell(totalsz1);
+    case {'int8','uint8','int16','uint16','int32','uint32', ...
+            'int64','uint64'}
+        vs = zeros(totalsz1,class(vals{1}));
+        
+    otherwise,
+        error('Unsupported class');
+end;
 
 %run through and grow the original matrices
 for a = 1:length(vals),
     v = vals{a};
-
-    for d = 1:nd,
-        if ((d ~= dim) && (size(v,d) < totalsz(d))),
-            pmt = [d 1:d-1 d+1:nd];
-            v = permute(v,pmt);
-            if (iscell(v))
-                sz1 = sz(pmt,a);
-                v(end+1:totalsz(d),:) = cell(totalsz(d)-sz1(1),prod(sz1(2:end)));
-            else
-                v(end+1:totalsz(d),:) = addval;
-            end;
-            v = ipermute(v,pmt);
-        end;
-    end;
+    sz1 = size(v);
     
-    vals{a} = v;
+    if (~isempty(v))
+        repdim = ones(1,nd);
+        repdim(dim) = size(v,dim);
+        
+        vs1 = repmat(vs, repdim);
+        
+        %good sets the area within vs1 in which v fits
+        good = true(totalsz1);
+        for d = 1:nd,
+            %bring the d dimension first
+            pmt = [d 1:d-1 d+1:nd];
+            good = permute(good, pmt);
+            good1 = false(size(good));
+            if (d ~= dim)
+                good1(1:sz1(d),:) = true;
+            else
+                good1(1,:) = true;
+            end;
+            %make sure we are true along other dimensions, too
+            good = good & good1;
+            good = ipermute(good, pmt);
+        end;
+        good = repmat(good,repdim);
+        
+        vs1(good) = v;
+        
+        vals{a} = vs1;
+    else
+        vals{a} = zeros(0,0,class(vs));
+    end;
 end;
 
 %and do the concatenation

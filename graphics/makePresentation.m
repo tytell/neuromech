@@ -42,6 +42,7 @@ opt.secondaryfont = '';
 opt.fontsizes = [24 16];
 opt.minlinewidth = 1;
 opt.linescale = 2;
+opt.axlinewidth = 2;
 opt.minmarkersize = 12;
 opt.markerscale = 2;
 opt.quiet = false;
@@ -49,6 +50,7 @@ opt.copyfig = true;
 opt.width = 10.5;
 opt.bgcolor = 'white';
 opt.replaceblack = false;
+opt.rescale = true;
 
 if ((nargin >= 1) && (numel(varargin{1}) == 1) && ishandle(varargin{1}))
     fig = varargin{1};
@@ -129,31 +131,33 @@ if (opt.copyfig)
         'Position',[20 20 100 35], 'Callback',{@exportpresfig,fig});
 end;
 
-set(fig,'Units','inches');
-
-%set all axes on the figure to have normalized units, so that they scale
-%with the figure when we resize it
 allaxes = findobj(fig,'Type','axes');
-set(allaxes,'Units','normalized','ActivePositionProperty','OuterPosition', ...
-    'Clipping','off');
-
-%and resize the figure
-%now set the figure position
-figpos = get(fig,'Position');
-
-scale = opt.width/figpos(3);
-figpos(3) = opt.width;
-
-h0 = figpos(4);
-figpos(4) = h0*scale;
-figpos(2) = figpos(2)+h0 - figpos(4);
-
-set(fig,'Position',figpos);
-
-drawnow;
-%for some reason, a brief pause here seems to help Matlab get the figure
-%sizes right...
-pause(0.05);
+if (opt.rescale)
+    set(fig,'Units','inches');
+    
+    %set all axes on the figure to have normalized units, so that they scale
+    %with the figure when we resize it
+    set(allaxes,'Units','normalized','ActivePositionProperty','OuterPosition', ...
+        'Clipping','off');
+    
+    %and resize the figure
+    %now set the figure position
+    figpos = get(fig,'Position');
+    
+    scale = opt.width/figpos(3);
+    figpos(3) = opt.width;
+    
+    h0 = figpos(4);
+    figpos(4) = h0*scale;
+    figpos(2) = figpos(2)+h0 - figpos(4);
+    
+    set(fig,'Position',figpos);
+    
+    drawnow;
+    %for some reason, a brief pause here seems to help Matlab get the figure
+    %sizes right...
+    pause(0.05);
+end;
 
 %check for markers that are too small
 markers = findobj(fig,'Type','line','-not','Marker','none');
@@ -163,7 +167,7 @@ if (~isempty(markers)),
         markersz = cat(1,markersz{:});
     end;
 
-    markersz = markersz * opt.linescale;
+    markersz = markersz * opt.markerscale;
     for i = 1:length(markersz),
         if (markersz(i) < opt.minmarkersize),
             set(markers(i),'MarkerSize',opt.minmarkersize);
@@ -177,7 +181,10 @@ end;
 %first on the edges of markers
 markeredges = findobj(fig,'Type','line','LineStyle','none',...
     '-not','MarkerEdgeColor','none');
-markeredgewidth = cat(1,get(markeredges,'LineWidth'));
+markeredgewidth = get(markeredges,'LineWidth');
+if (iscell(markeredgewidth))
+    markeredgewidth = cat(1,markeredgewidth{:});
+end;
 
 set(markeredges(markeredgewidth < opt.minlinewidth),...
     'LineWidth',opt.minlinewidth);
@@ -206,13 +213,9 @@ if (iscell(axlnwidth))
     axlnwidth = cat(1,axlnwidth{:});
 end;
 
-axlnwidth = axlnwidth * opt.linescale;
+axlnwidth = opt.axlinewidth;
 for i = 1:length(axlnwidth),
-    if (axlnwidth(i) < opt.minlinewidth),
-        set(allaxes(i),'LineWidth',opt.minlinewidth);
-    else
-        set(allaxes(i),'LineWidth',axlnwidth(i));
-    end;
+    set(allaxes(i),'LineWidth',axlnwidth(i));
 end;
 
 %now get the axes labels
@@ -227,7 +230,7 @@ end;
 set(allaxes,'FontName',opt.font, 'FontSize',opt.fontsizes(2));
 
 good = ishandle(labels);
-set(labels(good),'FontName',opt.font, 'FontSize',opt.fontsizes(1), 'FontWeight','bold');
+set(labels(good),'FontName',opt.font, 'FontSize',opt.fontsizes(1));
 
 othertext = findobj(fig,'Type','text');
 othertext = othertext(~ismember(othertext,labels(:)));
@@ -252,8 +255,10 @@ if (opt.replaceblack)
 end;
 
 %make sure that Matlab won't rescale things when we print
-set(fig, 'PaperPositionMode','manual',...
-    'PaperPosition',[0.5 10.5-figpos(4) figpos(3) figpos(4)]);
+set(fig, 'PaperPositionMode','manual');
+if (opt.rescale)
+    set(fig,'PaperPosition',[0.5 10.5-figpos(4) figpos(3) figpos(4)]);
+end;
 set(allaxes, 'XTickMode','manual','YTickMode','manual','ZTickMode','manual');
 
 

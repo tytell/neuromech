@@ -120,6 +120,7 @@ npt = size(xm,1);
 s0 = [zeros(1,nfr); cumsum(sqrt(diff(xm).^2 + diff(ym).^2))];
 s = nanmean(s0,2);
 
+istether = false;
 disp('  Estimating com speed...');
 if (all(abs(xm(1,:) - xm(1,1)) < 1e-3))
     disp('  -> appears to be a tethered head simulation');

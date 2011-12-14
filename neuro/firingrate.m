@@ -60,10 +60,15 @@ switch lower(opt.method),
         rate0(2:end-1,:) = 1 ./ ((spikedt(1:end-1) + spikedt(2:end))/2);
         t0 = spiket;
         
-        tstart = floor(min(spiket(:))/binsize)*binsize - binsize/2;
-        tend = ceil(max(spiket(:))/binsize)*binsize + binsize/2;
-        
-        t = (tstart+binsize/2:binsize:tend)';
+        if (isempty(edges))
+            tstart = floor(min(spiket(:))/binsize)*binsize - binsize/2;
+            tend = ceil(max(spiket(:))/binsize)*binsize + binsize/2;
+            
+            t = (tstart+binsize/2:binsize:tend)';
+        else
+            t = edges;
+            tstart = edges(1);
+        end;
         nbin = length(t);
         
         bin = floor((t0 - tstart)/binsize)+1;

@@ -55,7 +55,7 @@ while (p <= length(varargin)),
         opt.rundur = varargin{p+1};
         p = p+2;
         
-      case {'poisson','surprise','timing','integral','peaks'},
+      case {'poisson','surprise','timing','integral','peaks','simpletiming','simple'},
         opt.method = varargin{p};
         p = p+1;
         
@@ -126,124 +126,187 @@ else
     opt.isSpikes = false;
 end;
 
-switch opt.method,
-  case 'runmean',
-    [burstctr burstdev burstskew spikectr tctr] = findbursts_runmean(t,spikeh,opt);
-        
-    if (nargout == 1),
-        varargout = {burstctr};
-    elseif (nargout == 3),
-        varargout = {burstctr,burstdev,burstskew};
-    elseif (nargout == 5),
-        varargout = {burstctr,burstdev,burstskew,spikectr,tctr};
-    end;
-        
-  case 'surprise',
-    [burstctr, burstind, burstSurprise, surprise] = findbursts_surprise(t,spikeh, opt);
-    varargout = {burstctr, burstind, burstSurprise, surprise};
-    
-  case {'timing','integral'},
-    [burstctr, burstind] = findbursts_timing(t,spikeh, opt);
-    
-    varargout = {burstctr,burstind};
-
-  case 'peaks',
-      if (numel(t) == size(t,1)),
-          t = t';
-          spikeh = spikeh';
-          nchan = 1;
-      else
-          nchan = size(t,1);
-      end;
-      
-      for ch = 1:nchan,
-          good = isfinite(t(ch,:));
-          if (~isempty(spikeh))
-              good = good & isfinite(spikeh(ch,:));
-              spikeh1 = spikeh(ch,good);
-          else
-              spikeh1 = [];
-          end;
-          t1 = t(ch,good);
-          
-          [burstctr{ch}, burstind{ch}, peakind{ch},peakrate{ch},tbin{ch},...
-              spikerate{ch},ismerged{ch}] = ...
-              findbursts_peaks(t1,spikeh1, opt);
-      end;
-      
-      if (opt.isoutstruct),
-          spike.tbin = tbin;
-          spike.rate = spikerate;
-          
-          burst.ctr = burstctr;
-          burst.spikeratepk = peakrate;
-          
-          %save burst identification parameters
-          burst.interburstdur = opt.interburstdur;
-          burst.ratethresh = opt.threshold;
-          burst.binsize = opt.binsize;
-          burst.smoothwindow = opt.smooth;
-          burst.method = 'peaks';
-          
-          for ch = 1:nchan,
-              good = isfinite(t(ch,:));
-              spike.t{ch} = t(ch,good);
-              if (~isempty(spikeh)),
-                  spike.h{ch} = spikeh(ch,good);
-              end;
-
-              burst.on{ch} = t(burstind{ch}(1,:));
-              burst.off{ch} = t(burstind{ch}(2,:));
-
-              n = size(burstind{ch},2);
-              
-              %number of spikes in the burst divided by the duration gives us the mean spike rate
-              burst.spikeratemn{ch} = (diff(burstind{ch})+1) ./ ...
-                  (burst.off{ch} - burst.on{ch});
-              
-              spike.burstind{ch} = zeros(1,size(spike.t,2));
-              for b = 1:n,
-                  k = burstind{ch}(1,b):burstind{ch}(2,b);
-                  
-                  %set the burst index for each spike
-                  spike.burstind{ch}(k) = b;
-              end;
-          end;
-          
-          if (~opt.isoutcell || (nchan == 1)),
-              fields = fieldnames(burst)';
-              for f = 1:length(fields),
-                  f1 = fields{f};
-                  if (iscell(burst.(f1)))
-                      burst.(f1) = catuneven(1,burst.(f1){:});
-                  end;
-              end;
-              fields = fieldnames(spike)';
-              for f = 1:length(fields),
-                  f1 = fields{f};
-                  if (iscell(spike.(f1)))
-                      spike.(f1) = catuneven(1,spike.(f1){:});
-                  end;
-              end;
-          end;
-          varargout = {burst,spike};
-      else
-          if (nchan == 1),
-              burstctr = burstctr{1};
-              burstind = burstind{1};
-              peakind = peakind{1};
-              peakrate = peakrate{1};
-              tbin = tbin{1};
-              spikerate = spikerate{1};
-              ismerged = ismerged{1};
-          end;
-          
-          varargout = {burstctr,burstind,peakind,peakrate,tbin,spikerate,ismerged};
-          varargout = varargout(1:nargout);
-      end;
-      
-  case 'poisson',
-    error('Not implemented yet.');
+if (numel(t) == size(t,1)),
+    t = t';
+    spikeh = spikeh';
+    nchan = 1;
+else
+    nchan = size(t,1);
 end;
 
+switch opt.method,
+    case 'runmean',
+        [burstctr burstdev burstskew spikectr tctr] = findbursts_runmean(t,spikeh,opt);
+        
+        if (nargout == 1),
+            varargout = {burstctr};
+        elseif (nargout == 3),
+            varargout = {burstctr,burstdev,burstskew};
+        elseif (nargout == 5),
+            varargout = {burstctr,burstdev,burstskew,spikectr,tctr};
+        end;
+        
+    case 'surprise',
+        [burstctr, burstind, burstSurprise, surprise] = findbursts_surprise(t,spikeh, opt);
+        varargout = {burstctr, burstind, burstSurprise, surprise};
+        
+    case {'timing','integral'},
+        [burstctr, burstind] = findbursts_timing(t,spikeh, opt);
+        
+        varargout = {burstctr,burstind};
+        
+    case {'simpletiming','simple'},
+        dt = diff(t,[],2);
+        for ch = 1:nchan,
+            burststart1 = find((dt(ch,1:end-1) > opt.interburstdur) & (dt(ch,2:end) <= opt.interburstdur)) + 1;
+            burstend1 = find((dt(ch,1:end-1) <= opt.interburstdur) & (dt(ch,2:end) > opt.interburstdur)) + 1;
+        
+            if (burststart1(1) > burstend1(1))
+                burstend1 = burstend1(2:end);
+            end;
+            if (burststart1(end) > burstend1(end))
+                burststart1 = burststart1(1:end-1);
+            end;
+            assert(length(burststart1) == length(burstend1));
             
+            burstctr1 = zeros(size(burststart1));
+            spikeburstind1 = zeros(1,size(t,2));
+            
+            for i = 1:length(burststart1)
+                burstctr1(i) = mean(t(ch,burststart1(i):burstend1(i)));
+                spikeburstind1(burststart1(i):burstend1(i)) = i;
+            end;
+
+            burstctr{ch} = burstctr1;
+            spikeburstind{ch} = spikeburstind1;
+            nspike{ch} = burstend1-burststart1 + 1;
+            burststart{ch} = burststart1;
+            burstend{ch} = burstend1;
+        end;
+        
+        if (opt.isoutstruct)
+            burst.method = 'simple';
+            burst.interburstdur = opt.interburstdur;
+            
+            for ch = 1:nchan,
+                burst.on{ch} = t(ch,burststart{ch});
+                burst.off{ch} = t(ch,burstend{ch});
+            end;
+            burst.ctr = burstctr;
+            burst.nspike = nspike;
+                
+            spike.burstind = spikeburstind;
+            
+            if (~opt.isoutcell || (nchan == 1)),
+                fields = fieldnames(burst)';
+                for f = 1:length(fields),
+                    f1 = fields{f};
+                    if (iscell(burst.(f1)))
+                        burst.(f1) = catuneven(1,burst.(f1){:});
+                    end;
+                end;
+                fields = fieldnames(spike)';
+                for f = 1:length(fields),
+                    f1 = fields{f};
+                    if (iscell(spike.(f1)))
+                        spike.(f1) = catuneven(1,spike.(f1){:});
+                    end;
+                end;
+            end;
+            varargout = {burst,spike};
+        end;
+                
+                
+    case 'peaks',
+        
+        for ch = 1:nchan,
+            good = isfinite(t(ch,:));
+            if (~isempty(spikeh))
+                good = good & isfinite(spikeh(ch,:));
+                spikeh1 = spikeh(ch,good);
+            else
+                spikeh1 = [];
+            end;
+            t1 = t(ch,good);
+            
+            [burstctr{ch}, burstind{ch}, peakind{ch},peakrate{ch},tbin{ch},...
+                spikerate{ch},ismerged{ch}] = ...
+                findbursts_peaks(t1,spikeh1, opt);
+        end;
+        
+        if (opt.isoutstruct),
+            spike.tbin = tbin;
+            spike.rate = spikerate;
+            
+            burst.ctr = burstctr;
+            burst.spikeratepk = peakrate;
+            
+            %save burst identification parameters
+            burst.interburstdur = opt.interburstdur;
+            burst.ratethresh = opt.threshold;
+            burst.binsize = opt.binsize;
+            burst.smoothwindow = opt.smooth;
+            burst.method = 'peaks';
+            
+            for ch = 1:nchan,
+                good = isfinite(t(ch,:));
+                spike.t{ch} = t(ch,good);
+                if (~isempty(spikeh)),
+                    spike.h{ch} = spikeh(ch,good);
+                end;
+                
+                burst.on{ch} = t(burstind{ch}(1,:));
+                burst.off{ch} = t(burstind{ch}(2,:));
+                
+                n = size(burstind{ch},2);
+                
+                %number of spikes in the burst divided by the duration gives us the mean spike rate
+                burst.spikeratemn{ch} = (diff(burstind{ch})+1) ./ ...
+                    (burst.off{ch} - burst.on{ch});
+                
+                spike.burstind{ch} = zeros(1,size(spike.t,2));
+                for b = 1:n,
+                    k = burstind{ch}(1,b):burstind{ch}(2,b);
+                    
+                    %set the burst index for each spike
+                    spike.burstind{ch}(k) = b;
+                end;
+            end;
+            
+            if (~opt.isoutcell || (nchan == 1)),
+                fields = fieldnames(burst)';
+                for f = 1:length(fields),
+                    f1 = fields{f};
+                    if (iscell(burst.(f1)))
+                        burst.(f1) = catuneven(1,burst.(f1){:});
+                    end;
+                end;
+                fields = fieldnames(spike)';
+                for f = 1:length(fields),
+                    f1 = fields{f};
+                    if (iscell(spike.(f1)))
+                        spike.(f1) = catuneven(1,spike.(f1){:});
+                    end;
+                end;
+            end;
+            varargout = {burst,spike};
+        else
+            if (nchan == 1),
+                burstctr = burstctr{1};
+                burstind = burstind{1};
+                peakind = peakind{1};
+                peakrate = peakrate{1};
+                tbin = tbin{1};
+                spikerate = spikerate{1};
+                ismerged = ismerged{1};
+            end;
+            
+            varargout = {burstctr,burstind,peakind,peakrate,tbin,spikerate,ismerged};
+            varargout = varargout(1:nargout);
+        end;
+        
+    case 'poisson',
+        error('Not implemented yet.');
+end;
+
+

@@ -1,10 +1,17 @@
 function xtick(varargin)
+%XTICK Easily set tick locations and labels
 % function xtick(tickvals)
 %   or     xtick(tickvals, ticklabels)
+%   or     xtick(ticklabels)
 %   or     xtick(tickval,ticklabel, tickval,ticklabel, ...)
 %   or     xtick on
 %   or     xtick off
 %   or     xtick auto
+%   or     xtick labelon
+%   or     xtick labeloff
+%
+% See also
+%   YTICK
 
 if ((nargin > 1) && all(ishandle(varargin{1}))),
     ax = varargin{1};
@@ -20,21 +27,33 @@ ticklabelopt = {};
 
 while ((i <= nargin) && ischar(varargin{i})),
     switch lower(varargin{i}),
-      case 'on',
-        tickmodeopt = {'XTickMode','auto'};
-        i = i+1;
-        
-      case 'off',
-        tickopt = {'XTick',[]};
-        tickmodeopt = {'XTickMode','manual'};
-        i = i+1;
-        
-      case 'auto',
-        tickmodeopt = {'XTickMode','auto'};
-        i = i+1;
-        
-      otherwise,
-        error('Unrecognized option %s.', varargin{i});
+        case 'on',
+            tickmodeopt = {'XTickMode','auto'};
+            i = i+1;
+            
+        case 'off',
+            tickopt = {'XTick',[]};
+            tickmodeopt = {'XTickMode','manual'};
+            i = i+1;
+            
+        case 'auto',
+            tickmodeopt = {'XTickMode','auto'};
+            i = i+1;
+            
+        case 'labeloff',
+            ticklabelopt = {'XTickLabel',[]};
+            tickopt = {};
+            tickmodeopt = {};
+            i = i+1;
+            
+        case 'labelon',
+            ticklabelopt = {'XTickLabelMode','auto'};
+            tickopt = {};
+            tickmodeopt = {};
+            i = i+1;
+            
+        otherwise,
+            error('Unrecognized option %s.', varargin{i});
     end;
 end;
 

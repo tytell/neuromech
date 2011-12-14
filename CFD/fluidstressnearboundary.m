@@ -15,22 +15,31 @@ function S = fluidstressnearboundary(IB, samraidirs, swimvecx, swimvecy, varargi
 opt.debug = false;
 opt.tol = 0.1;
 opt.mu = 0.01;          % in Poise = g/cm/s
+opt.rho = 1;            % g/cm
 opt.nregions = 10;
 opt.continuationfile = '';
-opt.fluidvals = struct;
+opt.fluidvals = struct([]);
 opt.normaldistance = 2;
 opt.savepressure = false;
 opt.savevorticity = false;
+opt.frames = [];
 
-opt = parsevarargin(opt,varargin, 4);
+opt = parsevarargin(opt,varargin, 5);
+
+if (isempty(opt.frames))
+    nfr = size(IB.xm,2);
+    frames = 1:nfr;
+else
+    frames = opt.frames;
+    nfr = length(frames);
+end;
 
 %boundary
-boundx0 = [IB.xm(1,:); IB.xl(2:end-1,:); IB.xm(end,:); IB.xr(end-1:-1:2,:); IB.xm(1,:)];
-boundy0 = [IB.ym(1,:); IB.yl(2:end-1,:); IB.ym(end,:); IB.yr(end-1:-1:2,:); IB.ym(1,:)];
-boundu0 = [IB.um(1,:); IB.ul(2:end-1,:); IB.um(end,:); IB.ur(end-1:-1:2,:); IB.um(1,:)];
-boundv0 = [IB.vm(1,:); IB.vl(2:end-1,:); IB.vm(end,:); IB.vr(end-1:-1:2,:); IB.vm(1,:)];
+boundx0 = [IB.xm(1,frames); IB.xl(2:end-1,frames); IB.xm(end,frames); IB.xr(end-1:-1:2,frames); IB.xm(1,frames)];
+boundy0 = [IB.ym(1,frames); IB.yl(2:end-1,frames); IB.ym(end,frames); IB.yr(end-1:-1:2,frames); IB.ym(1,frames)];
+boundu0 = [IB.um(1,frames); IB.ul(2:end-1,frames); IB.um(end,frames); IB.ur(end-1:-1:2,frames); IB.um(1,frames)];
+boundv0 = [IB.vm(1,frames); IB.vl(2:end-1,frames); IB.vm(end,frames); IB.vr(end-1:-1:2,frames); IB.vm(1,frames)];
 
-nfr = size(boundx0,2);
 npt = size(IB.xm,1);
 
 s0 = [zeros(1,nfr); cumsum(sqrt(diff(boundx0).^2 + diff(boundy0).^2))];
@@ -72,13 +81,16 @@ end;
 
 if (~isempty(opt.fluidvals))
     S = joinstructfields(S,opt.fluidvals);
-    fr0 = last(~cellfun(@isempty,S.s));
+    i0 = last(~cellfun(@isempty,S.s));
+    if (isempty(i0))
+        i0 = 1;
+    end;
 elseif (~isempty(opt.continuationfile) && exist(opt.continuationfile,'file'))
-    load(opt.continuationfile, 'S','samraidirs','fr');
-    fr0 = fr;
-    fprintf('Continuing from frame %d...\n', fr0);
+    load(opt.continuationfile, 'S','fr','frames');
+    i0 = find(frames == fr);
+    fprintf('Continuing from frame %d...\n', i0);
 else
-    fr0 = 1;
+    i0 = 1;
 end;
 
 if (~opt.debug && isempty(opt.fluidvals))
@@ -86,32 +98,32 @@ if (~opt.debug && isempty(opt.fluidvals))
 end;
 
 if (~isempty(samraidirs))
+    frames = frames((frames >= 1) & (frames <= length(samraidirs)-1));
+    N = length(frames);
     %run the subroutine, if needed
-    N = min(length(samraidirs)-1, nfr);
-    for fr = fr0:N,
-        fprintf('Importing %s (%d%%)...\n', samraidirs{fr+1}, round((fr+1)/nfr*100));
+    for i = i0:N,
+        fr = frames(i);
+        fprintf('Importing %s (%d%%)...\n', samraidirs{fr+1}, round((i+1)/N*100));
         V = importsamrai(samraidirs{fr+1},'vars',{'U_0','U_1','P'});
         V = getsamraipatchedges(V);
     
-        nleft = sum(s1 <= stail);
-        nright = length(s1) - nleft;
-        
-        S1 = fluidstressnearboundary1(V, boundx0,boundy0, boundu0,boundv0);
-        S.tanx{fr} = S1.tanx;
-        S.tany{fr} = S1.tany;
-        S.s{fr} = S1.s;
-        S.n{fr} = S1.n;
-        S.nearboundx{fr} = S1.nearboundx;
-        S.nearboundy{fr} = S1.nearboundy;
-        S.normstress{fr} = S1.normstress;
-        S.tanstress{fr} = S1.tanstress;
+        S1 = fluidstressnearboundary1(V, boundx0(:,i),boundy0(:,i), ...
+            boundu0(:,i),boundv0(:,i), opt);
+        S.tanx{i} = S1.tanx;
+        S.tany{i} = S1.tany;
+        S.s{i} = S1.s;
+        S.n{i} = S1.n;
+        S.nearboundx{i} = S1.nearboundx;
+        S.nearboundy{i} = S1.nearboundy;
+        S.normstress{i} = S1.normstress;
+        S.tanstress{i} = S1.tanstress;
         if (opt.savepressure)
-            S.nearboundp{fr} = S1.nearboundp;
+            S.nearboundp{i} = S1.nearboundp;
         end;
         if (opt.savevorticity)
-            S.nearboundut{fr} = S1.nearboundut;
-            S.nearboundun{fr} = S1.nearboundun;
-            S.vorticity{fr} = S1.vorticity;
+            S.nearboundut{i} = S1.nearboundut;
+            S.nearboundun{i} = S1.nearboundun;
+            S.vorticity{i} = S1.vorticity;
         end;
         
         if (nargout == 0),
@@ -123,31 +135,31 @@ if (~isempty(samraidirs))
             ds = ds([1 1:end]);
             
             subplot(4,1,1);
-            plot(s0,F.fttot(:,fr),'r-', s1,ds.*S.tanstress{fr}(2,:),'k-');
+            plot(s0,F.fttot(:,i),'r-', s1,ds.*S.tanstress{i}(2,:),'k-');
             ylabel('tanforce');
             axis tight;
             
             subplot(4,1,2);
-            plot(s0,F.fntot(:,fr),'r-', s1,ds.*S.normstress{fr}(2,:),'k-');
+            plot(s0,F.fntot(:,i),'r-', s1,ds.*S.normstress{i}(2,:),'k-');
             ylabel('normforce');
             axis tight;
             
             subplot(4,1,3);
             cla reset;
-            plot(boundx0(:,fr),boundy0(:,fr),'k-');
+            plot(boundx0(:,i),boundy0(:,i),'k-');
             
             k = 1:30:length(boundx);
             addquiverc(boundx(k),boundy(k), ...
-                S.tanstress{fr}(2,k).*tanx1(k) + S.normstress{fr}(2,k).*normx1(k), ...
-                S.tanstress{fr}(2,k).*tany1(k) + S.normstress{fr}(2,k).*normy1(k));
+                S.tanstress{i}(2,k).*tanx1(k) + S.normstress{i}(2,k).*normx1(k), ...
+                S.tanstress{i}(2,k).*tany1(k) + S.normstress{i}(2,k).*normy1(k));
             axis equal tight;
             drawnow;
         else
-            timedWaitBar(fr/N);
+            timedWaitBar(i/N);
         end;
         
-        if (~isempty(opt.continuationfile) && (mod(fr,10) == 0))
-            save(opt.continuationfile,'S','samraidirs','fr');
+        if (~isempty(opt.continuationfile) && (mod(i,10) == 0))
+            save(opt.continuationfile,'S','samraidirs','fr','frames');
         end;
     end;
 else

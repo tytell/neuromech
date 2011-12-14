@@ -102,7 +102,7 @@ for i = 1:sum(goodfiles),
     gridres = 32;
     isforcetaper = 'true';
     if (~getvar('-file',basematfiles{i}, 'freq','viscosity','sfo','sfo2','ps','gridres','isforcetaper',...
-            '-keepundef')),
+            '-keepundef') || ~inputyn('  Use existing constants from file?')),
         prompt = {'freq','viscosity','sfo','sfo2','ps','gridres','isforcetaper'};
         def = cellfun(@num2str,{freq,viscosity,sfo,sfo2,ps,gridres,isforcetaper},'UniformOutput',false);
         if (isempty(sfo2)),

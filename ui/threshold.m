@@ -4,7 +4,7 @@ function t = threshold(I)
 done = 0;
 
 clf;
-imshow(I,'n');
+imshow(I,'InitialMagnification','fit');
 
 old = colormap;
 colormap(gray);

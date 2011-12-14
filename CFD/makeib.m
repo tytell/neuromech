@@ -34,7 +34,7 @@ if ((n == 1) && ischar(varargin{1}) && ...
 elseif ((n == 1) && isstruct(varargin{1}))
     [ok,IB] = getvar('-struct',varargin{1},IBnames{:},'-tostruct');
     if (~ok),
-        warning('makeibforce:missingvars','Some IB variables are not in the structure');
+        warning('makeib:missingvars','Some IB variables are not in the structure');
     end;
 else
     nm = cell(1,n);
@@ -48,6 +48,9 @@ else
         IB = cell2struct(varargin,nm,2);
     else
         IB = cell2struct(varargin,IBnames(1:n),2);
+        if (n < length(IBnames))
+            warning('makeib:missingvars','Some IB variables do not appear to be in the arguments');
+        end;
     end;
 end;
 

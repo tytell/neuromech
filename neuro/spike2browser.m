@@ -5,6 +5,7 @@ opt.gap = 0.01;
 opt.showamptub = false;
 opt.amptubchan = 'S1';
 opt.showcursors = false;
+opt.maxsamps = 5e5;
 
 p = 1;
 fig = -1;
@@ -102,7 +103,9 @@ height = (1 - opt.margin(3)-opt.margin(4) - (n-1)*opt.gap)/n;
 h = -1*ones(n,1);
 hln = -1*ones(n,2);
 
-tmark = F{1}.start + [0.33*F{1}.length 0.66*F{1}.length]*F{1}.interval;
+if (opt.showcursors)
+    tmark = F{1}.start + [0.33*F{1}.length 0.66*F{1}.length]*F{1}.interval;
+end;
 
 if (fig == -1)
     fig = figure;
@@ -114,19 +117,37 @@ for i = 1:n,
     h(i) = axes('Position',[opt.margin(1) 1-opt.margin(4)-i*height-(i-1)*opt.gap width height], ...
         'Parent',fig);
 
-    t1 = (0:F{i}.length-1)*F{i}.interval;
-    if (isfield(F{i},'start'))
-        t1 = t1 + F{i}.start;
+    if (F{i}.length > opt.maxsamps)
+        fac = floor(F{i}.length/opt.maxsamps);
+    else
+        fac = 1;
     end;
-    plot(h(i), t1,F{i}.values, 'HitTest','off');
-    axis tight;
-
+    
+    if (isfield(F{i},'interval') && isfield(F{i},'values'))
+        t1 = (0:fac:F{i}.length-1)*F{i}.interval;
+        if (isfield(F{i},'start'))
+            t1 = t1 + F{i}.start;
+        end;
+        plot(h(i), t1,F{i}.values(1:fac:end), 'HitTest','off');
+        axis tight;
+    elseif (isfield(F{i},'times'))
+        tt = repmat(F{i}.times(:)',[3 1]);
+        yy = repmat([0; 1; NaN],[1 F{i}.length]);
+        plot(h(i), tt(:),yy(:), 'HitTest','off');
+        ytick off;
+        axis tight;
+    end;
+    
     varname1 = varnames{i};
     ind = last(varname1 == '_');
     if (~isempty(ind))
         varname1 = varname1(ind+1:end);
     end;
-    ylabel(h(i),{varname1,F{i}.title, F{i}.units});
+    if (isfield(F{i},'units'))
+        ylabel(h(i),{varname1,F{i}.title, F{i}.units});
+    else
+        ylabel(h(i),{varname1,F{i}.title});
+    end;
     
     if (i ~= n)
         xtick labeloff;
