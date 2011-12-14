@@ -103,7 +103,9 @@ height = (1 - opt.margin(3)-opt.margin(4) - (n-1)*opt.gap)/n;
 h = -1*ones(n,1);
 hln = -1*ones(n,2);
 
-tmark = F{1}.start + [0.33*F{1}.length 0.66*F{1}.length]*F{1}.interval;
+if (opt.showcursors)
+    tmark = F{1}.start + [0.33*F{1}.length 0.66*F{1}.length]*F{1}.interval;
+end;
 
 if (fig == -1)
     fig = figure;
