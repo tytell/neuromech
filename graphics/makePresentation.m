@@ -42,6 +42,7 @@ opt.secondaryfont = '';
 opt.fontsizes = [24 16];
 opt.minlinewidth = 1;
 opt.linescale = 2;
+opt.axlinewidth = 2;
 opt.minmarkersize = 12;
 opt.markerscale = 2;
 opt.quiet = false;
@@ -166,7 +167,7 @@ if (~isempty(markers)),
         markersz = cat(1,markersz{:});
     end;
 
-    markersz = markersz * opt.linescale;
+    markersz = markersz * opt.markerscale;
     for i = 1:length(markersz),
         if (markersz(i) < opt.minmarkersize),
             set(markers(i),'MarkerSize',opt.minmarkersize);
@@ -181,7 +182,9 @@ end;
 markeredges = findobj(fig,'Type','line','LineStyle','none',...
     '-not','MarkerEdgeColor','none');
 markeredgewidth = get(markeredges,'LineWidth');
-markeredgewidth = cat(1,markeredgewidth{:});
+if (iscell(markeredgewidth))
+    markeredgewidth = cat(1,markeredgewidth{:});
+end;
 
 set(markeredges(markeredgewidth < opt.minlinewidth),...
     'LineWidth',opt.minlinewidth);
@@ -210,13 +213,9 @@ if (iscell(axlnwidth))
     axlnwidth = cat(1,axlnwidth{:});
 end;
 
-axlnwidth = axlnwidth * opt.linescale;
+axlnwidth = opt.axlinewidth;
 for i = 1:length(axlnwidth),
-    if (axlnwidth(i) < opt.minlinewidth),
-        set(allaxes(i),'LineWidth',opt.minlinewidth);
-    else
-        set(allaxes(i),'LineWidth',axlnwidth(i));
-    end;
+    set(allaxes(i),'LineWidth',axlnwidth(i));
 end;
 
 %now get the axes labels
@@ -231,7 +230,7 @@ end;
 set(allaxes,'FontName',opt.font, 'FontSize',opt.fontsizes(2));
 
 good = ishandle(labels);
-set(labels(good),'FontName',opt.font, 'FontSize',opt.fontsizes(1), 'FontWeight','bold');
+set(labels(good),'FontName',opt.font, 'FontSize',opt.fontsizes(1));
 
 othertext = findobj(fig,'Type','text');
 othertext = othertext(~ismember(othertext,labels(:)));
@@ -256,8 +255,10 @@ if (opt.replaceblack)
 end;
 
 %make sure that Matlab won't rescale things when we print
-set(fig, 'PaperPositionMode','manual',...
-    'PaperPosition',[0.5 10.5-figpos(4) figpos(3) figpos(4)]);
+set(fig, 'PaperPositionMode','manual');
+if (opt.rescale)
+    set(fig,'PaperPosition',[0.5 10.5-figpos(4) figpos(3) figpos(4)]);
+end;
 set(allaxes, 'XTickMode','manual','YTickMode','manual','ZTickMode','manual');
 
 
