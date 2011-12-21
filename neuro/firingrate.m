@@ -57,7 +57,7 @@ switch lower(opt.method),
         rate0 = zeros(size(spiket));
         spikedt = diff(spiket);
         
-        rate0(2:end-1,:) = 1 ./ ((spikedt(1:end-1) + spikedt(2:end))/2);
+        rate0(2:end-1,:) = 1 ./ ((spikedt(1:end-1,:) + spikedt(2:end,:))/2);
         t0 = spiket;
         
         if (isempty(edges))
@@ -77,19 +77,20 @@ switch lower(opt.method),
         rate = NaN(nbin,nchan);
         spikeindbybin = zeros(nbin,nchan);
         for c = 1:nchan,
-            spikeindbybin1 = accumarray(bin(:,c),(1:size(spiket,1))',[nbin 1],@(x) {x(:)});
+            good = isfinite(bin(:,c));
+            spikeindbybin1 = accumarray(bin(good,c),find(good)',[nbin 1],@(x) {x(:)});
             
             for i = 1:nbin,
-                k = (i-maxbinwidth):(i+maxbinwidth);
+                k = (i-maxbinwidth(c)):(i+maxbinwidth(c));
                 k = k((k >= 1) & (k <= nbin));
                 
                 spikeind1 = cat(1,spikeindbybin1{k});
                 
                 if (~isempty(spikeind1))
-                    spiket1 = spiket(spikeind1);
-                    rate1 = rate0(spikeind1);
+                    spiket1 = spiket(spikeind1,c);
+                    rate1 = rate0(spikeind1,c);
                     
-                    weight = exp(-0.5*((spiket1 - t(i))/smooth).^2);
+                    weight = exp(-0.5*((spiket1 - t(i))/smooth(c)).^2);
                     [~,j] = max(weight);
                     
                     rate(i,c) = sum(weight.*rate1)/sum(weight);
