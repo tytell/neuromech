@@ -73,7 +73,7 @@ if (~opt.showall),
     oy = oy(:,good,:);
 end;
 
-ax = [min(ox(:)) max(ox(:)) min(oy(:)) max(oy(:))];
+axlim = [min(ox(:)) max(ox(:)) min(oy(:)) max(oy(:))];
 nfr = size(ox,2);
 
 ox = permute(ox,[1 3 2]);
@@ -87,20 +87,21 @@ nr = size(ox,2);
 
 fig = gcf;
 clf;
-hold on;
+ax = axes('Position',[0 0 1 1]);
+hold(ax,'on');
 h = zeros(1,size(ox,2));
 for j = 1:nr,
-    h(j) = fill(ox(:,j,1),oy(:,j,1),j, 'EdgeColor','none');
+    h(j) = fill(ox(:,j,1),oy(:,j,1),j, 'EdgeColor','none', 'Parent',ax);
 end;
-hold off;
+hold(ax,'off');
 
 for i = 1:nfr,
     for j = 1:nr,
         set(h(j),'XData',ox(:,j,i), 'YData',oy(:,j,i));
     end;
     
-    axis equal off;
-    axis(ax);
+    axis(ax,'equal','off');
+    axis(ax, axlim);
     
     drawnow;
     
