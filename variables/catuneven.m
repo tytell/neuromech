@@ -109,7 +109,11 @@ for a = 1:length(vals),
             good = permute(good, pmt);
             good1 = false(size(good));
             if (d ~= dim)
-                good1(1:sz1(d),:) = true;
+                if (d > length(sz1))
+                    good1(1,:) = true;
+                else
+                    good1(1:sz1(d),:) = true;
+                end;
             else
                 good1(1,:) = true;
             end;
