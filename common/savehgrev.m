@@ -188,8 +188,9 @@ if (~isempty(opt.datafile))
             sub{i} = F.HGREV;
             issub = true;
         end;
-        dfinfo(i) = dfinfo1;
+        dfinfo{i} = dfinfo1;
     end;
+    dfinfo = makestructarray(dfinfo{:});
     
     if (issub)
         HGREV.sub = makestructarray(sub{:});
