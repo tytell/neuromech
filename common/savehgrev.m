@@ -50,6 +50,7 @@ opt.savemainrepo = true;
 opt.mainrepolocation = '~/matlab';
 opt.disablewarnings = false;
 opt.hash = true;
+opt.note = '';
 
 if ((length(varargin) >= 1) && exist(varargin{1},'dir'))
     repo = {'-R ',varargin{1}};
@@ -146,6 +147,7 @@ HGREV.description = desc;
 HGREV.branch = branch;
 HGREV.date = revdate;
 HGREV.caller = callfcns;
+HGREV.note = opt.note;
 
 if (~isempty(opt.datafile))
     if (ischar(opt.datafile))
@@ -209,8 +211,14 @@ if (opt.savemainrepo)
     HGREV.main.location = opt.mainrepolocation;
 end;
 
-if (ischar(out) && exists(out,'file'))
-    save(out,'HGREV','-append');
+if (ischar(out) && exist(out,'file'))
+    if (~isempty(who('HGREV','-file',out)))
+        F = load(out,'HGREV');
+        F.HGREV = makestructarray(F.HGREV,HGREV);
+    else
+        F.HGREV = HGREV;
+    end;
+    save(out,'-struct','F','-append');
 elseif (isempty(out) || isstruct(out))
     out = HGREV;
 end;
