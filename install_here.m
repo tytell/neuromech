@@ -127,7 +127,7 @@ else
         
         addpath(pathnames{:},'-begin');
         upath = userpath;
-        if (upath(end) == ':')
+        if ((upath(end) == ':') || (upath(end) == ';'))
             upath = upath(1:end-1);
         end;
         savepath(fullfile(upath,'pathdef.m'));
