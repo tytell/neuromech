@@ -208,15 +208,7 @@ if (~isempty(lines)),
 end;
 
 %also on axes
-axlnwidth = get(allaxes,'LineWidth');
-if (iscell(axlnwidth))
-    axlnwidth = cat(1,axlnwidth{:});
-end;
-
-axlnwidth = opt.axlinewidth;
-for i = 1:length(axlnwidth),
-    set(allaxes(i),'LineWidth',axlnwidth(i));
-end;
+set(allaxes,'LineWidth',opt.axlinewidth);
 
 %now get the axes labels
 labels = zeros(length(allaxes),3);
