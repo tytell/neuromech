@@ -1,4 +1,70 @@
 function latextable(tab, varargin)
+%LATEXTABLE  Produce a nice table in LaTeX format
+%
+%  latextable(table, options...)
+%
+% Produces a table in LaTeX format with sparklines and lots of options for spacing
+% and formatting.  Takes a cell matrix or structure array containing the table
+% items.  A cell matrix should be the table arranged as you would expect it
+% with rows of the matrix becoming rows in the table.  In a structure, the
+% structure fields are the columns and the elements in the structure array
+% are the rows.  Since it uses LaTeX, any string item can have LaTeX
+% formatting options (such as math operations).
+%
+% Sparklines can be defined as a vector of numbers, or in almost every
+% format accepted by the plot command.  Note that the numbers are *not*
+% scaled, and are expected to be in points.
+%
+% Many options are flexible in terms of size.  If an
+% option has a single value, then it's applied to all the cells.  If it is
+% in a row vector with the same number of columns as the table, then each
+% separate item is applied to each column.  Same goes for a column vector
+% with the same number of rows as the table.  And the option could also
+% have the same number of elements as the whole table.
+%
+%OPTIONS
+%   'rownames' or 'colnames' - Takes a cell array containing the names of the 
+%      rows/columns.  Both can specify multicolumn/row labels.  See examples below.
+%   'align' - 'c', 'l', or 'r', for center, left, or right.  Flexible size.
+%   'numfmt','strfmt','multifmt' - Default formats for numbers, strings,
+%      and cell elements in the table.  The 'format' option overrides these
+%      values if it's specified.
+%   'format' - printf style format specifier.  If empty, numbers, strings,
+%      and cell items get the defaults specified in the options 'numfmt',
+%      'strfmt', and 'multifmt'.  Sparklines are specified with 'spark'.
+%      Formats can be complex for table entries with multiple values, such
+%      as a format '%.1f (%.1f)' could be applied to a table cell with the
+%      value {4.4, 0.2} to show values and errors, for instance.
+%   'preamble','postamble' - LaTeX commands to apply before and after the
+%     table.  Use at your own risk.
+%   'tableenvironment' - LaTeX table environment.  Should be either
+%     'longtable' (default) or 'table', unless you know LaTeX well.
+%   'outfile' - Output file.  If not specified, output goes to the command
+%     line.
+%   'runlatex' - true or false to run the LaTeX command on the file.
+%   'latex' - Path to latex executable ('/usr/texbin/pdflatex' by default)
+%   'sparkwidth' - Default with of a sparkline in points.
+%   'midrule' - Row numbers to put a line after.
+%   'rowcolorstyle' - Empty or 'whitegray' for alternating white and gray
+%     lines.  Or a cell array of valid LaTeX commands to define colors.
+%     Will repeat as often as necessary.
+%   'replacenan' - String with which to replace NaNs.
+%   'header' - Text to put in the header on the page.
+%   'orderfields' - For a structure table, names of the fields in the
+%      desired order for the columns.  If empty, columns come in whatever
+%      order the structure fields were defined.
+%
+%EXAMPLE
+%  >> x = 1:10;  
+%  >> y = x.^2;
+%  >> y = y / max(y) * 15;      % scale y so that it's 15pts high
+%  >> table = { 1 'A' {y}; 2 'B' {x,-y,'r:'}};
+%  >> latextable(table);        % will show the table with default format
+%                                 and no column or row names
+%  >> latextable(table, 'colnames', {{2,'Stuff'},'','Spark'; ...
+%     'Num','Str',''}, 'format',{'%03d','($%s^*$)','spark'})
+%      % shows the table with a two row header, in which 'Stuff' spans the
+%        first two columns.
 
 opt.rownames = {};
 opt.colnames = {};
@@ -29,15 +95,24 @@ opt.midrule = [];
 opt.rowcolorstyle = 'whitegray';
 opt.replacenan = '---';
 opt.header = '';
+opt.orderfields = {};
 
 opt = parsevarargin(opt, varargin, 2);
 
-ncol = size(tab,2);
-nrow = size(tab,1);
-
 if (isnumeric(tab))
     tab = num2cell(tab);
-end;
+elseif (isstruct(tab))
+    n = numel(tab);
+    if (~isempty(opt.orderfields))
+        tab = getfieldsonly(tab, opt.orderfields);
+    end
+    tab = struct2cell(tab);
+    tab = reshape(tab,[size(tab,1) n]);
+    tab = tab';
+end
+
+ncol = size(tab,2);
+nrow = size(tab,1);
 
 if (ischar(opt.align) && (numel(opt.align) == 1))
     align = opt.align(ones(1,ncol));
