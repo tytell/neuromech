@@ -34,7 +34,7 @@ end;
 %defaults
 opt.ishoriz = true;
 opt.barlength = 0.6;
-opt.absbarlen = [];
+opt.absbarlength = [];
 
 [opt,plotopts] = parsevarargin(opt,varargin(p:end),'leaveunknown');
 
@@ -51,7 +51,8 @@ if (size(y,1) == 1),
     dy = nanmedian(diff(y));
     y = repmat(y,[size(spiket,1) 1]);
 else
-    dy = nanmedian(flatten(diff(y,[],2)));
+    uy = unique(y(isfinite(y)));
+    dy = range(y(isfinite(y))) / length(uy);
 end;
 
 if (size(spiket,2) == 1),           % only one trial
@@ -62,11 +63,11 @@ if (any(size(spiket) ~= size(y))),
     error('y positions (trials) must have the same size as spiket');
 end;
 
-%check for absbarlen
-if (isempty(opt.absbarlen)),
-    absbarlen = opt.barlength * dy;
+%check for absbarlength
+if (isempty(opt.absbarlength)),
+    absbarlength = opt.barlength * dy;
 else
-    absbarlen = opt.absbarlen;
+    absbarlength = opt.absbarlength;
 end;
 
 if (~isempty(plotopts) && ischar(plotopts{1}))
@@ -80,7 +81,7 @@ if (islinespec && ~isempty(mark) && isempty(linestyle))
 else
     %build up the x and y coordinates
     yy = repmat(shiftdim(y,-1),[3 1]);
-    yy = yy + repmat([-1; 1; NaN]*absbarlen/2, [1 size(yy,2) size(yy,3)]);
+    yy = yy + repmat([-1; 1; NaN]*absbarlength/2, [1 size(yy,2) size(yy,3)]);
     yy = reshape(yy,[3*size(yy,2) size(yy,3)]);
     
     xx = repmat(shiftdim(spiket,-1), [3 1]);

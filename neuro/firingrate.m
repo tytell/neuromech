@@ -62,9 +62,9 @@ switch lower(opt.method),
         
         if (isempty(edges))
             tstart = floor(min(spiket(:))/binsize)*binsize - binsize/2;
-            tend = ceil(max(spiket(:))/binsize)*binsize + binsize/2;
+            tend = ceil(max(spiket(:))/binsize)*binsize + binsize;
             
-            t = (tstart+binsize/2:binsize:tend)';
+            t = (tstart:binsize:tend)';
         else
             t = edges;
             tstart = edges(1);
@@ -77,7 +77,7 @@ switch lower(opt.method),
         rate = NaN(nbin,nchan);
         spikeindbybin = zeros(nbin,nchan);
         for c = 1:nchan,
-            good = isfinite(bin(:,c));
+            good = isfinite(bin(:,c)) & (bin(:,c) >= 1) & (bin(:,c) <= nbin);
             spikeindbybin1 = accumarray(bin(good,c),find(good)',[nbin 1],@(x) {x(:)});
             
             for i = 1:nbin,
