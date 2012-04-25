@@ -1,4 +1,13 @@
 function med = angmedian(ang)
+% ANGMEDIAN - Angular median
+%
+%   meg = angmedian(ang)
+%
+% Algorithm from Fisher, I think.
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 ang = mod(ang,2*pi);
 med = nanmedian(ang);

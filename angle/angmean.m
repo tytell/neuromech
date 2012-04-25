@@ -1,9 +1,15 @@
 function varargout = angmean(varargin)
+%ANGMEAN - Angular mean, vector strength, and standard deviation
 % function [mean,R,stdev] = angmean(ang,dim)
 %             or          = angmean(x,y,dim)
+%
 % second form is for unit vectors.  dim is optional, which makes the two
 % forms ambiguous (in the rare instance that numel(ang) == 1).  To
 % completely avoid ambiguity, you can use the form angmean(ang,[],dim).
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 1),
   ang = varargin{1};

@@ -1,4 +1,11 @@
 function P = watsonU2(U2,n1,n2)
+% WATSONU2 - Calculates Watson's U^2 statistic
+%
+%   P = watsonU2(U2,n1,n2)
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 U = load('WatsonU2.mat');
 

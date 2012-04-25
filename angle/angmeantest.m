@@ -1,10 +1,16 @@
 function varargout = angmeantest(varargin)
+% ANGMEANTEST - Rayleigh test for a significant mean angle
+%
 % function [P,z] = angmeantest(ang)
 %   or             angmeantest(angx,angy)
 % 
 % where ang is a vector of angles in radians, or (angx,angy) are the
 % coordinates of a set of unit vectors.
 % With no output arguments, it displays a table output.
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 1),
   ang = varargin{1};
@@ -29,6 +35,6 @@ if (nargout == 0),
     fprintf('%8s %8s %8s %8s %8s %8s %8s\n','Sample','C','S','ang','R','z','P');
     fprintf('%8d %8.3f %8.3f %8.3f %8.3f %8.3f %8.5f\n',[1:size(r,2); angx; angy; ...
         a*180/pi; r; z; P]);
-else,
+else
     varargout = {P,z};
 end;

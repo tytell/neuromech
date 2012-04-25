@@ -1,8 +1,15 @@
 function [sem,conf] = angconf(ang,alpha)
-% function [sem,conf] = angconf(ang,alpha)
+% ANGCONF - Standard error and confidence interval for mean angle
+%
+%    [sem,conf] = angconf(ang,alpha)
+%
 %Calculates the parametric standard error and confidence interval for the
 %mean angle of ang, assuming a von Mises distribution.
 %From Fisher 1993, p. 89
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 1),
     alpha = 0.05;

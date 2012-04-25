@@ -1,5 +1,8 @@
 function [P,F,df1,df2] = angequalmeans(ang1,ang2,method)
-% function [P,F,df1,df2] = angequalmeans(ang1,ang2,method)
+% ANGEQUALMEANS - Test for equal means in two groups of angles
+%
+%   [P,F,df1,df2] = angequalmeans(ang1,ang2,method)
+%
 % Test for equal means in the two groups ang1 and ang2 using one of
 % the following methods:
 %     'watson-williams','ww','parametric': Parametric test for equality of means
@@ -8,6 +11,9 @@ function [P,F,df1,df2] = angequalmeans(ang1,ang2,method)
 %
 % NB: anganova is more powerful and will perform two sample tests (although
 % not the Watson U^2)
+%
+% SEE ALSO
+%   ANGANOVA, ANGMEAN
 
 ang1 = shiftdim(ang1(isfinite(ang1)));
 ang2 = shiftdim(ang2(isfinite(ang2)));

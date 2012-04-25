@@ -1,6 +1,11 @@
 function P = ang3rayltest(R,N)
+% ANG3RAYLTEST - Rayleigh test for significance of 3D angles
+%  Doesn't work
 
-N = sum(isfinite(angx) & isfinite(angy) & isfinite(angz));
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
+
 R = sqrt(nansum(angx).^2 + nansum(angy).^2 + nansum(angz).^2);
 
 if (N < 4),

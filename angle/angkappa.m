@@ -1,11 +1,18 @@
 function kml = angkappa(ang)
-% function kml = angkappa(ang)
+% ANGKAPPA  Calculates dispersion parameter
+%
+%   kml = angkappa(ang)
+%
 % Calculates the von Mises dispersion parameter kappa based on maximum
 % likelihood estimators.  From Mardia, 2000
 
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
+
 [mu,r] = angmean(ang);
 
-kml = repmat(NaN,[1 size(ang,2)]);
+kml = NaN([1 size(ang,2)]);
 
 r1 = r < 0.53;
 r2 = (r >= 0.53) & (r < 0.85);

@@ -1,12 +1,21 @@
 function varargout = anghist(varargin)
-% function anghist(ang)
+% ANGHIST - Angular histogram plot
+%
+%          anghist(ang)
 % or       anghist(ang,bins)
 % or       anghist(angx,angy,bins)
 %
 % where angx and angy are cos and sin of the angle, respectively.  bins can
 % be a scalar, in which case it determines the number of equally spaced bins
 % (default 24).  If bins is a vector, it determines the edges of the bins,
-% like in hist
+% like in HIST
+%
+% SEE ALSO
+%   HIST
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 angx = [];
 angy = [];

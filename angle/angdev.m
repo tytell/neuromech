@@ -1,7 +1,17 @@
 function s = angdev(ang,dim)
-% function s = angdev(ang,dim)
-% Calculates sample angular standard deviation
+% ANGDEV - Angular standard deviation
+%
+%    s = angdev(ang,dim)
+%
+% Calculates sample angular standard deviation (also returned by ANGMEAN)
 % From Fisher 1993, page 32
+%
+% SEE ALSO
+%   angmean
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 if (nargin == 1),
   dim = 1;

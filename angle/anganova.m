@@ -1,5 +1,8 @@
 function varargout = anganova(ang, varargin)
-% function P = anganova(ang, method, group)
+% ANGANOVA - Anova-type test on circular data
+%
+%    P = anganova(ang, method, group)
+%
 % One way "ANOVA" type test on circular data.
 % Available methods:
 %     'watson-williams','ww': Parametric test for equality of means
@@ -13,9 +16,10 @@ function varargout = anganova(ang, varargin)
 % If no output is requested, prints tables of test statistics and performs
 % a Bonferroni-adjusted post hoc pairwise test afterwards, using the same
 % method for the multisample test.
-%
+
 % Mercurial revision hash: $Revision$ $Date$
-% Copyright (c) 2010, Eric Tytell
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 alpha = 0.05;
 group = [];

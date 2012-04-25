@@ -1,8 +1,19 @@
 function [P,F,df1,df2] = angpairedtest(ang1,ang2)
+% ANGPAIREDTEST - Paired test for differences in angular groups
+%
+%   [P,F,df1,df2] = angpairedtest(ang1,ang2)
+%
 % Performs a paired test for diffences in two vectors of angles (in
 % radians).  Each element in ang1 must have a corresponding element in
 % ang2.
 % Algorithm from Zar 1999, p. 645
+%
+% SEE ALSO
+%   ANGANOVA, ANGEQUALMEANS
+
+% Mercurial revision hash: $Revision$ $Date$
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 angx = cos(ang1) - cos(ang2);
 angy = sin(ang1) - sin(ang2);

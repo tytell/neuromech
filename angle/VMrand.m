@@ -1,12 +1,15 @@
 function theta = VMrand(mu,k,varargin)
+% VMRAND - Random angles from a von Mises distribution
+%
 % function theta = VMrand(mu,k,m,n,...)
 %   or     theta = VMrang(mu,k,[m n ...])
 % 
 % Generates random angles ([0 2pi]) according to a von Mises distribution with mean
 % mu and concentration k.  Size of the result is [m n ...]
-%
+
 % Mercurial revision hash: $Revision$ $Date$
-% Copyright (c) 2010, Eric Tytell
+% See http://rcn.ccs.tulane.edu/index.php5/Tytell_Matlab
+% Copyright (c) 2012, Eric Tytell <tytell at jhu dot edu>
 
 
 switch length(varargin)
