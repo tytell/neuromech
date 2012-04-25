@@ -97,7 +97,7 @@ opt.replacenan = '---';
 opt.header = '';
 opt.orderfields = {};
 
-opt = parsevarargin(opt, varargin, 2);
+opt = parsevarargin(opt, varargin, 2, 'typecheck',false);
 
 if (isnumeric(tab))
     tab = num2cell(tab);
@@ -109,21 +109,33 @@ elseif (isstruct(tab))
     tab = struct2cell(tab);
     tab = reshape(tab,[size(tab,1) n]);
     tab = tab';
+    
+    if (isstruct(opt.format))
+        nfmt = numel(opt.format);
+        if (~isempty(opt.orderfields))
+            opt.format = getfieldsonly(opt.format, opt.orderfields);
+        end
+        opt.format = struct2cell(opt.format);
+        opt.format = reshape(opt.format,[size(opt.format,1) nfmt]);
+        opt.format = opt.format';
+    end
 end
 
 ncol = size(tab,2);
 nrow = size(tab,1);
 
 if (ischar(opt.align) && (numel(opt.align) == 1))
-    align = opt.align(ones(1,ncol));
+    aligncell = opt.align(ones(1,ncol));
+elseif (ischar(opt.align) && (length(opt.align) == ncol))
+    aligncell = opt.align;
 elseif (iscellstr(opt.align) && (length(opt.align) == ncol))
-    align = cat(2,opt.align{:});
+    aligncell = cat(2,opt.align{:});
 end;
 
 rownames = opt.rownames;
 if (~isempty(rownames))
-    if (numel(align) == ncol)
-        align = ['l' align];
+    if (numel(aligncell) == ncol)
+        aligncell = ['l' aligncell];
     end;
     c0 = 1;
 else
@@ -208,6 +220,8 @@ elseif (iscell(opt.format) && (numel(opt.format) == ncol))
     fmt = repmat(opt.format(:)',[nrow 1]);
 elseif (iscell(opt.format) && (numel(opt.format) == nrow))
     fmt = repmat(opt.format(:), [1 ncol]);
+elseif (iscell(opt.format) && all(size(opt.format) == [nrow ncol]))
+    fmt = opt.format;
 elseif (iscell(opt.format) && (numel(opt.format) > 1))
     warning('latextable:fmtsize','Format is not empty but does not match table size.  Ignoring.');
 end;
@@ -380,7 +394,7 @@ begindoc = { '\begin{document}' ...
     '\begin{center}'};
 
 fprintf(fid, '%s\n', begindoc{:});
-fprintf(fid, '\\begin{%s}{%s}\n\\toprule\n\n', opt.tableenvironment, align);
+fprintf(fid, '\\begin{%s}{%s}\n\\toprule\n\n', opt.tableenvironment, aligncell);
 
 for i = 1:nhead,
     if (~isempty(rownames))
