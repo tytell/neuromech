@@ -42,7 +42,7 @@ opt.skipempty = false;
 if (length(S) >= 1)
     sm = S{1};
     
-    k = length(sm)+1;
+    k = numel(sm)+1;
     
     for i = 2:length(S),
         if (isempty(S{i}))
@@ -55,7 +55,7 @@ if (length(S) >= 1)
             end;
         else
             f1 = fieldnames(S{i});
-            n = length(S{i});
+            n = numel(S{i});
         end;
         
         if (n > 0)
@@ -65,7 +65,10 @@ if (length(S) >= 1)
                 f1 = fieldnames(sm);
                 sm(k:k+n-1).(f1{1}) = deal([]);
             else
-                for j = 1:length(f1),
+                for m = 1:n,
+                    sm(k+m-1).(f1{1}) = S{i}(m).(f1{1});
+                end
+                for j = 2:length(f1),
                     [sm(k:k+n-1).(f1{j})] = deal(S{i}.(f1{j}));
                 end;
             end;

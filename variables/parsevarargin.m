@@ -253,10 +253,10 @@ while (p <= length(varargs)),
             %unmatched options must have arguments
             if (p+1 > length(varargs)),
                 ME = MException('pvopt:missingoptionarg','Option %s is missing an argument',...
-                                lower(varargs{p}));
+                                varargs{p});
                 throwAsCaller(ME);
             else
-                opt.(lower(varargs{p})) = varargs{p+1};
+                opt.(varargs{p}) = varargs{p+1};
                 p = p+2;
             end;
         else
