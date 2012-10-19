@@ -1,5 +1,10 @@
 function importsimdata(datadir,outfile, varargin)
-% function importsimdata(datadir,outfile, opts...)
+%IMPORTSIMDATA  Imports Fortran output data from CFD simulations
+%     importsimdata(datadir,outfile, opts...)
+%
+% datadir is the path to the directory containing the Fortran output files
+% outfile is the name of a Matlab file for output
+% opts include the names of all the different files
 
 opt.muscforcefile = 'fort.35';
 opt.totalforcefile = 'fort.33';
