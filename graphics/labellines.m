@@ -33,6 +33,8 @@ end
 xl = get(hax,'XLim');
 yl = get(hax,'YLim');
 
+n = min(length(labels), length(hln));
+
 x = [];
 if (ischar(opts.location))
     switch lower(opts.location)
@@ -47,7 +49,7 @@ if (ischar(opts.location))
 elseif isnumeric(opts.location)
     if (numel(opts.location) == 1)
         x = opts.location * ones(size(hln));
-    elseif (numel(opts.location) == numel(hln))
+    elseif (numel(opts.location) == numel(labels))
         x = opts.location;
     end
 end
@@ -80,7 +82,7 @@ AR = diff(yl) / diff(xl);
 y = zeros(size(hln));
 col = cell(size(hln));
 htxt = -1 * ones(size(hln));
-for i = 1:length(hln)
+for i = 1:n
     xd = get(hln(i), 'XData');
     yd = get(hln(i), 'YData');
     
@@ -106,10 +108,12 @@ for i = 1:length(hln)
         
         overind = last(xd < ext(1)):first(xd > ext(1)+ext(3));
         
-        dy = mean(diff(yd(overind)));
-        dx = range(xd(overind));
+        if ~isempty(overind)
+            dy = mean(diff(yd(overind)));
+            dx = range(xd(overind));
         
-        rot(i) = atan2(dy, dx*AR)*180/pi;
+            rot(i) = atan2(dy, dx*AR)*180/pi;
+        end
         
         set(htxt(i),'Rotation',rot(i));
     end

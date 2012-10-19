@@ -12,7 +12,7 @@ function filenames = getfilenames(d,varargin)
 
 opt.recursive = false;
 opt.exclude = {};
-opt.baseexclude = {'^\.\.?$','^\.DS_Store$'};
+opt.baseexclude = {'^\.\.?$','^\.DS_Store$','^\.LINK'};
 
 opt = parsevarargin(opt,varargin,2);
 

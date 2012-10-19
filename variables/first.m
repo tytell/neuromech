@@ -78,11 +78,13 @@ end;
 
 %check to see if we have a row vector, and, if so, operate across the
 %columns (or the first non-singleton dimension)
-if (isempty(dim) && (size(cond,1) == 1) && (numel(cond) > 1))
-    sz = size(cond);
-    dim = find(sz > 1, 1, 'first');
-else
-    dim = 1;
+if (isempty(dim))
+    if (size(cond,1) == 1) && (numel(cond) > 1)
+        sz = size(cond);
+        dim = find(sz > 1, 1, 'first');
+    else
+        dim = 1;
+    end
 end;
 
 %permute and reshape so that we have a 2D matrix with the dimension of
@@ -144,7 +146,11 @@ else
         ind = ind + start - 1;
     end;
 end;
-        
+
+if (ismat)
+    f = reshape(f,[1 szorig(pmt(2:end))]);
+    f = ipermute(f,pmt);
+end
 if (nargout == 2),
     varargout = {f,ind};
 elseif (ismat),
