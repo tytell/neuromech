@@ -1,9 +1,14 @@
 function plotsimdata(file, varargin)
-% function plotsimdata(file, varargin)
+%PLOTSIMDATA  Plots summary information about CFD simulations
+% plotsimdata(file, varargin)
+%
 % Plots a summary of simulation data for the file specified.
 % May save PDFs also.
+%
+% Options:
 % 'showfig' - indicates which figures to plot.  Can be a vector of values
 %   from 1 to 8
+% 'savepdfs' - Saves PDFs of the output figures
 
 opt.plotskip = 10;
 opt.bodylen = 4*pi;
