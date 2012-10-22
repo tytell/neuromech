@@ -52,6 +52,12 @@ opt.disablewarnings = false;
 opt.hash = true;
 opt.note = '';
 
+if ~hg('check')
+    warning('savehgrev:nohg','Mercurial not found');
+    out = struct([]);
+    return;
+end
+
 if ((length(varargin) >= 1) && exist(varargin{1},'dir'))
     repo = {'-R ',varargin{1}};
     repoloc = varargin{1};
