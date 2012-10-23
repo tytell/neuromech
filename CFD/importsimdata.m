@@ -428,7 +428,10 @@ if ((length(ufr) >= 2) && (ufr(end-1) ~= 1)),
     end;
 end;
 
-out.HGREV = savehgrev([],'datafile',datafiles);
+hgrev1 = savehgrev([],'datafile',datafiles);
+if (~isempty(hgrev1))
+    out.HGREV = hgrev1;
+end
 
 save(outfile,'-struct','out');
 

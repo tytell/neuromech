@@ -52,12 +52,6 @@ opt.disablewarnings = false;
 opt.hash = true;
 opt.note = '';
 
-if ~hg('check')
-    warning('savehgrev:nohg','Mercurial not found');
-    out = struct([]);
-    return;
-end
-
 if ((length(varargin) >= 1) && exist(varargin{1},'dir'))
     repo = {'-R ',varargin{1}};
     repoloc = varargin{1};
@@ -75,12 +69,24 @@ if (opt.disablewarnings)
     opt.nottip = 'none';
 end;
 
+if ~hg('check')
+    warning('savehgrev:nohg','Mercurial not found');
+    out = struct([]);
+    return;
+end
+
 st = dbstack(1);
 callfcns = {st.file};
     
 [s,res] = hg(repo{:},'summary','echo',false);
 if (s ~= 0)
-    error('savehgrev:hgerror','Error running hg');
+    if ~isempty(strfind(res, 'no repository found'))
+        warning('savehgrev:norepo','No repository at %s.  Skipping', repoloc);
+        out = struct([]);
+        return;
+    else
+        error('savehgrev:hgerror','Error running hg');
+    end
 end;
 
 %check for uncommitted
