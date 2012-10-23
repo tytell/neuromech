@@ -147,7 +147,7 @@ else
     end;
 end;
 
-if (ismat)
+if (ismat && ~isempty(f))
     f = reshape(f,[1 szorig(pmt(2:end))]);
     f = ipermute(f,pmt);
 end
