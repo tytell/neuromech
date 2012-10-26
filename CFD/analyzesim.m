@@ -155,10 +155,16 @@ if (~istether)
     %unit vector pointing in the direction of the swimming speed, as a cubic
     %spline in 3 parts, which should get rid of any fluctuation at the level of
     %the tail beat frequency
-    sp = spap2(3,4, t, cat(1,comx,comy));
-    swimvec = fnval(fnder(sp),t);
-    swimvecx = swimvec(1,:) ./ sqrt(sum(swimvec.^2));
-    swimvecy = swimvec(2,:) ./ sqrt(sum(swimvec.^2));
+    dt = t(2) - t(1);
+    dur = round(2/dt);         %smooth over 2 sec
+    comxsm = runavg(comx, dur);
+    comysm = runavg(comx, dur);
+
+    swimvecx = deriv(t,comxsm);
+    swimvecy = deriv(t,comysm);
+    mag = sqrt(swimvecx.^2 + swimvecy.^2);
+    swimvecx = swimvecx ./ mag;
+    swimvecy = swimvecy ./ mag;
 else
     swimvecx = -1 * ones(size(t));
     swimvecy = zeros(size(t));
