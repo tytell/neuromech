@@ -15,6 +15,6 @@ function [m,ind] = sgnmax(varargin)
 ishi = abs(hi) > abs(lo);
 m = lo;
 ind = indlo;
-m(ishi) = hi;
-ind(ishi) = indhi;
+m(ishi) = hi(ishi);
+ind(ishi) = indhi(ishi);
 

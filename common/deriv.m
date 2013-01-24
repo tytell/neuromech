@@ -78,7 +78,8 @@ end;
 d = y;
 for i = 1:ord,
     if (iseven),
-        d(2:np-1,:) = (d(3:end,:)-d(1:end-2,:));
+        %divide by two because we're differencing over two time steps
+        d(2:np-1,:) = (d(3:end,:)-d(1:end-2,:))/2;
         d([np 1],:) = (y([end 2],:)-y([end-1 1],:));
     else
         d(2:np-1,:) = (d(3:end,:)-d(1:end-2,:))./(x(3:end,:)-x(1:end-2,:));
