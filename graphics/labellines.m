@@ -21,7 +21,11 @@ end
 opts = parsevarargin(opts,varargin(p:end), p+1, 'typecheck',false);
 
 if isempty(hax)
-    hax = gca;
+    if ~isempty(hln)
+        hax = get(hln(1),'Parent');
+    else
+        hax = gca;
+    end
 end
 if isempty(hln)
     hln = findobj(hax, 'Type','line');
@@ -88,6 +92,10 @@ for i = 1:n
     
     [xd,ord] = sort(xd);
     yd = yd(ord);
+    
+    norep = [true diff(xd) > 0];
+    xd = xd(norep);
+    yd = yd(norep);
     
     if (x(i) > max(xd))
         x(i) = max(xd);

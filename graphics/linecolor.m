@@ -13,7 +13,7 @@ function h = linecolor(x,y,w,c,varargin)
 if ((numel(x) == 1) && ishandle(x) && strcmp(get(x,'Type'),'axes'))
     ax = x;
     [x,y,w] = deal(y,w,c);
-    if ((nargin == 5) && isnumeric(varargin{1}))
+    if ((nargin >= 5) && isnumeric(varargin{1}))
         c = varargin{1};
         varargin = varargin(2:end);
     end;
@@ -41,7 +41,7 @@ end;
 
 if (isempty(w) || (all(w(:) == 0)))
     h = patch(x,y,c,'Parent',ax);
-    set(h,'FaceColor','none','EdgeColor','interp', varargin{:});
+    set(h,'FaceColor','none','EdgeColor','flat', varargin{:});
 else
     dx = diff(x);
     dy = diff(y);

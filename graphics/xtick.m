@@ -13,7 +13,7 @@ function xtick(varargin)
 % See also
 %   YTICK
 
-if ((nargin > 1) && all(ishandle(varargin{1})) && all(strcmp({get(varargin{1},'Type')},'axes'))),
+if ((nargin > 1) && all(ishandle(varargin{1})) && all(strcmp([get(varargin{1},'Type')],'axes'))),
     ax = varargin{1};
     i = 2;
 else
