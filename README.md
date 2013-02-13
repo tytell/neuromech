@@ -1,0 +1,4 @@
+neuromech
+=========
+
+Neuromechanics Matlab scripts
