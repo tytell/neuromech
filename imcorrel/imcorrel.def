@@ -1,0 +1,6 @@
+; imcorrel.def : Declares the module parameters for the DLL.
+
+LIBRARY      "imcorrel"
+DESCRIPTION  'imcorrel Matlab MEX dynamic link library'
+
+EXPORTS mexFunction

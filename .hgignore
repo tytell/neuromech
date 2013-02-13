@@ -1,0 +1,16 @@
+syntax: glob
+
+wtc-r15
+sowas.0.93.matlab
+songbird
+sigTOOL
+lisp
+disabled
+TOOLBOX_calib
+toolbox_calib
+MatlabCentral
+*~
+.DS_Store
+*.mchg
+uninstall_here.m
+Cl_matcont4p1
