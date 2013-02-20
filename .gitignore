@@ -1,0 +1,34 @@
+#############
+## Windows detritus
+#############
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac crap
+.DS_Store
+
+#Specific Matlab stuff
+uninstall_here.m
+wtc-r15
+sowas.0.93.matlab
+songbird
+sigTOOL
+lisp
+disabled
+TOOLBOX_calib
+toolbox_calib
+MatlabCentral
+*~
+.DS_Store
+*.mchg
+uninstall_here.m
+Cl_matcont4p1
+
