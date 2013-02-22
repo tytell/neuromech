@@ -4,28 +4,34 @@ piv = [];
 names = [];
 units = [];
 
-if (~exist('file') | ~exist(file)),
-    filter = {'*.dat','TecPlot files (*.dat)'; ...
+if ((nargin == 0) || ~exist(file,'file')),
+    filter = {'*.dat;*.vec','TecPlot files (*.dat,*.vec)'; ...
               '*.imx;*.vec','DaVis 6 files (*.imx,*.vec)'; ...
+              '*.im7;*.vc7','DaVis 7 files (*.im7,*.vc7)'; ...
               '*.nc','NetCDF files (*.nc)'; ...
               '*.mat','Matlab data files (*.mat)'};
+    filters = {'tecplot','davis','davis','netcdf','matlab'};
 
     [file,path,filtind] = uigetfile(filter, 'Select File');
-end;
-
-switch filtind,
- case 0,
-  return;
- case 1,                                % DaVis files
-  where = 'tecplot';
- case 2,
-  where = 'davis';
- case 3,
-  where = 'netcdf';
- case 4,                                % matlab files
-  where = 'matlab';
-end;
-
+    if filtind == 0
+        return;
+    else
+        where = filters{filtind};
+    end
+else
+    [~,~,ext] = fileparts(file);
+    switch lower(ext)
+        case '.dat'
+            where = 'tecplot';
+        case {'.imx','.vec','.im7','.vc7'}
+            where = 'davis';
+        case '.nc'
+            where = 'netcdf';
+        case '.mat'
+            where = 'matlab';
+    end
+end
+        
 file = fullfile(path,file);
 [files,frames] = apMatchFileSeq(file);
 piv.frames = frames;
@@ -165,6 +171,7 @@ v = [];
 w = [];
 
 fid = fopen(file);
+%%% CONTINUE here - first line in an Insight file doesnt have a title
 ln = fgetl(fid);                        % discard TITLE line
 
 ln = fgetl(fid);                        % VARIABLES line
@@ -213,15 +220,14 @@ end;
 % ------------------------------------------------------------
 function [files,frames] = apMatchFileSeq(file)
 
-[numind,q,tok] = regexpi(file,'(.*[a-z])([0-9]+)(\.\w{1,3})');
-if (isempty(numind)),
+tok = regexpi(file,'(.*[a-z])([0-9]+)(\.\w{1,3})$','tokens','once');
+if (isempty(tok)),
     files = {file};
     frames = 1;
 else
-    tok = tok{1};
-    base = file(tok(1,1):tok(1,2));
-    num1 = str2num(file(tok(2,1):tok(2,2)));
-    ext = file(tok(3,1):tok(3,2));
+    base = tok{1};
+    num1 = str2double(tok{2});
+    ext = tok{3};
 
     names = getfilenames(strcat(base,'*',ext));
     for i = 1:length(names),
