@@ -5,6 +5,7 @@ opt.computeindividual = true;
 opt.rownames = {};
 opt.colnames = {};
 opt.showtable = false;
+opt.adjustexpected = false;
 
 sz = size(E);
 if ((nargin == 1) || ~isnumeric(O) || any(size(O) ~= sz))
@@ -47,6 +48,16 @@ for i = 1:nd
     S{i} = sum(O,i);
 end
 N = sum(O(:));
+Ne = sum(E(:));
+
+if (Ne ~= N)
+    if opt.adjustexpected
+        E = E/Ne * N;
+        warning('crosstabG:badE','Total number expected does not match total observed.  Adjusted to match.');
+    else
+        warning('crosstabG:badE','Total number expected does not match total observed. G stat may be weird.');
+    end
+end
 
 if (nd == 2) && isempty(E)
     %compute expected frequencies
@@ -76,23 +87,27 @@ Gstat.P = P;
 if nd > 1
     if opt.computemarginal
         [Gstat.Gcol,Gstat.dfcol,Gstat.Pcol] = crosstabG(sum(E,1),sum(O,1), ...
-            'computemarginal',false, 'computeindividual',false);
+            'computemarginal',false, 'computeindividual',false, ...
+            'adjustexpected',opt.adjustexpected);
         [Gstat.Grow,Gstat.dfrow,Gstat.Prow] = crosstabG(sum(E,2),sum(O,2), ...
-            'computemarginal',false, 'computeindividual',false);
+            'computemarginal',false, 'computeindividual',false, ...
+            'adjustexpected',opt.adjustexpected);
     end
     if opt.computeindividual
         Gstat.Gcolindiv = zeros(1,sz(2));
         Gstat.dfcolindiv = zeros(1,sz(2));
         Gstat.Pcolindiv = zeros(1,sz(2));
         for j = 1:sz(2)
-            [Gstat.Gcolindiv(j),Gstat.dfcolindiv(j),Gstat.Pcolindiv(j)] = crosstabG(E(:,j),O(:,j));
+            [Gstat.Gcolindiv(j),Gstat.dfcolindiv(j),Gstat.Pcolindiv(j)] = crosstabG(E(:,j),O(:,j), ...
+                'adjustexpected',opt.adjustexpected);
         end
         
         Gstat.Growindiv = zeros(sz(1),1);
         Gstat.dfrowindiv = zeros(sz(1),1);
         Gstat.Prowindiv = zeros(sz(1),1);
         for i = 1:sz(1)
-            [Gstat.Growindiv(i),Gstat.dfrowindiv(i),Gstat.Prowindiv(i)] = crosstabG(E(i,:),O(i,:));
+            [Gstat.Growindiv(i),Gstat.dfrowindiv(i),Gstat.Prowindiv(i)] = crosstabG(E(i,:),O(i,:), ...
+                'adjustexpected',opt.adjustexpected);
         end
         
     end
