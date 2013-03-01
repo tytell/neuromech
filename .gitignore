@@ -32,4 +32,6 @@ MatlabCentral
 uninstall_here.m
 Cl_matcont4p1
 *.asv
-
+phaser
+*.orig
+pathdef.m
