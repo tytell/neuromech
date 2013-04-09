@@ -106,12 +106,16 @@ else
                 dt = diff(timedWaitBarElapsed)';
                 step = (1:timedWaitBarStep-2)';
                 
-                [b,bint] = regress(dt, [step ones(size(step))]);
-                if (sign(bint(1,1)) == sign(bint(1,2))),
-                    timedWaitBarError = 1;
+                if istoolbox('statistics')
+                    [b,bint] = regress(dt, [step ones(size(step))]);
+                    if (sign(bint(1,1)) == sign(bint(1,2))),
+                        timedWaitBarError = 1;
+                    else
+                        timedWaitBarError = 0;
+                    end;
                 else
                     timedWaitBarError = 0;
-                end;
+                end
                 
                 timedWaitBarPrev10 = elapsed;
             end;
