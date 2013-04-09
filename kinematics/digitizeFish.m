@@ -482,7 +482,7 @@ end;
 % ****************************
 function DF = dfPlotPts(DF)
 
-if (nanmean(abs(DF.hxs-DF.txs)) > nanmean(abs(DF.hys-DF.tys))),
+if (nanmean2(abs(DF.hxs-DF.txs)) > nanmean2(abs(DF.hys-DF.tys))),
     if (isfield(DF,'scale')),
         hs = DF.hymm;
         h = DF.hy*DF.scale;
@@ -788,8 +788,12 @@ else
 end;
 
 if (isfield(DF,'scale')),
-    smm = nanmedian(s,2)*DF.scale;
-
+    if (istoolbox('statistics'))
+        smm = nanmedian(s,2)*DF.scale;
+    else
+        smm = nanmedian2(s,2)*DF.scale;
+    end
+    
     [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
         analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'nsmoothcurve',smooth);
 else
