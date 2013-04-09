@@ -26,6 +26,7 @@ disabled
 TOOLBOX_calib
 toolbox_calib
 MatlabCentral
+OpenProp*
 *~
 .DS_Store
 *.mchg
