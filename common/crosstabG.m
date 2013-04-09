@@ -22,6 +22,10 @@ else
     args = varargin;
 end
 
+if nargout == 0
+    opt.showtable = true;
+end
+
 opt = parsevarargin(opt, args, p);
 
 istranspose = false;
@@ -50,7 +54,7 @@ end
 N = sum(O(:));
 Ne = sum(E(:));
 
-if (Ne ~= N)
+if (abs(Ne - N) > 1)
     if opt.adjustexpected
         E = E/Ne * N;
         warning('crosstabG:badE','Total number expected does not match total observed.  Adjusted to match.');
@@ -122,27 +126,29 @@ if opt.showtable
     fprintf('%20s %6s %6s %6s\n', '', 'G2','df','P');
     fprintf('%20s %6.2f %6d %6.3f\n', 'independence', Gstat.G, Gstat.df, Gstat.P);
     
-    if opt.computemarginal
-        fprintf('%20s %6.2f %6d %6.3f\n', 'rows differ', Gstat.Grow, Gstat.dfrow, Gstat.Prow);
-        fprintf('%20s %6.2f %6d %6.3f\n', 'columns differ', Gstat.Gcol, Gstat.dfcol, Gstat.Pcol);
-    end
-    if opt.computeindividual
-        for i = 1:sz(1)
-            if isempty(opt.rownames)
-                rowname1 = sprintf('row %d',i);
-            else
-                rowname1 = opt.rownames{i};
-            end
-            fprintf('%20s %6.2f %6d %6.3f\n', rowname1, Gstat.Growindiv(i), Gstat.dfrowindiv(i), Gstat.Prowindiv(i));
+    if nd > 1
+        if opt.computemarginal
+            fprintf('%20s %6.2f %6d %6.3f\n', 'rows differ', Gstat.Grow, Gstat.dfrow, Gstat.Prow);
+            fprintf('%20s %6.2f %6d %6.3f\n', 'columns differ', Gstat.Gcol, Gstat.dfcol, Gstat.Pcol);
         end
-        
-        for j = 1:sz(2)
-            if isempty(opt.colnames)
-                colname1 = sprintf('col %d',j);
-            else
-                colname1 = opt.colnames{j};
+        if opt.computeindividual
+            for i = 1:sz(1)
+                if isempty(opt.rownames)
+                    rowname1 = sprintf('row %d',i);
+                else
+                    rowname1 = opt.rownames{i};
+                end
+                fprintf('%20s %6.2f %6d %6.3f\n', rowname1, Gstat.Growindiv(i), Gstat.dfrowindiv(i), Gstat.Prowindiv(i));
             end
-            fprintf('%20s %6.2f %6d %6.3f\n', colname1, Gstat.Gcolindiv(j), Gstat.dfcolindiv(j), Gstat.Pcolindiv(j));
+
+            for j = 1:sz(2)
+                if isempty(opt.colnames)
+                    colname1 = sprintf('col %d',j);
+                else
+                    colname1 = opt.colnames{j};
+                end
+                fprintf('%20s %6.2f %6d %6.3f\n', colname1, Gstat.Gcolindiv(j), Gstat.dfcolindiv(j), Gstat.Pcolindiv(j));
+            end
         end
     end
 end
