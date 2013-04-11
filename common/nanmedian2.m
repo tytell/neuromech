@@ -1,5 +1,9 @@
 function m = nanmedian2(x,dim)
 
+if nargin == 1
+    dim = 1;
+end
+
 ord = [dim 1:dim-1 dim+1:ndims(x)];
 x = permute(x,ord);
 
