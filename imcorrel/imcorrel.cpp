@@ -26,7 +26,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
     CheckParameters(nrhs, prhs);
     try {
 	mxImage I1(prhs[0]);
-	mexPrintf("Here!\n");
+	//mexPrintf("Here!\n");
 
 	mxImage I2(prhs[1]);
 
