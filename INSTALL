@@ -1,0 +1,8 @@
+Clone or download the repository from github (https://github.com/tytell/neuromech) and put it in some useful location.
+
+From Matlab run the install_here script:
+
+>> cd /path/to/neuromech
+>> install_here
+
+You should get a prompt asking to add the relevant paths to your Matlab path.  Click OK and you should be good to go!
