@@ -5,12 +5,13 @@ names = [];
 units = [];
 
 if ((nargin == 0) || ~exist(file,'file')),
-    filter = {'*.dat;*.vec','TecPlot files (*.dat,*.vec)'; ...
+    filter = {'*.vec','Insight files (*.vec)'; ...
+        '*.dat;*.vec','TecPlot files (*.dat,*.vec)'; ...
               '*.imx;*.vec','DaVis 6 files (*.imx,*.vec)'; ...
               '*.im7;*.vc7','DaVis 7 files (*.im7,*.vc7)'; ...
               '*.nc','NetCDF files (*.nc)'; ...
               '*.mat','Matlab data files (*.mat)'};
-    filters = {'tecplot','davis','davis','netcdf','matlab'};
+    filters = {'insight','tecplot','davis','davis','netcdf','matlab'};
 
     [file,path,filtind] = uigetfile(filter, 'Select File');
     if filtind == 0
@@ -37,119 +38,174 @@ file = fullfile(path,file);
 piv.frames = frames;
 
 switch where,
- case 'matlab',
-  errordlg('Matlab files currently not supported.');
-  return;
-
- case 'davis',
-  [x1,y1,u1,v1,units] = readimxvec(files{1});
-  if (any(size(x1) ~= size(u1))),
-      [x1,y1] = meshgrid(x1,y1);
-  end;
-  piv.x = x1;
-  piv.y = y1;
-  piv.u = u1;
-  piv.v = v1;
-  piv.w = [];  % right now only load in u,v vectors
-  sz = size(u1);
-
-  N = length(files);
-  if (N > 20),
-      timedWaitBar(0,'Loading frames...');
-  end;
-  for i = 2:N,
-      [x1,y1,u1,v1,units] = readimxvec(files{i});
-      if (any(size(u1) ~= sz)),
-          lasterr('IMX files have different numbers of vectors.');
-          uiresume;
-      end;
-      if (any(size(x1) ~= size(u1))),
-          [x1,y1] = meshgrid(x1,y1);
-      end;
-      piv.x(:,:,i) = x1;
-      piv.y(:,:,i) = y1;
-      piv.u(:,:,i) = u1;
-      piv.v(:,:,i) = v1;
-
-      if ((N > 20) & ~timedWaitBar(i/length(files))),
-          break;
-      end;
-  end;
-  if (N > 20),
-      timedWaitBar(1);
-  end;
-  if (i ~= length(files)),
-      warndlg(sprintf('Only loaded %d frames of %d.',i,N));
-  end;
-  piv.files = files;
-  piv.frames = frames;
-
-  data.vnames = {'DaVis'};
-  data.vsizes = size(piv.u)';
-  data.piv = piv;
-  data.pivunits = units;
-
-  [k,q,tok] = regexp(units.x,'\[(.+)\]');
-  if (~isempty(k)),
-      units.pos = units.x(tok{1}(1,1):tok{1}(1,2));
-  end;
-  [k,q,tok] = regexp(units.vel,'\[?(.+)/(.+)\]?');
-  if (~isempty(k)),
-      units.vel{1} = units.vel(tok{1}(1,1):tok{1}(1,2));
-      units.vel{2} = units.vel(tok{1}(2,1):tok{1}(2,2));
-  end;
-
- case 'tecplot',
-  i = 1; 
-  N = length(files);
-  [x1,y1,u1,v1,w1,names] = apReadDat(files{i});
-  piv.x = zeros(size(x1,1), size(x1,2), N);
-  piv.y = zeros(size(y1,1), size(y1,2) ,N);
-  piv.u = zeros(size(u1,1), size(u1,2), N);
-  piv.v = zeros(size(v1,1), size(v1,2), N);
-  if ~isempty(w1), 
-      piv.w = zeros(size(w1,1), size(w1,2), N); 
-  else 
-      piv.w = []; 
-  end 
-  
-  piv.x(:,:,i) = x1;
-  piv.y(:,:,i) = y1;
-  piv.u(:,:,i) = u1;
-  piv.v(:,:,i) = v1;
-  if ~isempty(w1), 
-      piv.w(:,:,i) = w1; 
-  end
-
-  timedWaitBar(0,'Loading...');  
-  for i = 2:N,
-      [x1,y1,u1,v1,w1,names] = apReadDat(files{i});
-      piv.x(:,:,i) = x1;
-      piv.y(:,:,i) = y1;
-      piv.u(:,:,i) = u1;
-      piv.v(:,:,i) = v1;
-      if ~isempty(w1), 
-          piv.w(:,:,i) = w1; 
-      end  % pm      
-
-      if (~timedWaitBar(i/N)),
-          piv = [];
-          names = [];
-          units = [];
-          return;  % cancel the load
-      end;          
-  end;
-  timedWaitBar(1);  % close timedWaitBar
-  k = find((piv.u == 0) & (piv.v == 0));
-  piv.u(k) = NaN;
-  piv.v(k) = NaN;
-  if ~isempty(w1), 
-      piv.w(k) = NaN; 
-  end
-  
- case 'netcdf',
-  errordlg('NetCDF not supported yet.');
-  return;
+    case 'matlab',
+        errordlg('Matlab files currently not supported.');
+        return;
+        
+    case 'insight',
+        [x1,y1,u1,v1,err1] = loadInsight(files{1});
+        piv.x = x1;
+        piv.y = y1;
+        piv.u = u1;
+        piv.v = v1;
+        piv.w = [];  % right now only load in u,v vectors
+        sz = size(u1);
+        
+        N = length(files);
+        if (N > 20),
+            timedWaitBar(0,'Loading frames...');
+        end;
+        for i = 2:N,
+            [x1,y1,u1,v1,units] = loadInsight(files{i});
+            if (any(size(u1) ~= sz)),
+                lasterr('Insight files have different numbers of vectors.');
+                uiresume;
+            end;
+            if (any(size(x1) ~= size(u1))),
+                [x1,y1] = meshgrid(x1,y1);
+            end;
+            piv.x(:,:,i) = x1;
+            piv.y(:,:,i) = y1;
+            piv.u(:,:,i) = u1;
+            piv.v(:,:,i) = v1;
+            
+            if ((N > 20) && ~timedWaitBar(i/length(files))),
+                break;
+            end;
+        end;
+        if (N > 20),
+            timedWaitBar(1);
+        end;
+        if (i ~= length(files)),
+            warndlg(sprintf('Only loaded %d frames of %d.',i,N));
+        end;
+        piv.files = files;
+        piv.frames = frames;
+        
+        data.vnames = {'Insight'};
+        data.vsizes = size(piv.u)';
+        data.piv = piv;
+        data.pivunits = units;
+        
+        [k,q,tok] = regexp(units.x,'\[(.+)\]');
+        if (~isempty(k)),
+            units.pos = units.x(tok{1}(1,1):tok{1}(1,2));
+        end;
+        [k,q,tok] = regexp(units.vel,'\[?(.+)/(.+)\]?');
+        if (~isempty(k)),
+            units.vel{1} = units.vel(tok{1}(1,1):tok{1}(1,2));
+            units.vel{2} = units.vel(tok{1}(2,1):tok{1}(2,2));
+        end;
+        
+    case 'davis',
+        [x1,y1,u1,v1,units] = readimxvec(files{1});
+        if (any(size(x1) ~= size(u1))),
+            [x1,y1] = meshgrid(x1,y1);
+        end;
+        piv.x = x1;
+        piv.y = y1;
+        piv.u = u1;
+        piv.v = v1;
+        piv.w = [];  % right now only load in u,v vectors
+        sz = size(u1);
+        
+        N = length(files);
+        if (N > 20),
+            timedWaitBar(0,'Loading frames...');
+        end;
+        for i = 2:N,
+            [x1,y1,u1,v1,units] = readimxvec(files{i});
+            if (any(size(u1) ~= sz)),
+                lasterr('IMX files have different numbers of vectors.');
+                uiresume;
+            end;
+            if (any(size(x1) ~= size(u1))),
+                [x1,y1] = meshgrid(x1,y1);
+            end;
+            piv.x(:,:,i) = x1;
+            piv.y(:,:,i) = y1;
+            piv.u(:,:,i) = u1;
+            piv.v(:,:,i) = v1;
+            
+            if ((N > 20) && ~timedWaitBar(i/length(files))),
+                break;
+            end;
+        end;
+        if (N > 20),
+            timedWaitBar(1);
+        end;
+        if (i ~= length(files)),
+            warndlg(sprintf('Only loaded %d frames of %d.',i,N));
+        end;
+        piv.files = files;
+        piv.frames = frames;
+        
+        data.vnames = {'DaVis'};
+        data.vsizes = size(piv.u)';
+        data.piv = piv;
+        data.pivunits = units;
+        
+        [k,q,tok] = regexp(units.x,'\[(.+)\]');
+        if (~isempty(k)),
+            units.pos = units.x(tok{1}(1,1):tok{1}(1,2));
+        end;
+        [k,q,tok] = regexp(units.vel,'\[?(.+)/(.+)\]?');
+        if (~isempty(k)),
+            units.vel{1} = units.vel(tok{1}(1,1):tok{1}(1,2));
+            units.vel{2} = units.vel(tok{1}(2,1):tok{1}(2,2));
+        end;
+        
+    case 'tecplot',
+        i = 1;
+        N = length(files);
+        [x1,y1,u1,v1,w1,names] = apReadDat(files{i});
+        piv.x = zeros(size(x1,1), size(x1,2), N);
+        piv.y = zeros(size(y1,1), size(y1,2) ,N);
+        piv.u = zeros(size(u1,1), size(u1,2), N);
+        piv.v = zeros(size(v1,1), size(v1,2), N);
+        if ~isempty(w1),
+            piv.w = zeros(size(w1,1), size(w1,2), N);
+        else
+            piv.w = [];
+        end
+        
+        piv.x(:,:,i) = x1;
+        piv.y(:,:,i) = y1;
+        piv.u(:,:,i) = u1;
+        piv.v(:,:,i) = v1;
+        if ~isempty(w1),
+            piv.w(:,:,i) = w1;
+        end
+        
+        timedWaitBar(0,'Loading...');
+        for i = 2:N,
+            [x1,y1,u1,v1,w1,names] = apReadDat(files{i});
+            piv.x(:,:,i) = x1;
+            piv.y(:,:,i) = y1;
+            piv.u(:,:,i) = u1;
+            piv.v(:,:,i) = v1;
+            if ~isempty(w1),
+                piv.w(:,:,i) = w1;
+            end  % pm
+            
+            if (~timedWaitBar(i/N)),
+                piv = [];
+                names = [];
+                units = [];
+                return;  % cancel the load
+            end;
+        end;
+        timedWaitBar(1);  % close timedWaitBar
+        k = find((piv.u == 0) & (piv.v == 0));
+        piv.u(k) = NaN;
+        piv.v(k) = NaN;
+        if ~isempty(w1),
+            piv.w(k) = NaN;
+        end
+        
+    case 'netcdf',
+        errordlg('NetCDF not supported yet.');
+        return;
 end;
 
 piv.files = files;
@@ -193,10 +249,10 @@ end;
 [a,b,tok] = regexpi(ln,'(\w+)=(\w+)');
 for i = 1:length(a),
     switch ln(tok{i}(1,1):tok{i}(1,2)),
-     case 'I',
-      r = str2num(ln(tok{i}(2,1):tok{i}(2,2)));
-     case 'J',
-      c = str2num(ln(tok{i}(2,1):tok{i}(2,2)));
+        case 'I',
+            r = str2num(ln(tok{i}(2,1):tok{i}(2,2)));
+        case 'J',
+            c = str2num(ln(tok{i}(2,1):tok{i}(2,2)));
     end;
 end;
 
@@ -228,7 +284,7 @@ else
     base = tok{1};
     num1 = str2double(tok{2});
     ext = tok{3};
-
+    
     names = getfilenames(strcat(base,'*',ext));
     for i = 1:length(names),
         [numind,q,tok] = regexpi(names{i},'.*[^0-9]([0-9]+)\.');
@@ -237,14 +293,14 @@ else
     end;
     [fnum,ord] = sort(fnum);
     names = names(ord);
-
+    
     done = 0;
     num1 = num2str(num1);
     num2 = num2str(fnum(end));
     answer = {num1, num2};
     while (~done),
         answer = inputdlg({'Start:','End:'},'Select file numbers', ...
-                          1, answer);
+            1, answer);
         
         if (~isempty(answer)),
             i1 = find(fnum == str2num(answer{1}));
@@ -258,11 +314,11 @@ else
             done = 1;
         end;
     end;
-
+    
     if (~isempty(answer)),
         files = names(i1:i2);
     end;
-
+    
     frames = i1:i2;
 end;
 

@@ -30,8 +30,9 @@ if nargin == 0
         'Field skip:',...
         'Start frame:',...
         'End frame:',...
+        'Frame rate:',...
         'Display:'};
-    def = {basename, '1','1','1',num2str(nframes),'on'};
+    def = {basename, '1','1','1',num2str(nframes),'300','on'};
     
     vals = inputdlg(prompt,'Options',1,def);
     
@@ -39,7 +40,8 @@ if nargin == 0
     opt.pairskip = str2double(vals{2});
     opt.fieldskip = str2double(vals{3});
     opt.frames = [str2double(vals{4}), str2double(vals{5})];
-    if ismember(lower(vals{6}),{'on','yes','y'})
+    opt.framerate = str2double(vals{6});
+    if ismember(lower(vals{7}),{'on','yes','y'})
         opt.display = true;
     else
         opt.display = false;

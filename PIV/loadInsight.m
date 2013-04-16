@@ -17,13 +17,30 @@ for i = 1:length(files),
 	if (fid ~= -1),
 		title = fgets(fid);
 		
+        tok = regexp(title, '(\w+)=(\S+)','tokens');
+        insightdata = struct();
+        for i = 1:length(tok)
+            num = regexp(tok{i}{2},'^"?[\d.]+"?$','once','tokens');
+            if ~isempty(num)
+                insightdata.(tok{i}{1}) = str2double(num);
+            elseif (~isempty(tok{i}{2}) && (tok{i}{2}(1) == '"') && ...
+                    (tok{i}{2}(end) == '"'))
+                insightdata.(tok{i}{1}) = tok{i}{2}(2:end-1);
+            else
+                insightdata.(tok{i}{1}) = tok{i}{2};
+            end;
+        end
+            
 		k = findstr('I=',title);
 		m = sscanf(title(k+2:end),'%f');
 		k = findstr('J=',title);
 		n = sscanf(title(k+2:end),'%f');
 		k = findstr('Height=',title);
 		h = sscanf(title(k+7:end),'%f');
-		
+		if isempty(h)
+            h = 0;
+        end
+        
 		data = fscanf(fid,'%f, %f, %f, %f, %d\n',[5 Inf]);
 		fclose(fid);
 		
