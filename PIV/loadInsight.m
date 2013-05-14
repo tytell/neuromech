@@ -1,9 +1,11 @@
-function [x,y,u,v,err,I] = loadInsight(files,avi,frnum)
-% function [x,y,u,v,err,I] = loadInsight(files,avi,frnum)
+function [x,y,u,v,err,I,insightdata] = loadInsight(files,avi,frnum)
+% function [x,y,u,v,err,I,insightdata] = loadInsight(files,avi,frnum)
 
-if (nargin == 1)
-	avi = [];
-	frnum = [];
+if (nargin < 3)
+    frnum = [];
+    if (nargin == 1)
+        avi = [];
+    end;
 end;
 
 if (ischar(files)),
@@ -17,33 +19,50 @@ for i = 1:length(files),
 	if (fid ~= -1),
 		title = fgets(fid);
 		
-        tok = regexp(title, '(\w+)=(\S+)','tokens');
+        tok = regexp(title, '(\w+)=(([^ ,"]+)|("[^"]+"(,\s*"[^"]+")*))','tokens');
         insightdata = struct();
-        for i = 1:length(tok)
-            num = regexp(tok{i}{2},'^"?[\d.]+"?$','once','tokens');
-            if ~isempty(num)
-                insightdata.(tok{i}{1}) = str2double(num);
-            elseif (~isempty(tok{i}{2}) && (tok{i}{2}(1) == '"') && ...
-                    (tok{i}{2}(end) == '"'))
-                insightdata.(tok{i}{1}) = tok{i}{2}(2:end-1);
+        for j = 1:length(tok)
+            vals = regexp(tok{j}{2}, '"([^"]+)"', 'tokens');
+            if isempty(vals)
+                if ~isempty(regexp(tok{j}{2}, '^[0-9.e]+$', 'once'))
+                    insightdata.(tok{j}{1}) = str2double(tok{j}{2});
+                else
+                    insightdata.(tok{j}{1}) = tok{j}{2};
+                end;
+            elseif ((length(vals) == 1) && ~isempty(regexp(vals{1}{1}, '^[0-9.e]+$', 'once')))
+                insightdata.(tok{j}{1}) = str2double(vals{1}{1});
+            elseif (length(vals) == 1)
+                insightdata.(tok{j}{1}) = vals{1}{1};
             else
-                insightdata.(tok{i}{1}) = tok{i}{2};
-            end;
+                insightdata.(tok{j}{1}) = cellfun(@(x) x{1}, vals, 'UniformOutput',false);
+            end                
         end
-            
-		k = findstr('I=',title);
-		m = sscanf(title(k+2:end),'%f');
-		k = findstr('J=',title);
-		n = sscanf(title(k+2:end),'%f');
-		k = findstr('Height=',title);
-		h = sscanf(title(k+7:end),'%f');
-		if isempty(h)
+
+        if (~isfield(insightdata,'I') || ~isfield(insightdata,'J'))
+            error('Cannot parse data file');
+        end
+        
+        m = insightdata.I;
+        n = insightdata.J;
+        
+        if (isfield(insightdata,'Height'))
+            h = insightdata.Height;
+        elseif (isfield(insightdata,'SourceImageHeight') && strcmp(insightdata.LengthUnit,'pixel'))
+            h = insightdata.SourceImageHeight;
+        else
             h = 0;
         end
         
 		data = fscanf(fid,'%f, %f, %f, %f, %d\n',[5 Inf]);
 		fclose(fid);
-		
+
+        if (i == 1)
+            x = zeros([n m length(files)]);
+            y = zeros([n m length(files)]);
+            u = zeros([n m length(files)]);
+            v = zeros([n m length(files)]);
+            err = zeros([n m length(files)]);
+        end
 		data = data';
 		x(:,:,i) = reshape(data(:,1),[m n])';
 		y(:,:,i) = h - reshape(data(:,2),[m n])';
@@ -56,13 +75,20 @@ for i = 1:length(files),
 end;
 
 if (~isempty(avi)),
+    vid = VideoReader(avi);
+    if (isempty(frnum))
+        frnum = 1:vid.NumberOfFrames;
+    end
 	if (length(frnum) ~= length(files))
 		warning('Different number of images than vector files.  Ignoring images.');
-	else
-		mov = aviread(avi,frnum);
+    else
+        I = zeros(vid.Height,vid.Width, length(frnum));
 		
 		for i = 1:length(frnum),
-			I(:,:,i) = frame2im(mov(i));
+			I(:,:,i) = read(vid, frnum(i));
 		end;
 	end;
-end;
+else
+    I = [];
+end
+

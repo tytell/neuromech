@@ -91,11 +91,11 @@ if (any(isnan(piv.x(:)) | isnan(piv.y(:)))),
 end;
 
 % set up the units
-if (exist('units')),
+if (exist('units','var')),
     if (isfield(units,'x') && ~isempty(units.x)),
-        u = {units.x, strcat(units.vel{:})};
+        u = {units.x, [units.vel{1} '/' units.vel{2}]};
     elseif (isfield(units,'pos') && ~isempty(units.pos)),
-        u = {units.pos, strcat(units.vel{:})};
+        u = {units.pos, [units.vel{1} '/' units.vel{2}]};
     else
         u = constDEFAULT_UNITS;  % defined at beginning of function
     end;
@@ -106,10 +106,10 @@ end;
 u = inputdlg({'Position units','Velocity units'},'Choose units',1,u);
 
 units.pos = u{1};
-[k,q,tok] = regexp(u{2},'(.+)/(.+)');
-if (~isempty(k)),
-    units.vel{1} = u{2}(tok{1}(1,1):tok{1}(1,2));
-    units.vel{2} = u{2}(tok{1}(2,1):tok{1}(2,2));
+tok = regexp(u{2},'(.+)/(.+)','tokens','once');
+if (~isempty(tok)),
+    units.vel{1} = tok{1};
+    units.vel{2} = tok{2};
 else
     units.vel = u{2};
 end;
@@ -733,4 +733,6 @@ end;
 set(data.Figure, 'KeyPressFcn', {@apKeyPress,data.Panel});
 set(data.Figure, 'CloseRequestFcn', {@apCloseFigure,data.Panel});
 set(data.Panel, 'CloseRequestFcn', {@apCloseFigure,data.Panel});
+set(data.QuitMenu, 'Callback',{@apCloseFigure,data.Panel});
+
 

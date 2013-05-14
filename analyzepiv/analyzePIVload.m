@@ -13,7 +13,7 @@ if ((nargin == 0) || ~exist(file,'file')),
               '*.mat','Matlab data files (*.mat)'};
     filters = {'insight','tecplot','davis','davis','netcdf','matlab'};
 
-    [file,path,filtind] = uigetfile(filter, 'Select File');
+    [file,path,filtind] = uigetfile(filter, 'Select File(s)', 'MultiSelect','on');
     if filtind == 0
         return;
     else
@@ -32,10 +32,15 @@ else
             where = 'matlab';
     end
 end
-        
-file = fullfile(path,file);
-[files,frames] = apMatchFileSeq(file);
-piv.frames = frames;
+
+if (~iscell(file))
+    file = fullfile(path,file);
+    [files,frames] = apMatchFileSeq(file);
+    piv.frames = frames;
+else
+    files = file;
+    frames = apGetFrameNumbers(files);
+end
 
 switch where,
     case 'matlab',
@@ -43,7 +48,7 @@ switch where,
         return;
         
     case 'insight',
-        [x1,y1,u1,v1,err1] = loadInsight(files{1});
+        [x1,y1,u1,v1,~,~,insightdata] = loadInsight(files{1});
         piv.x = x1;
         piv.y = y1;
         piv.u = u1;
@@ -56,7 +61,7 @@ switch where,
             timedWaitBar(0,'Loading frames...');
         end;
         for i = 2:N,
-            [x1,y1,u1,v1,units] = loadInsight(files{i});
+            [x1,y1,u1,v1] = loadInsight(files{i});
             if (any(size(u1) ~= sz)),
                 lasterr('Insight files have different numbers of vectors.');
                 uiresume;
@@ -81,21 +86,16 @@ switch where,
         end;
         piv.files = files;
         piv.frames = frames;
+        names = insightdata.VARIABLES;
+        
+        units.x = insightdata.LengthUnit;
+        units.vel = {insightdata.LengthUnit, insightdata.TimeUnit};
         
         data.vnames = {'Insight'};
         data.vsizes = size(piv.u)';
         data.piv = piv;
         data.pivunits = units;
-        
-        [k,q,tok] = regexp(units.x,'\[(.+)\]');
-        if (~isempty(k)),
-            units.pos = units.x(tok{1}(1,1):tok{1}(1,2));
-        end;
-        [k,q,tok] = regexp(units.vel,'\[?(.+)/(.+)\]?');
-        if (~isempty(k)),
-            units.vel{1} = units.vel(tok{1}(1,1):tok{1}(1,2));
-            units.vel{2} = units.vel(tok{1}(2,1):tok{1}(2,2));
-        end;
+        w1 = [];
         
     case 'davis',
         [x1,y1,u1,v1,units] = readimxvec(files{1});
@@ -227,7 +227,6 @@ v = [];
 w = [];
 
 fid = fopen(file);
-%%% CONTINUE here - first line in an Insight file doesnt have a title
 ln = fgetl(fid);                        % discard TITLE line
 
 ln = fgetl(fid);                        % VARIABLES line
@@ -276,21 +275,33 @@ end;
 % ------------------------------------------------------------
 function [files,frames] = apMatchFileSeq(file)
 
+num1 = [];
+
 tok = regexpi(file,'(.*[a-z])([0-9]+)(\.\w{1,3})$','tokens','once');
-if (isempty(tok)),
-    files = {file};
-    frames = 1;
-else
+if (~isempty(tok)),
     base = tok{1};
     num1 = str2double(tok{2});
     ext = tok{3};
+    expr = '.*\D([0-9]+)\.w{1,3}';
+else
+    %insight format
+    tok = regexpi(file,'^(.*\D)([0-9]+)(\.T\d+\.\D\d+\.\P\d+\.\H\d+\.[LR]\.\w{1,3})$','tokens','once');
     
+    if (~isempty(tok))
+        expr = '.*\D([0-9]+)\.T';
+        base = tok{1};
+        num1 = str2double(tok{2});
+        ext = tok{3};
+    end
+end
+
+if (~isempty(num1))
     names = getfilenames(strcat(base,'*',ext));
-    for i = 1:length(names),
-        [numind,q,tok] = regexpi(names{i},'.*[^0-9]([0-9]+)\.');
-        tok = tok{1};
-        fnum(i) = str2num(names{i}(tok(1,1):tok(1,2)));
-    end;
+    tok = regexp(names, expr, 'tokens','once');
+    fnum = zeros(size(tok));
+    for i = 1:length(tok)
+        fnum(i) = str2double(tok{i});
+    end
     [fnum,ord] = sort(fnum);
     names = names(ord);
     
@@ -303,9 +314,9 @@ else
             1, answer);
         
         if (~isempty(answer)),
-            i1 = find(fnum == str2num(answer{1}));
-            i2 = find(fnum == str2num(answer{2}));
-            if (isempty(i1) | isempty(i2)),
+            i1 = find(fnum == str2double(answer{1}));
+            i2 = find(fnum == str2double(answer{2}));
+            if (isempty(i1) || isempty(i2)),
                 waitfor(errordlg('Incorrect file number'));
             else
                 done = 1;
@@ -320,5 +331,8 @@ else
     end;
     
     frames = i1:i2;
+else
+    files = {file};
+    frames = 1;
 end;
 
