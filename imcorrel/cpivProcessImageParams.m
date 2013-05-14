@@ -31,7 +31,7 @@ elseif (ischar(p{1})),
     if (strfind(lower(p{1}), 'avi')),		% avi file
         id.AVIName = p{1};
         
-        vid = VideoReader(id.AVIName);
+        vid = VideoReader2(id.AVIName);
         id.NAviFrames = vid.NumberOfFrames;
         id.Width = vid.Width;
         id.Height = vid.Height;
@@ -40,7 +40,7 @@ elseif (ischar(p{1})),
         if (ischar(p{2})),					% second avi
             id.AVI2Name = p{2};
             
-            vid2 = VideoReader(id.AVI2Name);
+            vid2 = VideoReader2(id.AVI2Name);
             avi2len = vid2.NumberOfFrames;
             id.Video2 = vid2;
             

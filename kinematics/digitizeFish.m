@@ -70,7 +70,7 @@ end;
 
 %use the even newer VideoReader functions so that we can handle modern codecs
 %but uncompressed files may cause a problem
-DF.mmfile = VideoReader(DF.avifile);
+DF.mmfile = VideoReader2(DF.avifile);
 DF.nFrames = DF.mmfile.NumberOfFrames;
 DF.fr = 1:DF.nFrames;
 
@@ -203,7 +203,8 @@ function DF = dfCalibrateClick(DF)
 fn = fullfile(pn,fn);
 
 if (strcmpi(fn(end-2:end),'avi')),
-    im = frame2im(aviread(fn,1));
+    vid = VideoReader2(fn);
+    im = read(vid, 1);
     if (size(im,3) == 3),
         im = im(:,:,1);
     end;
@@ -250,8 +251,8 @@ function DF = dfCalibrateAvi2(DF)
 [fn,pn] = uigetfile('*.avi','Select second AVI',[pn '\\']);
 avi2file = fullfile(pn,fn);
 
-info = aviinfo(avi2file);
-if (info.NumFrames ~= DF.nFrames),
+vid = VideoReader2(avi2file);
+if (vid.NumFrames ~= DF.nFrames),
 	fprintf('Error: Avi files don''t match.\n');
 	beep;
 	return;
@@ -713,19 +714,19 @@ if (~isempty(avifile)),
                 'invert',invert,'fps',DF.fps, firstmid{:});
     end;
 else
-    mx = repmat(NaN,[npts length(DF.hxs)]);
-    my = repmat(NaN,[npts length(DF.hxs)]);
+    mx = NaN([npts length(DF.hxs)]);
+    my = NaN([npts length(DF.hxs)]);
     
     prevmx = linspace(DF.hxs(frames(1)),DF.txs(frames(1)), npts)';
     prevmy = linspace(DF.hxs(frames(1)),DF.txs(frames(1)), npts)';
     
-    info = aviinfo(DF.avifile);
-    ix1 = [1 info.Width];
-    iy1 = [1 info.Height];
+    vid1 = VideoReader2(DF.avifile);
+    ix1 = [1 vid1.Width];
+    iy1 = [1 vid1.Height];
     
-    info = aviinfo(DF.avi2file);
-    [xcorner,ycorner] = feval(DF.tformfcn, DF.tform, [1 1 info.Width info.Width],...
-        [1 info.Height info.Height 1]);
+    vid2 = VideoReader2(DF.avi2file);
+    [xcorner,ycorner] = feval(DF.tformfcn, DF.tform, [1 1 vid2.Width vid2.Width],...
+        [1 vid2.Height vid2.Height 1]);
     ix2 = round([min(xcorner) max(xcorner)]);
     iy2 = round([min(ycorner) max(ycorner)]);
     
@@ -741,9 +742,8 @@ else
     for i = 1:length(frames),
         fr = frames(i);
         
-        I(iy1(1):iy1(2), ix1(1):ix1(2)) = aviread(DF.avifile, fr);
-        
-        I2 = aviread(DF.avi2file, fr);
+        I(iy1(1):iy1(2), ix1(1):ix1(2)) = read(vid1, fr);        
+        I2 = read(vid2, fr);
         I2 = imtransform(I2, 'XData',ix2+ix0-1, 'YData',iy2+ix0-1);
         I(iy2(1):iy2(2), ix2(1):ix2(2)) = I2;
         

@@ -19,21 +19,22 @@ set(fig, 'CurrentCharacter', '0');
 
 k = find(isfinite(hx) & isfinite(hy) & isfinite(tx) & isfinite(ty));
 
-mx = repmat(NaN,[n length(hx)]);
-my = repmat(NaN,[n length(hx)]);
-lx = repmat(NaN,[n length(hx)]);
-ly = repmat(NaN,[n length(hx)]);
-rx = repmat(NaN,[n length(hx)]);
-ry = repmat(NaN,[n length(hx)]);
+mx = NaN([n length(hx)]);
+my = NaN([n length(hx)]);
+lx = NaN([n length(hx)]);
+ly = NaN([n length(hx)]);
+rx = NaN([n length(hx)]);
+ry = NaN([n length(hx)]);
 
 if (quiet < 2),
     timedWaitBar(0, 'Finding midlines...');
 end;
 
+vid = VideoReader2(aviname);
 for ii = 1:length(k),
     i = k(ii);
     
-    I = im2double(frame2im(aviread(aviname, frames(i))));
+    I = im2double(read(vid, frames(i)));
     if (~bright),
         I = 1-I;
     end;

@@ -7,13 +7,13 @@ mincorrel = 0.4;
 peakheight = 0.95;
 maxpeaksz = 0.4;
 
-info = aviinfo(avi);
+vid = VideoReader2(avi);
 if (isempty(frames)),
-    frames = 1:info.NumFrames;
+    frames = 1:vid.NumberOfFrames;
 elseif (numel(frames) == 1),
-    frames = 1:frames:info.NumFrames;
+    frames = 1:frames:vid.NumberOfFrames;
 end;
-nfr = info.NumFrames;
+nfr = vid.NumberOfFrames;
 
 opts = varargin;
 
@@ -69,7 +69,7 @@ s0 = (0:seglen:len)';
 perpd = 2*tan(maxang);
 
 if (isempty(mx1)),
-    I = frame2im(aviread(avi,frames(1)));
+    I = read(vid,frames(1));
     if (reduce < 1),
         I = imresize(I,reduce,'bilinear');
     end;
@@ -127,7 +127,7 @@ ff(:,frames) = repmat(frames,[npt 1]);
 for j = 1:length(frames),
     fr = frames(j);
 
-    I = im2double(frame2im(aviread(avi,fr)));
+    I = im2double(read(vid,fr));
     if (size(I,3) > 1),
         I = I(:,:,1);
     end;
