@@ -18,7 +18,7 @@ if (~isempty(varargin{1})),
         mmfile = [];
     else
         aviname = varargin{1};
-        mmfile = mmreader(aviname);
+        mmfile = VideoReader(aviname);
         N = get(mmfile,'NumberOfFrames');
     end;
 	step = varargin{2};

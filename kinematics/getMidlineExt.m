@@ -48,13 +48,14 @@ if (isnumeric(avi)),
         frames = 1:size(I,3);
     end;
     nfr = size(I,3);
+    vid = [];
 else
     isavi = true;
-    info = aviinfo(avi);
+    vid = VideoReader(avi);
     if (isempty(frames)),
-        frames = 1:info.NumFrames;
+        frames = 1:vid.NumberOfFrames;
     elseif (numel(frames) == 1),
-        frames = 1:frames:info.NumFrames;
+        frames = 1:frames:vid.NumberOfFrames;
     end;
     nfr = info.NumFrames;
 end;
@@ -175,11 +176,9 @@ else
     my1 = repmat(hy(frames(1)),[n 1]);
 end;
 
-mx = repmat(NaN,[n nfr]);
-my = repmat(NaN,[n nfr]);
+mx = NaN([n nfr]);
+my = NaN([n nfr]);
 good = false(n,nfr);
-
-reader = mmreader(avi);
 
 %run through all the frames
 for j = 1:length(frames),
@@ -192,7 +191,7 @@ for j = 1:length(frames),
 
     %load the frame
     if (isavi),
-        I1 = im2double(read(reader, fr));
+        I1 = im2double(read(vid, fr));
         
         if (size(I1,3) > 1),
             I1 = I1(:,:,1);

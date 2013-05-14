@@ -68,9 +68,10 @@ if (~isfield(DF,'step')),
 	DF.step = 1;
 end;
 
-%use the new mmreader functions so that we can handle modern codecs
-DF.mmfile = mmreader(DF.avifile);
-DF.nFrames = get(DF.mmfile,'NumberOfFrames');
+%use the even newer VideoReader functions so that we can handle modern codecs
+%but uncompressed files may cause a problem
+DF.mmfile = VideoReader(DF.avifile);
+DF.nFrames = DF.mmfile.NumberOfFrames;
 DF.fr = 1:DF.nFrames;
 
 dfSaveData(DF);
@@ -149,7 +150,7 @@ if (~isfield(DF,'scale')),
 	fprintf('Warning: No scale value saved.\n');
 end;
 
-fpsdefault = get(DF.mmfile, 'FrameRate');
+fpsdefault = DF.mmfile.FrameRate;
 fps = input(sprintf('Frames per second? (default %g) ', fpsdefault));
 if (isempty(fps)),
     fps = fpsdefault;
