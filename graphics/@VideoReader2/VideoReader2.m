@@ -1,17 +1,20 @@
 classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
-         VideoReader2 < VideoReader
+         VideoReader2 < hgsetget
 % VIDEOREADER2 Create a multimedia reader object that handles uncompressed AVIs.
 %
 %   Otherwise identical to VideoReader.
 
-%{
+
     %------------------------------------------------------------------
     % General properties (in alphabetic order)
     %------------------------------------------------------------------
-    properties(GetAccess='public', SetAccess='private', Dependent)
-        Duration        % Total length of file in seconds.
+    properties(GetAccess='public', SetAccess='private')
         Name            % Name of the file to be read.
         Path            % Path of the file to be read.
+    end
+    
+    properties(GetAccess='public', SetAccess='private', Dependent)
+        Duration        % Total length of file in seconds.
     end
     
     properties(GetAccess='public', SetAccess='public')
@@ -24,12 +27,13 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     
     properties(GetAccess='public', SetAccess='public')
         UserData        % Generic field for any user-defined data.
+        isaviread
     end
     
     %------------------------------------------------------------------
     % Video properties (in alphabetic order)
     %------------------------------------------------------------------
-    properties(GetAccess='public', SetAccess='private', Dependent)
+    properties(GetAccess='public', SetAccess='private')
         BitsPerPixel    % Bits per pixel of the video data.
         FrameRate       % Frame rate of the video in frames per second.
         Height          % Height of the video frame in pixels.
@@ -41,37 +45,16 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     %------------------------------------------------------------------
     % Undocumented properties
     %------------------------------------------------------------------
-    properties(GetAccess='public', SetAccess='private', Dependent, Hidden)
+    properties(GetAccess='public', SetAccess='private')
         AudioCompression
         NumberOfAudioChannels
         VideoCompression
     end
     
-    %------------------------------------------------------------------
-    % Private properties
-    %------------------------------------------------------------------
     properties(Access='private', Hidden)
-        % To help support future forward compatibility.
-        SchemaVersion = 7.11;
-        
-        % To handle construction on load.
-        ConstructorArgs
-        
-        % Enable frame counting
-        % The default value of this property is TRUE.
-        % If the value is FALSE, then the number of frames in the video
-        % file is not determined and reported. This enables faster object
-        % construction. The value held by the NumberOfFrames property of
-        % the object is not valid.
-        EnableFrameCounting;
+        vid
+        info        
     end
-    
-    properties(Access='private', Hidden, Transient)
-        % Underlying implementation object.
-        VideoReaderImpl 
-    end
-    %}
-    
     %------------------------------------------------------------------
     % Documented methods
     %------------------------------------------------------------------    
@@ -87,80 +70,82 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 error(message('MATLAB:audiovideo:VideoReader:noFile'));
             end
 
+            obj.isaviread = ~isempty(which('aviread'));
             try
-                obj = obj@VideoReader(fileName, varargin{:});
+                obj.vid = VideoReader(fileName, varargin{:});
             catch err
+                if (strcmp(err.identifier, 'MATLAB:audiovideo:VideoReader:FileInit') && ...
+                        obj.isaviread)
+                    obj.vid = struct([]);
+                    w = warning('off','MATLAB:audiovideo:aviinfo:FunctionToBeRemoved');
+                    obj.info = aviinfo(fileName);       %#ok
+                    warning(w);
+                    
+                    fullname = VideoReader.getFullPathName(fileName);
+                    [pn,fn,ext] = fileparts(fullname);
+                    set(obj,'Path',pn);
+                    set(obj,'Name',[fn ext]);
+                else
+                    rethrow(err);
+                end
+            end
                 
+            % Set properties that user passed in.
+            if nargin > 1
+                set(obj, varargin{:});
+            end
         end
-    end
 
-%{
+
         %------------------------------------------------------------------
         % Operations
         %------------------------------------------------------------------        
-        varargout = read(obj, varargin)
-        inspect(obj)
+        function varargout = read(obj, varargin)
+            if ~isempty(obj.vid)
+                v = read(obj.vid,varargin{:});
+                varargout = {v};
+            else
+                w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');
+                fr = aviread(fullfile(obj.Path,obj.Name),varargin{:});  %#ok
+                warning(w);
+                varargout = {fr.cdata};
+            end
+        end
         
         %------------------------------------------------------------------        
         % Overrides of hgsetset
         %------------------------------------------------------------------        
-        getdisp(obj)
-        setdisp(obj)
+        function getdisp(obj)
+            if ~isempty(obj.vid)
+                obj.vid.getdisp();
+            else
+                getdisp@hgsetget(obj);
+            end
+        end
+        function setdisp(obj)
+            if ~isempty(obj.vid)
+                obj.vid.setdips();
+            else
+                setdisp@hgsetget(obj);
+            end
+        end
 
         %------------------------------------------------------------------        
         % Overrides of builtins
         %------------------------------------------------------------------ 
-        disp(obj)
-        display(obj)
-        c = horzcat(varargin)
-        c = vertcat(varargin)
-    end
-    
-    methods(Static)
-        
-        %------------------------------------------------------------------
-        % Operations
-        %------------------------------------------------------------------
-        
-        function formats = getFileFormats()
-            % GETFILEFORMATS
-            %
-            %    FORMATS = VIDEOREADER.GETFILEFORMATS() returns an object array of 
-            %    audiovideo.FileFormatInfo objects which are the formats 
-            %    VIDEOREADER is known to support on the current platform. 
-            %
-            %    The properties of an audiovideo.FileFormatInfo object are:
-            %
-            %    Extension   - The file extension for this file format
-            %    Description - A text description of the file format
-            %    ContainsVideo - The File Format can hold video data
-            %    ContainsAudio - The File Format can hold audio data
-            %
-            extensions = audiovideo.mmreader.getSupportedFormats();
-            formats = audiovideo.FileFormatInfo.empty();
-            for ii=1:length(extensions)
-                formats(ii) = audiovideo.FileFormatInfo( extensions{ii}, ...
-                                                         VideoReader.translateDescToLocale(extensions{ii}), ...
-                                                         true, ...
-                                                         false );
+        function disp(obj)
+            if ~isempty(obj.vid)
+                obj.vid.display();
+            else
+                fprintf('Uncompressed avi ''%s''\n', obj.Name);
             end
-            
-            
-            % sort file extension
-            [~, sortedIndex] = sort({formats.Extension});
-            formats = formats(sortedIndex);
-            
-            
+        end
+
+        function display(obj)
+            disp(obj);
         end
     end
-
-    methods(Static, Hidden)
-        %------------------------------------------------------------------
-        % Persistence
-        %------------------------------------------------------------------        
-        obj = loadobj(B)
-    end
-
+    
     %------------------------------------------------------------------
     % Custom Getters/Setters
     %------------------------------------------------------------------
@@ -176,96 +161,106 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Type(obj)
             value = class(obj);
         end
-        function set.Type(obj, value)
-            obj.setImplValue('Type', value);
-        end
         
         % Properties that are dependent on underlying object.
         function value = get.Duration(obj)
-            value = obj.getImplValue('Duration');
-        end
-        function set.Duration(obj, value)
-            obj.setImplValue('Duration', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.Duration;
+            else
+                value = obj.info.NumFrames / obj.info.FramesPerSecond;
+            end
         end
         
         function value = get.Name(obj)
-            value = obj.getImplValue('Name');
-        end
-        function set.Name(obj, value)
-            obj.setImplValue('Name', value);
+            if ~isempty(obj.vid)
+                value = get(obj.vid,'Name');
+            else
+                value = obj.Name;
+            end
         end
         
         function value = get.Path(obj)
-            value = obj.getImplValue('Path');
-        end
-        function set.Path(obj, value)
-            obj.setImplValue('Path', value);
+            if ~isempty(obj.vid)
+                value = get(obj.vid,'Path');
+            else
+                value = obj.Path;
+            end
         end
         
         function value = get.BitsPerPixel(obj)
-            value = obj.getImplValue('BitsPerPixel');
-        end
-        function set.BitsPerPixel(obj, value)
-            obj.setImplValue('BitsPerPixel', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.BitsPerPixel;
+            else
+                value = log2(obj.info.NumColormapEntries);
+            end
         end
         
         function value = get.FrameRate(obj)
-            value = obj.getImplValue('FrameRate');
-        end
-        function set.FrameRate(obj, value)
-            obj.setImplValue('FrameRate', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.FrameRate;
+            else
+                value = obj.info.FramesPerSecond;
+            end
         end
         
         function value = get.Height(obj)
-            value = obj.getImplValue('Height');
-        end
-        function set.Height(obj, value)
-            obj.setImplValue('Height', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.Height;
+            else
+                value = obj.info.Height;
+            end
         end
         
         function value = get.NumberOfFrames(obj)
-            value = obj.getImplValue('NumberOfFrames');
-            % value = obj.NumberOfFrames;
-        end
-        function set.NumberOfFrames(obj, value)
-            obj.setImplValue('NumberOfFrames', value);
-            % obj.NumberOfFrames = value;
+            if ~isempty(obj.vid)
+                value = obj.vid.NumberOfFrames;
+            else
+                value = obj.info.NumFrames;
+            end
         end
         
         function value = get.VideoFormat(obj)
-            value = obj.getImplValue('VideoFormat');
-        end
-        
-        function set.VideoFormat(obj, value)
-            obj.setImplValue('VideoFormat', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.VideoFormat;
+            else
+                value = 'Uncompressed AVI';
+            end
         end
         
         function value = get.Width(obj)
-            value = obj.getImplValue('Width');
-        end
-        function set.Width(obj, value)
-            obj.setImplValue('Width', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.Width;
+            else
+                value = obj.info.Width;
+            end
         end
         
         function value = get.AudioCompression(obj)
-            value = obj.getImplValue('AudioCompression');
-        end
-        function set.AudioCompression(obj, value)
-            obj.setImplValue('AudioCompression', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.AudioCompression;
+            else
+                warning('VideoReader2:NoSuchProperty',...
+                    'No AudioCompression property in uncompressed AVIs');
+                value = '';
+            end
         end
         
         function value = get.NumberOfAudioChannels(obj)
-            value = obj.getImplValue('NumberOfAudioChannels');
-        end
-        function set.NumberOfAudioChannels(obj, value)
-            obj.setImplValue('NumberOfAudioChannels', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.NumberOfAudioChannels;
+            else
+                warning('VideoReader2:NoSuchProperty',...
+                    'No NumberOfAudioChannels property in uncompressed AVIs');
+                value = '';
+            end
         end
         
         function value = get.VideoCompression(obj)
-            value = obj.getImplValue('VideoCompression');
-        end
-        function set.VideoCompression(obj, value)
-            obj.setImplValue('VideoCompression', value);
+            if ~isempty(obj.vid)
+                value = obj.vid.VideoCompression;
+            else
+                value = 'Uncompressed AVI';
+            end
         end
     end
     
@@ -279,195 +274,10 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         %------------------------------------------------------------------
         function delete(obj)
             % Delete VideoReader object.
-            try
-                delete(obj.getImpl());
-            catch exception
-                VideoReader.handleImplException( exception );
+            if ~isempty(obj.vid)
+                delete(obj.vid);
             end
         end
    
-        %------------------------------------------------------------------
-        % Operations
-        %------------------------------------------------------------------
-        function result = hasAudio(obj)
-            try
-                result = hasAudio(obj.getImpl());
-            catch exception
-                VideoReader.handleImplException( exception );
-            end
-        end
-        
-        function result = hasVideo(obj)
-            try
-                result = hasVideo(obj.getImpl());
-            catch exception 
-                VideoReader.handleImplException( exception );
-            end
-        end
-        
-        function populateNumFrames(obj)
-            try
-                populateNumFrames(obj.getImpl());
-            catch exception 
-                VideoReader.handleImplException( exception );
-            end
-        end
     end
-    
-    methods (Static, Access='public', Hidden)
-        
-        function handleImplException(implException)  
-            messageArgs = { implException.identifier };
-            if (~isempty(implException.message))
-                messageArgs{end+1} = implException.message;
-            end
-            
-            msgObj = message(messageArgs{:});
-            throwAsCaller(MException(implException.identifier, msgObj.getString)); 
-        end
-        
-    end
-    
-    methods (Static, Access='private', Hidden)
-        function errorIfImageFormat( fileName )
-            isImageFormat = false;
-            try 
-                % see if imfinfo recognizes this file as an image
-                imfinfo( fileName );
-               
-                isImageFormat = true;
-                
-            catch exception %#ok<NASGU>
-                % imfinfo does not recognize this file, don't error
-                % since it is most likely a valid multimedia file
-            end
-            
-            if isImageFormat
-                % If imfinfo does not error, then show this error
-                error(message('MATLAB:audiovideo:VideoReader:unsupportedImage'));
-            end
-        end
-        
-        function fileDesc = translateDescToLocale(fileExtension)
-            switch upper(fileExtension)
-                case 'M4V'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatM4V'));
-                case 'MJ2'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatMJ2'));
-                case 'MOV'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatMOV'));
-                case 'MP4'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatMP4'));
-                case 'MPG'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatMPG'));
-                case 'OGV'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatOGV'));
-                case 'WMV'
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatWMV'));
-                otherwise
-                    % This includes formats such as AVI, ASF, ASX.
-                    fileDesc = getString(message('MATLAB:audiovideo:VideoReader:formatGeneric', upper(fileExtension)));
-            end
-        end
-    end
-    
-    %------------------------------------------------------------------
-    % Helpers
-    %------------------------------------------------------------------
-    methods (Access='private', Hidden)
-
-        function init(obj, fileName)
-            
-            % Properly initialize the object on construction or load.
-            
-            % Expand the path, using the matlab path if necessary
-            fullName = audiovideo.internal.absolutePathForReading(...
-                fileName, ...
-                'MATLAB:audiovideo:VideoReader:fileNotFound', ...
-                'MATLAB:audiovideo:VideoReader:FilePermissionDenied');
-
-            VideoReader.errorIfImageFormat(fullName);
-            
-            % Save constructor arg for load.
-            obj.ConstructorArgs = fullName;
-            
-            % Create underlying implementation.
-            try
-               obj.VideoReaderImpl = audiovideo.mmreader(fullName);
-            catch exception
-               VideoReader.handleImplException( exception );
-            end
-            
-            if obj.EnableFrameCounting
-                obj.populateNumFrames()
-            
-                % NumberOfFrames property is set to empty if it cannot be
-                % determined by from the video. Generate a warning in this
-                % case.
-                if isempty(obj.NumberOfFrames)
-                    warnState=warning('off','backtrace');
-                    c = onCleanup(@()warning(warnState));
-                    warning(message('MATLAB:audiovideo:VideoReader:unknownNumFrames'));
-                end
-            end
-        end
-        
-        function impl = getImpl(obj)
-            impl = obj.VideoReaderImpl;
-        end
-        
-        function value = getImplValue(obj, propName)
-            value = obj.getImpl().(propName);
-        end
-        
-        
-        function setImplValue(obj, propName, value) %#ok<INUSD>
-            % All underlying properties are read only. Make the error 
-            % the same as a standard MATLAB error when setting externally.
-            % TODO: Remove when g449420 is done and used when calling 
-            % set() in the constructor.
-            err = MException('MATLAB:class:SetProhibited',...
-                             'Setting the ''%s'' property of the ''%s'' class is not allowed.',...
-                             propName, class(obj));
-            throwAsCaller(err);
-        end
-        
-        function [headings, indices] = getCategoryInfo(obj, propNames)
-            % Returns headings and property indices for each category.
-            headings = {'General Settings' 'Video Settings', 'Audio Settings'};
-            indices = {[] [] []};
-            for pi=1:length(propNames)
-                propInfo = findprop(getImpl(obj), propNames{pi});
-                if isempty(propInfo) || strcmpi(propInfo.Category, 'none')
-                    category = 'general';
-                else
-                    category = propInfo.Category;
-                end
-                switch category
-                    case 'general'
-                        indices{1}(end+1) = pi;
-                    case 'video'
-                        indices{2}(end+1) = pi;
-                    case 'audio'
-                        indices{3}(end+1) = pi;
-                end
-            end
-        end
-    end
-    
-    methods (Hidden)
-        function settableProps = getSettableProperties(obj)
-            % Returns a list of publically settable properties.
-            % TODO: Reduce to fields(set(obj)) when g449420 is done.
-            settableProps = {};
-            props = fieldnames(obj);
-            for ii=1:length(props)
-                p = findprop(obj, props{ii});
-                if strcmpi(p.SetAccess,'public')
-                    settableProps{end+1} = props{ii}; %#ok<AGROW>
-                end
-            end
-        end
-    end
-        %}
 end
