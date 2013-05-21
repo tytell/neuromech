@@ -51,13 +51,13 @@ if (isnumeric(avi)),
     vid = [];
 else
     isavi = true;
-    vid = VideoReader(avi);
+    vid = VideoReader2(avi);
     if (isempty(frames)),
         frames = 1:vid.NumberOfFrames;
     elseif (numel(frames) == 1),
         frames = 1:frames:vid.NumberOfFrames;
     end;
-    nfr = info.NumFrames;
+    nfr = vid.NumberOfFrames;
 end;
 
 if ((length(hx) < frames(end)) || any(~isfinite(hx(frames)))),
