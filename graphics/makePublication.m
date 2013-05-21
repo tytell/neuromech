@@ -93,7 +93,7 @@ if (opt.copyfig)
         delete(figcopy);
     end;
     
-    figcopy = figure;
+    figcopy = figure('WindowStyle','normal');
     pos = get(fig,'Position');
     units = get(fig,'Units');
     set(figcopy,'Units',units,'Position',pos);
