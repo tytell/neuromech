@@ -1,7 +1,11 @@
 function m = nanmedian2(x,dim)
 
 if nargin == 1
-    dim = 1;
+    if (isrow(x))
+        dim = 2;
+    else
+        dim = 1;
+    end
 end
 
 ord = [dim 1:dim-1 dim+1:ndims(x)];
