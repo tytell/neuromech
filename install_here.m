@@ -16,7 +16,7 @@ function install_here(varargin)
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
 opt.maxdepth = 2;
-opt.exclude = {'^\..*','private'};
+opt.exclude = {'^\..*','private','^@'};
 
 i = 1;
 while (i <= length(varargin))
