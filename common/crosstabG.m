@@ -57,7 +57,6 @@ Ne = sum(E(:));
 if (abs(Ne - N) > 1)
     if opt.adjustexpected
         E = E/Ne * N;
-        warning('crosstabG:badE','Total number expected does not match total observed.  Adjusted to match.');
     else
         warning('crosstabG:badE','Total number expected does not match total observed. G stat may be weird.');
     end
@@ -102,16 +101,30 @@ if nd > 1
         Gstat.dfcolindiv = zeros(1,sz(2));
         Gstat.Pcolindiv = zeros(1,sz(2));
         for j = 1:sz(2)
-            [Gstat.Gcolindiv(j),Gstat.dfcolindiv(j),Gstat.Pcolindiv(j)] = crosstabG(E(:,j),O(:,j), ...
-                'adjustexpected',opt.adjustexpected);
+            good = ~isnan(E(:,j)) & ~isnan(O(:,j));
+            if (sum(good) > 1)
+                [Gstat.Gcolindiv(j),Gstat.dfcolindiv(j),Gstat.Pcolindiv(j)] = crosstabG(E(good,j),O(good,j), ...
+                    'adjustexpected',opt.adjustexpected);
+            else
+                Gstat.Gcolindiv(j) = NaN;
+                Gstat.dfcolindiv(j) = 0;
+                Gstat.Pcolindiv(j) = NaN;
+            end
         end
         
         Gstat.Growindiv = zeros(sz(1),1);
         Gstat.dfrowindiv = zeros(sz(1),1);
         Gstat.Prowindiv = zeros(sz(1),1);
         for i = 1:sz(1)
-            [Gstat.Growindiv(i),Gstat.dfrowindiv(i),Gstat.Prowindiv(i)] = crosstabG(E(i,:),O(i,:), ...
-                'adjustexpected',opt.adjustexpected);
+            good = ~isnan(E(i,:)) & ~isnan(O(i,:));
+            if (sum(good) > 1)
+                [Gstat.Growindiv(i),Gstat.dfrowindiv(i),Gstat.Prowindiv(i)] = crosstabG(E(i,good),O(i,good), ...
+                    'adjustexpected',opt.adjustexpected);
+            else
+                Gstat.Growindiv(i) = NaN;
+                Gstat.dfrowindiv(i) = 0;
+                Gstat.Prowindiv(i) = NaN;
+            end
         end
         
     end
