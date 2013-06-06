@@ -796,10 +796,10 @@ if (isfield(DF,'scale')),
     end
     
     [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-        analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'nsmoothcurve',smooth);
+        analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dssmoothcurve',0.2);
 else
     [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-        analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'nsmoothcurve',smooth);
+        analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dssmoothcurve',0.2);
 end;
 
 DF.s = s;
