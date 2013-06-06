@@ -18,17 +18,26 @@ fprintf('Digitized length in pixels is %.2f+-%.2f = %.1f%% of input (%.2f)\n', .
 
 if (nanstd2(s(end,:))/eellen  > 0.05),
 	warning('Lengths don''t match up (either digitized length varies or is different from input).');
-end;
+    actlen = nanmedian2(s(end,:));
+else
+    actlen = eellen;
+end
 
 ds = diff(s);
-ds0 = eellen/(npt-1);
-if (any((ds - ds0)/ds0 > 0.05)),
-	error('Distance along midline increases weirdly.');
-end;
+ds0 = actlen/(npt-1);
+good = all(isfinite(mx) & isfinite(my));
+goodspacing = all(abs((ds - ds0)/ds0) <= 0.1);
+
+if (any(~goodspacing))
+    nbad = sum(good & ~goodspacing);
+    warning('%d (%d%%) sequences discarded because of tracking errors', ...
+        nbad, round(nbad/sum(good)*100));
+end
+good = good & goodspacing;
 
 s = nanmedian2(s,2);
 
-k = find(all(isfinite(mx) & isfinite(my)));
+k = find(good);
 XY = cat(1,shiftdim(mx(:,k),-1),shiftdim(my(:,k),-1));
 sp = spaps({s,t(k)}, XY, {serr^2*range(s)*length(t(k)) terr^2*range(t(k))*length(s)});
 XYs = fnval(sp,{s,t(k(1):k(end))});
