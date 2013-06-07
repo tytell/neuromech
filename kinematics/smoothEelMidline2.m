@@ -26,7 +26,7 @@ end
 ds = diff(s);
 ds0 = actlen/(npt-1);
 good = all(isfinite(mx) & isfinite(my));
-goodspacing = all(abs((ds - ds0)/ds0) <= 0.1);
+goodspacing = all(abs((ds - ds0)/ds0) <= 0.2);
 
 if (any(~goodspacing))
     nbad = sum(good & ~goodspacing);
