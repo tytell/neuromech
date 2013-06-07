@@ -825,7 +825,8 @@ csvfile = input(['Output file name (default = ' fn '.csv): '],'s');
 
 if (isempty(csvfile)),
     csvfile = [fn '.csv'];
-end;
+end
+csvfile = fullfile(pn,csvfile);
 
 saveKinematicsCSV(csvfile,DF.datafile);
 

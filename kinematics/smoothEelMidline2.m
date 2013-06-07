@@ -16,7 +16,7 @@ fprintf('Digitized length in pixels is %.2f+-%.2f = %.1f%% of input (%.2f)\n', .
 		nanmean2(s(end,:)), nanstd2(s(end,:))/sqrt(sum(isfinite(s(end,:)))), ...
 		nanmean2(s(end,:))/eellen*100, eellen);
 
-if (nanstd2(s(end,:))/eellen  > 0.05),
+if (nanmedian2(s(end,:))/eellen  > 0.05),
 	warning('Lengths don''t match up (either digitized length varies or is different from input).');
     actlen = nanmedian2(s(end,:));
 else
