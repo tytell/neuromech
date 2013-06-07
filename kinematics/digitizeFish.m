@@ -328,7 +328,7 @@ end;
 
 if ((fnum == 2) && isfield(DF,'tform')),
 	good = isfinite(hx);
-	[hx(good) hy(good)] = feval(DF.tformfcn, DF.tform, hx(good), hy(good)); 
+	[hx(good), hy(good)] = feval(DF.tformfcn, DF.tform, hx(good), hy(good)); 
 end;
 
 DF.hx = hx;
@@ -434,25 +434,25 @@ hsp = spaps(DF.fr(kh), [DF.hx(kh); DF.hy(kh)], MSE(1)^2, 3, ...
 tsp = spaps(DF.fr(kt), [DF.tx(kt); DF.ty(kt)], MSE(1)^2, 3, ...
     ones(size(kt))/length(kt));
 
-hxs = repmat(NaN,size(DF.fr));
-hys = repmat(NaN,size(DF.fr));
+hxs = NaN(size(DF.fr));
+hys = NaN(size(DF.fr));
 hxys = fnval(hsp, DF.fr(k));
 hxs(k) = hxys(1,:);
 hys(k) = hxys(2,:);
-txs = repmat(NaN,size(DF.fr));
-tys = repmat(NaN,size(DF.fr));
+txs = NaN(size(DF.fr));
+tys = NaN(size(DF.fr));
 txys = fnval(tsp, DF.fr(k));
 txs(k) = txys(1,:);
 tys(k) = txys(2,:);
 
-hus = repmat(NaN,size(DF.fr));
-hvs = repmat(NaN,size(DF.fr));
+hus = NaN(size(DF.fr));
+hvs = NaN(size(DF.fr));
 huvs = fnval(fnder(hsp,1), DF.fr(k));
 hus(k) = huvs(1,:);
 hvs(k) = huvs(2,:);
 
-haxs = repmat(NaN,size(DF.fr));
-hays = repmat(NaN,size(DF.fr));
+haxs = NaN(size(DF.fr));
+hays = NaN(size(DF.fr));
 haxys = fnval(fnder(hsp,2), DF.fr(k));
 haxs(k) = haxys(1,:);
 hays(k) = haxys(2,:);
@@ -764,8 +764,18 @@ DF.my = my;
 % ****************************
 function DF = dfSmoothMid(DF)
 
-DF.serr = input('Spatial smoothing value: ');
-DF.terr = input('Temporal smoothing value: ');
+serr1 = input('Spatial smoothing value (0.05): ');
+if (isempty(serr1))
+    DF.serr = 0.05;
+else
+    DF.serr = serr1;
+end
+DF.terr = input('Temporal smoothing value (0.05): ');
+if (isempty(terr1))
+    DF.terr = 0.05;
+else
+    DF.terr = serr1;
+end
 
 [mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr);
 
