@@ -770,7 +770,7 @@ if (isempty(serr1))
 else
     DF.serr = serr1;
 end
-DF.terr = input('Temporal smoothing value (0.05): ');
+terr1 = input('Temporal smoothing value (0.05): ');
 if (isempty(terr1))
     DF.terr = 0.05;
 else
