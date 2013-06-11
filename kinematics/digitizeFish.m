@@ -324,7 +324,11 @@ else
     fnum = 1;
 end;
 
+scrsz = get(0,'ScreenSize');
+fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+clf;
 [hx,hy] = manualTrackPoint(fn, skip);
+close(fig);
 
 if ((fnum == 2) && isfield(DF,'tform')),
 	good = isfinite(hx);
@@ -348,7 +352,11 @@ else
     fnum = 1;
 end;
 
+scrsz = get(0,'ScreenSize');
+fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+clf;
 [tx,ty] = manualTrackPoint(fn, skip);
+close(fig);
 
 if (fnum == 2),
 	good = isfinite(tx2);
