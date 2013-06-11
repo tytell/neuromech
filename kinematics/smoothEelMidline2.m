@@ -39,7 +39,7 @@ s = nanmedian2(s,2);
 
 k = find(good);
 XY = cat(1,shiftdim(mx(:,k),-1),shiftdim(my(:,k),-1));
-sp = spaps({s,t(k)}, XY, {serr^2*range(s)*length(t(k)) terr^2*range(t(k))*length(s)});
+sp = spaps({s,t(k)}, XY, {serr^2*range2(s)*length(t(k)) terr^2*range2(t(k))*length(s)});
 XYs = fnval(sp,{s,t(k(1):k(end))});
 
 mxs = NaN(size(mx));
@@ -47,7 +47,7 @@ mys = NaN(size(my));
 mxs(:,k(1):k(end)) = squeeze(XYs(1,:,:));
 mys(:,k(1):k(end)) = squeeze(XYs(2,:,:));
 
-if (range(mxs(:)) > range(mys(:))),
+if (range2(mxs(:)) > range2(mys(:))),
 	ishoriz = 1;
 	xx = mx;
 	xxs = mxs;
