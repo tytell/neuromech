@@ -384,9 +384,9 @@ for i = 1:length(dvals),
 end;
 
 %find the biggest common gap
-[q,ind] = max(dvals(nvals > 5));
+[~,ind] = max(dvals);
 if (ind < length(dvals)),
-    toobig = dvals(ind+1);
+    toobig = dvals(ind)+1;
     
     %build up a set of frames to interpolate.  Don't interpolate if the gap is
     %too big
@@ -413,7 +413,7 @@ for i = 1:length(dvals),
 end;
 
 %find the biggest common gap
-[q,ind] = max(dvals(nvals > 5));
+[~,ind] = max(dvals);
 if (ind < length(dvals)),
     toobig = dvals(ind+1);
     
