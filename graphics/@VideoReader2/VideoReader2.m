@@ -1,6 +1,7 @@
 classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
          VideoReader2 < hgsetget
-% VIDEOREADER2 Create a multimedia reader object that handles uncompressed AVIs.
+% VIDEOREADER2 Create a multimedia reader object that handles uncompressed
+% AVIs and multiframe Tiffs
 %
 %   Otherwise identical to VideoReader.
 
@@ -53,7 +54,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     
     properties(Access='private', Hidden)
         vid
-        info        
+        info
+        tifinfo
     end
     %------------------------------------------------------------------
     % Documented methods
@@ -71,25 +73,35 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             end
 
             obj.isaviread = ~isempty(which('aviread'));
-            try
-                obj.vid = VideoReader(fileName, varargin{:});
-            catch err
-                if (strcmp(err.identifier, 'MATLAB:audiovideo:VideoReader:FileInit') && ...
-                        obj.isaviread)
-                    obj.vid = struct([]);
-                    w = warning('off','MATLAB:audiovideo:aviinfo:FunctionToBeRemoved');
-                    obj.info = aviinfo(fileName);       %#ok
-                    warning(w);
-                    
-                    fullname = VideoReader.getFullPathName(fileName);
-                    [pn,fn,ext] = fileparts(fullname);
-                    set(obj,'Path',pn);
-                    set(obj,'Name',[fn ext]);
-                else
-                    rethrow(err);
+
+            [pn,fn,ext] = fileparts(fileName);
+            
+            if (strcmpi(ext,'.tif') || strcmpi(ext, '.tiff'))
+                obj.tifinfo = imfinfo(fileName);
+                obj.vid = struct([]);
+                obj.info = struct([]);
+                
+                obj.Path = pn;
+                obj.Name = [fn ext];
+            else
+                try
+                    obj.vid = VideoReader(fileName, varargin{:});
+                catch err
+                    if (strcmp(err.identifier, 'MATLAB:audiovideo:VideoReader:FileInit') && ...
+                            obj.isaviread)
+                        obj.vid = struct([]);
+                        w = warning('off','MATLAB:audiovideo:aviinfo:FunctionToBeRemoved');
+                        obj.info = aviinfo(fileName);       %#ok
+                        warning(w);
+
+                        set(obj,'Path',pn);
+                        set(obj,'Name',[fn ext]);
+                    else
+                        rethrow(err);
+                    end
                 end
             end
-                
+            
             % Set properties that user passed in.
             if nargin > 1
                 set(obj, varargin{:});
@@ -104,6 +116,9 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             if ~isempty(obj.vid)
                 v = read(obj.vid,varargin{:});
                 varargout = {v};
+            elseif ~isempty(obj.tifinfo)
+                I = imread(fullfile(obj.Path,obj.Name), varargin{1}, 'Info',obj.tifinfo, varargin{:});
+                varargout = {I};
             else
                 w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');
                 fr = aviread(fullfile(obj.Path,obj.Name),varargin{:});  %#ok
@@ -136,6 +151,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function disp(obj)
             if ~isempty(obj.vid)
                 obj.vid.display();
+            elseif isempty(obj.tifinfo)
+                fprintf('Multiframe tiff ''%s''\n', obj.Name);
             else
                 fprintf('Uncompressed avi ''%s''\n', obj.Name);
             end
@@ -166,6 +183,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Duration(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Duration;
+            elseif ~isempty(obj.tifinfo)
+                value = NaN;
             else
                 value = obj.info.NumFrames / obj.info.FramesPerSecond;
             end
@@ -190,6 +209,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.BitsPerPixel(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.BitsPerPixel;
+            elseif ~isempty(obj.tifinfo)
+                value = obj.tifinfo(1).BitsPerSample;
             else
                 value = log2(obj.info.NumColormapEntries);
             end
@@ -198,6 +219,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.FrameRate(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.FrameRate;
+            elseif ~isempty(obj.tifinfo)
+                value = NaN;
             else
                 value = obj.info.FramesPerSecond;
             end
@@ -206,6 +229,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Height(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Height;
+            elseif ~isempty(obj.tifinfo)
+                value = obj.tifinfo(1).Height;
             else
                 value = obj.info.Height;
             end
@@ -214,6 +239,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.NumberOfFrames(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.NumberOfFrames;
+            elseif ~isempty(obj.tifinfo)
+                value = numel(obj.tifinfo);
             else
                 value = obj.info.NumFrames;
             end
@@ -222,6 +249,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.VideoFormat(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.VideoFormat;
+            elseif ~isempty(obj.tifinfo)
+                value = 'TIFF';
             else
                 value = 'Uncompressed AVI';
             end
@@ -230,6 +259,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Width(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Width;
+            elseif ~isempty(obj.tifinfo)
+                value = obj.tifinfo(1).Width;
             else
                 value = obj.info.Width;
             end
@@ -240,7 +271,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.AudioCompression;
             else
                 warning('VideoReader2:NoSuchProperty',...
-                    'No AudioCompression property in uncompressed AVIs');
+                    'No AudioCompression property');
                 value = '';
             end
         end
@@ -250,7 +281,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.NumberOfAudioChannels;
             else
                 warning('VideoReader2:NoSuchProperty',...
-                    'No NumberOfAudioChannels property in uncompressed AVIs');
+                    'No NumberOfAudioChannels property');
                 value = '';
             end
         end
@@ -258,6 +289,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.VideoCompression(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.VideoCompression;
+            elseif ~isempty(obj.tifinfo)
+                value = obj.tifinfo(1).Compression;
             else
                 value = 'Uncompressed AVI';
             end

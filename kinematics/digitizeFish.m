@@ -56,7 +56,7 @@ end;
 
 %get a file if we don't have one
 if (~isavi),
-    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.mpg','MPG'},'Choose movie file');
+    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.mpg','MPG';'*.tif','TIFF'},'Choose movie file');
     if (isnumeric(avifile) && (avifile == 0)),
         return;
     end;
