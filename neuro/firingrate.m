@@ -53,6 +53,31 @@ if (numel(binsize) > 1),
 end;
 
 switch lower(opt.method),
+%     case 'gaussian2'
+%         if (isempty(edges))
+%             tstart = floor(min(spiket(:))/binsize)*binsize - binsize/2;
+%             tend = ceil(max(spiket(:))/binsize)*binsize + binsize;
+%             
+%             t = (tstart:binsize:tend)';
+%         else
+%             t = edges;
+%             tstart = edges(1);
+%         end;
+% 
+%         spikebin = floor((spiket - tstart) / binsize) + 1;
+% 
+%         maxbinwidth = ceil(smooth * sqrt(-2*log(opt.truncategaussian)));
+%         coef = 1./(sqrt(2*pi) * smooth);
+%         
+%         for c = 1:nchan
+%             for i = 1:nbin
+%                 a = find(spikebin >= i-maxbinwidth(c), 1, 'first');
+%                 b = find(spikebin <= i+maxbinwidth(c), 1, 'last');
+%                 
+%                 spiket1 = spiket(a:b,c);
+%                 weight = coef(c) * exp(-0.5*((spiket1 - t(i)) / smooth(c)).^2);
+                
+                
     case 'gaussian',
         rate0 = zeros(size(spiket));
         spikedt = diff(spiket);
@@ -70,42 +95,36 @@ switch lower(opt.method),
             tstart = edges(1);
         end;
         nbin = length(t);
+
+        [t0,ord] = sort(t0);
         
         bin = floor((t0 - tstart)/binsize)+1;
-        maxbinwidth = ceil(smooth * sqrt(-2*log(opt.truncategaussian)));
+        maxbinwidth = ceil(smooth/binsize * sqrt(-2*log(opt.truncategaussian)));
+        coef = 1./(sqrt(2*pi) * smooth);
         
         rate = NaN(nbin,nchan);
-        spikeindbybin = zeros(nbin,nchan);
         for c = 1:nchan,
-            good = isfinite(bin(:,c)) & (bin(:,c) >= 1) & (bin(:,c) <= nbin);
-            spikeindbybin1 = accumarray(bin(good,c),find(good)',[nbin 1],@(x) {x(:)});
-            
             for i = 1:nbin,
-                k = (i-maxbinwidth(c)):(i+maxbinwidth(c));
-                k = k((k >= 1) & (k <= nbin));
+                a = find(bin(:,c) >= i-maxbinwidth(c), 1, 'first');
+                b = find(bin(:,c) <= i+maxbinwidth(c), 1, 'last');
                 
-                spikeind1 = cat(1,spikeindbybin1{k});
+                if (~isempty(a) && ~isempty(b))
+                    spikeind1 = a:b;
                 
-                if (~isempty(spikeind1))
                     spiket1 = spiket(spikeind1,c);
                     rate1 = rate0(spikeind1,c);
                     
-                    weight = exp(-0.5*((spiket1 - t(i))/smooth(c)).^2);
-                    [~,j] = max(weight);
+                    weight = coef(c) * exp(-0.5*((spiket1 - t(i))/smooth(c)).^2);
+                    %[~,j] = max(weight);
                     
-                    rate(i,c) = sum(weight.*rate1)/sum(weight);
-                    spikeindbybin(i,c) = spikeind1(j);
+                    rate(i,c) = sum(weight.*rate1) / sum(weight);
                 else
                     rate(i,c) = 0;
                 end;
             end;
             
         end;
-        
-        if (istransposed)
-            spikeindbybin = spikeindbybin';
-        end;
-    
+            
     case 'spline',
         rate0 = NaN(size(spiket));
         rate0(2:end-1,:) = 1 ./ ((spiket(3:end,:) - spiket(1:end-2,:))/2);
@@ -154,11 +173,10 @@ switch lower(opt.method),
             [n(:,ch),bin1] = histc(spiket(good,ch),edges);
             bin(good,ch) = bin1;
         end;
-        n = n(1:end-1,:);
         
         if (iseven),
             rate = n / binsize;
-            t = edges(1:end-1) + binsize/2;
+            t = edges + binsize/2;
         else
             rate = n ./ diff(edges);
             t = (edges(1:end-1) + edges(2:end))/2;
@@ -166,7 +184,7 @@ switch lower(opt.method),
         
         if (smooth ~= 0),
             for i = 1:nchan,
-                rate(:,i) = runavg(rate(:,i),smooth(i));
+                rate(:,i) = runavg(rate(:,i),ceil(smooth(i)/binsize));
             end;
         end;
 end;
@@ -184,8 +202,6 @@ switch nargout,
         varargout = {t,rate};
     case 3,
         varargout = {t,rate,bin};
-    case 4,
-        varargout = {t,rate,bin,spikeindbybin};
 end;
 
     
