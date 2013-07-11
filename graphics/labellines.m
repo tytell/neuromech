@@ -1,7 +1,7 @@
 function htxt = labellines(labels, varargin)
 
 opts.location = 'best';
-opts.rotation = 'line';
+opts.rotation = 0;
 
 hax = [];
 hln = [];
@@ -47,7 +47,6 @@ if (ischar(opts.location))
             opts.HorizontalAlignment = 'left';
             
         case 'best'
-            warning('Not implemented...');
             x = (xl(1) + 2/3 * (xl(2)-xl(1))) * ones(size(hln));
     end
 elseif isnumeric(opts.location)
