@@ -56,6 +56,10 @@ for f = 1:nfiles,
     
     if (opt.redo),
         F = load(infiles{f},basevars{:});
+        if (~isfield(F,'smm'))
+            F.smm = [zeros(1,size(F.mxmm,2)); cumsum(sqrt(diff(F.mxmm).^2 + diff(F.mymm).^2))];
+            F.smm = nanmedian(F.smm,2);
+        end
         
         if (length(fieldnames(F)) < length(basevars)),
             warning('File %s does not have the correct variables. Skipping.',infiles{f});
@@ -120,7 +124,7 @@ for f = 1:nfiles,
     ind1 = ind1(isfinite(ind1));
     ind = [0 (ind1(1:end-1)+ind1(2:end))/2 length(F.humms)];
     ind = round(ind);
-    v1 = nans(size(F.indpeak,2),1);
+    v1 = NaN(size(F.indpeak,2),1);
     for j = 1:length(ind)-1,
         v1(j) = nanmean(comspeed(ind(j)+1:ind(j+1)));
     end;
