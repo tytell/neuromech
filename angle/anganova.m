@@ -98,7 +98,7 @@ if (~isempty(group)),
 
     N = accumarray(gpind,1);
     
-    ang = NaN(N,length(gp));
+    ang = NaN(max(N),length(gp));
     
     %run through all groups, putting each one in a column
     for i = 1:length(gp),
@@ -125,7 +125,7 @@ end;
 %get the average angle in each group
 C = nansum(cos(ang));
 S = nansum(sin(ang));
-angmean = atan2(S,C);
+angmn = atan2(S,C);
 
 %and the overall average angle
 Call = sum(C);
@@ -149,15 +149,28 @@ kall = angkappa(ang(:));
 if (~quiet && strcmp(display,'long')),
     fprintf('%8s %8s %8s %8s %8s %8s %8s %8s\n', 'Sample','C','S','R','N',...
         'mean','kappa','median');
+    angmed = angmedian(ang);
     if (iscellstr(gp)),
         gptplt = '%8s';
+        C1 = num2cell(C);
+        S1 = num2cell(S);
+        R1 = num2cell(R);
+        n1 = num2cell(n);
+        angmn1 = num2cell(angmn*180/pi);
+        k1 = num2cell(k);
+        angmed1 = num2cell(angmed*180/pi);
+        
+        P = [gp; C1; S1; R1; n1; angmn1; k1; angmed1];
+        fprintf([gptplt ' %8.3f %8.3f %8.3f %8d %8.1f %8.2f %8.1f\n'],P{:});
     elseif (all(mod(gp,1) == 0)),
         gptplt = '%8d';
+        fprintf([gptplt ' %8.3f %8.3f %8.3f %8d %8.1f %8.2f %8.1f\n'],...
+            [gp; C; S; R; n; angmn*180/pi; k; angmedian(ang)*180/pi]);
     else
         gptplt = '%8.3f';
+        fprintf([gptplt ' %8.3f %8.3f %8.3f %8d %8.1f %8.2f %8.1f\n'],...
+            [gp; C; S; R; n; angmn*180/pi; k; angmedian(ang)*180/pi]);
     end;
-    fprintf([gptplt ' %8.3f %8.3f %8.3f %8d %8.1f %8.2f %8.1f\n'],...
-        [gp; C; S; R; n; angmean*180/pi; k; angmedian(ang)*180/pi]);
 
     fprintf('%8s %8.3f %8.3f %8.3f %8d %8.1f %8.2f %8.1f\n', 'Joint',Call,Sall,...
         Rall, nall, angmeanall*180/pi,kall, angmedian(ang(:))*180/pi);
@@ -199,10 +212,10 @@ switch lower(method),
 
     case {'lr','likelihood','likelihood ratio'},
         % From Mardia 2000, p.136
-        angmean = atan2(S,C);
+        angmn = atan2(S,C);
         angmeanall = atan2(Sall,Call);
 
-        w = 2*kall*sum(R.*(1-cos(angmean-angmeanall)));
+        w = 2*kall*sum(R.*(1-cos(angmn-angmeanall)));
 
         U = 2/nall*(sum(R)^2 - Rall^2);
 
@@ -219,8 +232,8 @@ switch lower(method),
 
     case {'concentration','conc'},
         % From Fisher 1993 p.131
-        angmean = atan2(S,C);
-        d = abs(sin(ang-repmat(angmean,[size(ang,1) 1])));
+        angmn = atan2(S,C);
+        d = abs(sin(ang-repmat(angmn,[size(ang,1) 1])));
 
         dwithin = nansum(d)./n;
         dbetween = nansum(d(:))./nall;
@@ -352,15 +365,15 @@ switch lower(method),
         end;
 
         %calculate the second moments
-        rho2 = 1./n .* nansum(cos(2*(ang - repmat(angmean,[size(ang,1) 1]))));
+        rho2 = 1./n .* nansum(cos(2*(ang - repmat(angmn,[size(ang,1) 1]))));
         %and the dispersion (Fisher, 1993, eq 2.28)
         dsp = (1-rho2)./(2*(R./n).^2);
 
         %two tests, depending on whether the dispersions are comparable
         if (max(dsp)/min(dsp) <= 4),
             %dispersions are relatively similar
-            Cp = nansum(n.*cos(angmean));
-            Sp = nansum(n.*sin(angmean));
+            Cp = nansum(n.*cos(angmn));
+            Sp = nansum(n.*sin(angmn));
 
             R = sqrt(Cp^2 + Sp^2);
 
@@ -371,8 +384,8 @@ switch lower(method),
             %dispersions are different
             sigma2 = dsp./n;
 
-            Cm = nansum(cos(angmean)./sigma2);
-            Sm = nansum(sin(angmean)./sigma2);
+            Cm = nansum(cos(angmn)./sigma2);
+            Sm = nansum(sin(angmn)./sigma2);
             R = sqrt(Cm^2 + Sm^2);
 
             Y = 2*(nansum(1./sigma2) - R);
