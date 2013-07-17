@@ -1,9 +1,10 @@
-function [t, imnum, dv, raw] = getPCOtime(vid, varargin)
+function [t, imnum, dv] = getPCOtime(vid, varargin)
 
 opt.frames = [];
+opt.quiet = false;
 opt = parsevarargin(opt,varargin,2);
 
-[pn,fn,ext] = fileparts(vid);
+[~,~,ext] = fileparts(vid);
 if (strcmpi(ext,'.tif'))
     tifinfo = imfinfo(vid);
     
@@ -14,18 +15,23 @@ if (strcmpi(ext,'.tif'))
         frames = opt.frames;
     end
     
-    timedWaitBar(0,'Getting timestamps');
+    if (~opt.quiet)
+        timedWaitBar(0,'Getting timestamps');
+    end
     
     imnum = zeros(nfr,1);
     dv = zeros(nfr,6);
-    raw = zeros(nfr,14,'uint8');
     for i = frames
         I = imread(vid, i, 'Info',tifinfo);
         
-        [dv(i,:),imnum(i),raw(i,:)] = getPCOtimestamp(I);
-        timedWaitBar(i/nfr);
+        [dv(i,:),imnum(i)] = getPCOtimestamp(I);
+        if (~opt.quiet)
+            timedWaitBar(i/nfr);
+        end
     end
-    timedWaitBar(1);
+    if (~opt.quiet)
+        timedWaitBar(1);
+    end;
     
     t = dv(:,4)*3600 + dv(:,5)*60 + dv(:,6);
 end

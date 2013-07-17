@@ -1,17 +1,21 @@
-function [dv,imnum,raw] = getPCOtimestamp(I)
+function [dv,imnum] = getPCOtimestamp(I)
 
 v = I(1,1:14);
 
 if (any(v > 255))
-    error('No timestamp data');
+    error('getpcotimestamp:notimestamp','No timestamp data');
 end
 v = uint8(v);
 
-imnum1 = v(1:4);
-imnum = typecast(imnum1(end:-1:1),'uint32');
+v1 = bitand(v,15);
+v2 = bitshift(v,-4);
+v = v2*10 + v1;
 
-yr1 = v(5:6);
-yr = typecast(yr1([2 1]),'uint16');
+v = double(v);
+
+imnum = v(4) + v(3)*100 + v(2)*100^2 + v(1)*100^3; 
+
+yr = v(5)*100 + v(6);
 
 month = v(7);
 day = v(8);
@@ -26,4 +30,4 @@ us = us1(1)*10000 + us1(2)*100 + us1(3);
 sec = double(s) + us/1e6;
 
 dv = [double([yr month day h m]) sec];
-raw = v;
+

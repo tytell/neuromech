@@ -56,6 +56,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         vid
         info
         tifinfo
+        istimestamp
     end
     %------------------------------------------------------------------
     % Documented methods
@@ -83,6 +84,17 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 
                 obj.Path = pn;
                 obj.Name = [fn ext];
+                try
+                    I = imread(fileName,1, 'Info',obj.tifinfo);
+                    getPCOtimestamp(I);
+                    obj.istimestamp = true;
+                catch err
+                    if strcmp(err.identifier, 'getpcotimestamp:notimestamp')
+                        obj.istimestamp = false;
+                    else
+                        rethrow(err);
+                    end
+                end
             else
                 try
                     obj.vid = VideoReader(fileName, varargin{:});
@@ -116,14 +128,38 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             if ~isempty(obj.vid)
                 v = read(obj.vid,varargin{:});
                 varargout = {v};
+                if (nargout > 1)
+                    varargout(2:3) = {varargin{1},[]};
+                end                    
             elseif ~isempty(obj.tifinfo)
-                I = imread(fullfile(obj.Path,obj.Name), varargin{1}, 'Info',obj.tifinfo, varargin{:});
+                fn = fullfile(obj.Path,obj.Name);
+                I = imread(fn, varargin{1}, 'Info',obj.tifinfo, varargin{:});
                 varargout = {I};
+                if ((nargout > 1) && obj.istimestamp)
+                    [dv,imnum] = getPCOtimestamp(fn);
+                    varargout(2:3) = {imnum,dv};
+                end
             else
                 w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');
                 fr = aviread(fullfile(obj.Path,obj.Name),varargin{:});  %#ok
                 warning(w);
                 varargout = {fr.cdata};
+                if (nargout > 1)
+                    varargout(2:3) = {varargin{1},[]};
+                end                    
+            end
+        end
+        
+        function N = getmaxframes(obj)
+            if ~isempty(obj.tifinfo) && obj.istimestamp
+                fn = fullfile(obj.Path,obj.Name);
+                I1 = imread(fn, 1, 'Info',obj.tifinfo);
+                I2 = imread(fn, numel(obj.tifinfo), 'Info',obj.tifinfo);
+                [~,imnum1] = getPCOtimestamp(I1);
+                [~,imnum2] = getPCOtimestamp(I2);
+                N = imnum2 - imnum1 + 1;
+            else
+                N = get(obj,'NumberOfFrames');
             end
         end
         
