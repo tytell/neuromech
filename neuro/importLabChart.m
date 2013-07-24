@@ -23,15 +23,42 @@ if (~ismultirate)
 end
 
 comtext = mat2cell(F.comtext,ones(size(F.comtext,1),1),size(F.comtext,2));
-tok = regexp(comtext, 'Spike: height = ([\d.]+) V, width = ([\d.]+) ms, Spike (\d+)(, Unit )?(\d+)?', ...
-    'tokens','once');
-isspike = cellfun(@(x) ~isempty(x), tok);
+evttxt = 'Event Marker';
+evtind = find(strncmp(comtext, evttxt, length(evttxt)), 1, 'first');
 
-spiket = t{1}(F.com(isspike,3));
-spikenum = cellfun(@(x) str2double(x{3}), tok(isspike));
-spikeheight = cellfun(@(x) str2double(x{1}), tok(isspike));
-spikewidth = cellfun(@(x) str2double(x{2}), tok(isspike));
-spikeunit = cellfun(@(x) str2double(x{5}), tok(isspike));
+isevt = F.com(:,5) == evtind;
+eventt = F.com(isevt,3) / F.tickrate;
+
+tok = regexp(comtext, 'Spike: height = ([\d.]+) V, width = (-?[\d.]+) ms, Spike (\d+)(, Unit )?(\d+)?', ...
+    'tokens','once');
+
+spikenum0 = NaN(size(comtext));
+spikeheight0 = NaN(size(comtext));
+spikewidth0 = NaN(size(comtext));
+spikeunit0 = NaN(size(comtext));
+for i = 1:length(tok)
+    if (~isempty(tok{i}))
+        spikenum0(i) = str2double(tok{i}{3});
+        spikeheight0(i) = str2double(tok{i}{1});
+        spikewidth0(i) = str2double(tok{i}{2});
+        spikeunit0(i) = str2double(tok{i}{5});
+    end
+end
+isspike0 = ~isnan(spikenum0);
+
+iscom0 = ~isspike0;
+iscom0(evtind) = false;
+
+iscom = iscom0(F.com(:,5));
+commenttxt = comtext(F.com(iscom,5));
+commentt = F.com(iscom,3) / F.tickrate;
+
+isspike = isspike0(F.com(:,5));
+spiket = F.com(isspike,3) / F.tickrate;
+spikenum = spikenum0(F.com(isspike,5));
+spikeunit = spikeunit0(F.com(isspike,5));
+spikeheight = spikeheight0(F.com(isspike,5));
+spikewidth = spikewidth0(F.com(isspike,5));
 
 if ischar(opt.channelnames)
     switch opt.channelnames
@@ -61,6 +88,12 @@ S.spikenum = spikenum;
 S.spikeheight = spikeheight;
 S.spikewidth = spikewidth;
 S.spikeunit = spikeunit;
+S.eventt = eventt;
+S.blocktimes = F.blocktimes;
+S.tickrate = F.tickrate;
+S.samplerate = F.samplerate;
+S.commentt = commentt;
+S.commenttxt = commenttxt;
 
 save(outname,'-struct','S');
 
