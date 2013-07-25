@@ -36,5 +36,5 @@ if (nargout == 0),
     fprintf('%8d %8.3f %8.3f %8.3f %8.3f %8.3f %8.5f\n',[1:size(r,2); angx; angy; ...
         a*180/pi; r; z; P]);
 else
-    varargout = {P,z};
+    varargout = {P,z,a,r};
 end;
