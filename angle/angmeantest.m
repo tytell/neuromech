@@ -27,6 +27,7 @@ end;
 a = atan2(angy,angx);
 r = sqrt(angx.^2 + angy.^2);
 z = n.*r.^2;
+s = sqrt(-2*log(r));
 
 P = raylzinv(z,n);
 
@@ -36,5 +37,5 @@ if (nargout == 0),
     fprintf('%8d %8.3f %8.3f %8.3f %8.3f %8.3f %8.5f\n',[1:size(r,2); angx; angy; ...
         a*180/pi; r; z; P]);
 else
-    varargout = {P,z,a,r};
+    varargout = {P,z,a,r,s};
 end;
