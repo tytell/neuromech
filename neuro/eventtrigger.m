@@ -1,5 +1,5 @@
-function varargout = coltrigger(pulseon, tevent, rng, varargin)
-% function [A,B,C...] = coltrigger(pulseon, tevent, rng, A,B,C,...,
+function varargout = eventtrigger(pulseon, tevent, rng, varargin)
+% function [A,B,C...] = eventtrigger(pulseon, tevent, rng, A,B,C,...,
 % options)
 %   Reshapes tevent around pulseon for a certain number of events before
 %   and after the pulse.  Optionally also reshapes other variables
