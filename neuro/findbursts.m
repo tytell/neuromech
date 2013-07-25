@@ -160,28 +160,36 @@ switch opt.method,
         for ch = 1:nchan,
             burststart1 = find((dt(ch,1:end-1) > opt.interburstdur) & (dt(ch,2:end) <= opt.interburstdur)) + 1;
             burstend1 = find((dt(ch,1:end-1) <= opt.interburstdur) & (dt(ch,2:end) > opt.interburstdur)) + 1;
-        
-            if (burststart1(1) > burstend1(1))
-                burstend1 = burstend1(2:end);
-            end;
-            if (burststart1(end) > burstend1(end))
-                burststart1 = burststart1(1:end-1);
-            end;
-            assert(length(burststart1) == length(burstend1));
-            
-            burstctr1 = zeros(size(burststart1));
-            spikeburstind1 = zeros(1,size(t,2));
-            
-            for i = 1:length(burststart1)
-                burstctr1(i) = mean(t(ch,burststart1(i):burstend1(i)));
-                spikeburstind1(burststart1(i):burstend1(i)) = i;
-            end;
 
-            burstctr{ch} = burstctr1;
-            spikeburstind{ch} = spikeburstind1;
-            nspike{ch} = burstend1-burststart1 + 1;
-            burststart{ch} = burststart1;
-            burstend{ch} = burstend1;
+            if (~isempty(burststart1) && ~isempty(burstend1))
+                if (burststart1(1) > burstend1(1))
+                    burstend1 = burstend1(2:end);
+                end;
+                if (burststart1(end) > burstend1(end))
+                    burststart1 = burststart1(1:end-1);
+                end;
+                assert(length(burststart1) == length(burstend1));
+
+                burstctr1 = zeros(size(burststart1));
+                spikeburstind1 = zeros(1,size(t,2));
+
+                for i = 1:length(burststart1)
+                    burstctr1(i) = mean(t(ch,burststart1(i):burstend1(i)));
+                    spikeburstind1(burststart1(i):burstend1(i)) = i;
+                end;
+
+                burstctr{ch} = burstctr1;
+                spikeburstind{ch} = spikeburstind1;
+                nspike{ch} = burstend1-burststart1 + 1;
+                burststart{ch} = burststart1;
+                burstend{ch} = burstend1;
+            else
+                spikeburstind{ch} = zeros(1,size(t,2));
+                burststart{ch} = [];
+                burstend{ch} = [];
+                nspike{ch} = [];
+                burstctr{ch} = [];
+            end
         end;
         
         if (opt.isoutstruct)
@@ -191,6 +199,10 @@ switch opt.method,
             for ch = 1:nchan,
                 burst.on{ch} = t(ch,burststart{ch});
                 burst.off{ch} = t(ch,burstend{ch});
+                if (isempty(burststart{ch}))
+                    burst.on{ch} = NaN;
+                    burst.off{ch} = NaN;
+                end
             end;
             burst.ctr = burstctr;
             burst.nspike = nspike;

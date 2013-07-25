@@ -56,7 +56,7 @@ for f = 1:nfiles,
     
     if (opt.redo),
         F = load(infiles{f},basevars{:});
-        if (~isfield(F,'smm'))
+        if (~isfield(F,'smm') && isfield(F,'mxmm') && isfield(F,'mymm'))
             F.smm = [zeros(1,size(F.mxmm,2)); cumsum(sqrt(diff(F.mxmm).^2 + diff(F.mymm).^2))];
             F.smm = nanmedian(F.smm,2);
         end
