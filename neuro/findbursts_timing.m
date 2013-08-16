@@ -4,18 +4,18 @@ function [burstctr,burstind] = findbursts_timing(t,spike,opt)
 if (isfield(opt,'burstfreq')),
     %baseline burst duration and interburst duration            
     %minimum cutoffs will be a fraction of those
-    opt.cycledur = 1/burstfreq;
+    opt.cycledur = 1/opt.burstfreq;
     if (~isfield(opt,'burstdur')),
-        burstdur = opt.cycledur * opt.dutycyle;
-        burstdur = burstdur * opt.cutoff;
+        opt.burstdur = opt.cycledur * opt.dutycyle;
+        opt.burstdur = opt.burstdur * opt.cutoff;
     end;
-    if (~isfield(opt,'interburstdur')),
-        interburstdur = opt.cycledur - burstdur;
-        interburstdur = interburstdur * opt.cutoff;
+    if (~isfield(opt,'interburstdur') || isempty(opt.interburstdur)),
+        opt.interburstdur = opt.cycledur - opt.burstdur;
+        opt.interburstdur = opt.interburstdur * opt.cutoff;
     end;
 end;
 if (isfield(opt,'cycledur') || isempty(opt.cycledur)),
-    opt.cycledur = burstdur + interburstdur;
+    opt.cycledur = opt.burstdur + opt.interburstdur;
 end;
 
 if (strcmp(opt.method,'timing')),
@@ -59,7 +59,7 @@ down = down([~merge true]);
 %check to make sure the bursts are long enough and contain enough
 %spikes
 longenough = ((down - up) >= opt.minspikes) & ...
-    (t(down) - t(up)) >= burstdur;
+    (t(down) - t(up)) >= opt.burstdur;
 up = up(longenough);
 down = down(longenough);
 
