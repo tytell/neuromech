@@ -314,6 +314,31 @@ end;
 
 npk = size(indpeak,2);
 
+if (npk == 0)
+    conf = ones(size(indpeak));
+    per = zeros(size(indpeak));
+    amp = zeros(size(indpeak));
+    midx = zeros(size(indpeak));
+    midy = zeros(size(indpeak));
+    exc = zeros(size(indpeak));
+    wavelen = zeros(size(indpeak));
+    wavevel = zeros(size(indpeak));
+    waver = zeros(size(indpeak));
+    waven = zeros(size(indpeak));
+    
+    if (isindpeak),
+        varargout = {per,amp,midx,midy,exc,wavevel,wavelen,waver,waven};
+    else
+        if (opt.returnpeaksign),
+            sgnpeak = zeros(size(indpeak));
+            varargout = {indpeak,sgnpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven};
+        else
+            varargout = {indpeak,conf, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven};
+        end;
+    end;
+    return
+end
+
 goodpk = isfinite(indpeak);
 
 % Get the actual times for each peak, rather than indices
@@ -394,7 +419,7 @@ for i = 1:size(indpeak,2)-1,
 end;
 
 %check for empty wavelen values for the last tail beat
-if (isnan(wavelen(end,end)) && isfinite(indpeak(end,end))),
+if (~isempty(wavelen) && isnan(wavelen(end,end)) && isfinite(indpeak(end,end))),
     fr = indpeak(end,end);
     peaksign = sign(curve(end,fr));
     

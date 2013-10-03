@@ -158,7 +158,7 @@ if (~istether)
     dt = t(2) - t(1);
     dur = round(2/dt);         %smooth over 2 sec
     comxsm = runavg(comx, dur);
-    comysm = runavg(comx, dur);
+    comysm = runavg(comy, dur);
 
     swimvecx = deriv(t,comxsm);
     swimvecy = deriv(t,comysm);
@@ -207,10 +207,9 @@ else
     end;
 end;
 
-%at least three cycles must pass
-if (steadycycle <= 2)
-    steadycycle = 3;
-end;
+if (steadycycle == 1)
+    steadycycle = 2;
+end
 issteady = (cyclenum >= steadycycle);
 
 %amplitude = displacement relative to the center of mass, perpendicular to the swimming
@@ -234,7 +233,7 @@ disp('  Tracking curvature zero crossings...');
 %track peaks in amplitude envelope
 disp('  Tracking amplitude peaks...');
 [indpeak0,sgnpeak0,~,~,~,~,~,wavespeed0,wavelen0,~,waven0] = ...
-    analyzeKinematics(s,t,xm,ym, 'curve',ampcont, 'nsmoothcurve',0, ...
+    analyzeKinematics(s,t,xm,ym, 'curve',ampcont, 'nsmoothcurve',10, ...
                       'peaks','backwnd',0.5, 'returnpeaksign');
 
 %also track the activation wave

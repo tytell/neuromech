@@ -1,12 +1,13 @@
 function M = runavg(m, n, dim)
 % function M = runavg(m, n, dim)
 % Calculates a running average of length n over dimension dim
-%
-% Mercurial revision hash: $Revision$ $Date$
-% Copyright (c) 2010, Eric Tytell
 
 if (nargin == 2)
-    dim = 1;
+    if ((size(m,1) == 1) && (ndims(m) == 2) && (size(m,2) >= n))
+        dim = 2;
+    else
+        dim = 1;
+    end
 end;
 
 if (size(m,dim) < n),
