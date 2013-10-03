@@ -3,8 +3,7 @@ function saveKinematicsCSV(outfile,kinfile)
 % Converts kinematic data in kinfile (a .mat file) and saves in CSV form to
 % outfile
 %
-% Mercurial revision hash: $Revision$ $Date$
-% Copyright (c) 2010, Eric Tytell
+% Copyright (c) 2013, Eric Tytell
 
 K = load(kinfile);
 
@@ -69,11 +68,11 @@ wavevel = K.wavevel';
 wavelen = nanmedian(K.wavelen)';
 
 fid = fopen(outfile,'w');
-%fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
-%fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
-%fprintf(fid,'\n');
+fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
+fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
+fprintf(fid,'\n');
 
-%fprintf(fid,'General kinematics:\n');
+fprintf(fid,'%%%% General kinematics:\n');
 ttl = {'PeakTime(s)','Speed(mm/s)','Accel(mm/s^2)','PathAng(deg)','PathCurve(1/mm)',...
     'BeatFreq(Hz)','HeadAmp(mm)','TailAmp(mm)','PeakAmp(mm)', ...
               'PeakAmpPos(%)','WaveLen(mm)','WaveVel(mm/s)'};
@@ -86,34 +85,26 @@ tplt = repmat('%10.4f,',[1 size(Kin1,2)]);
 tplt = [tplt(1:end-1) '\n'];
 fprintf(fid, tplt, Kin1');
 
-%{ 
-fprintf(fid,'\n\nAmplitude Envelope (mm):\n');
-ttl = cell(1,npt+1);
-ttl{1} = 'PeakTime(s)';
-for i = 1:npt,
-    ttl{i+1} = num2str(i);
-end;
-ttl{2} = 'Head';
-ttl{end} = 'Tail';
+fclose(fid);
 
+[pn,fn,ext] = fileparts(outfile);
+outfile2 = fullfile(pn,[fn '-points' ext]);
+
+fid = fopen(outfile2,'w');
+fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
+fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
+fprintf(fid,'\n');
+
+fprintf(fid, '%%%% Midline coordinates (mm)\n');
+ttl = {'FrameNum','Time(s)','PointNum','X(mm)','Y(mm)'};
 fprintf(fid, '%s,', ttl{:});
 fprintf(fid, '\n');
 
-Kin1 = [tpeak exc];
-tplt = repmat('%10.4f,',[1 size(Kin1,2)]);
+[ptnum,frnum] = ndgrid(1:K.npts, K.fr);
+t2 = repmat(K.t,[K.npts 1]);
+Pts1 = [frnum(:) t2(:) ptnum(:) K.mxmm(:) K.mymm(:)];
+tplt = repmat('%10.4f,',[1 size(Pts1,2)]);
 tplt = [tplt(1:end-1) '\n'];
-fprintf(fid, tplt, Kin1');
-
-fprintf(fid,'\n\nVelocity and Acceleration:\n');
-
-ttl = {'Frame','Time(s)','HeadVelX(mm/s)','HeadVelY(mm/s)','HeadAccX(mm/s)','HeadAccY(mm/s)'};
-fprintf(fid, '%s,', ttl{:});
-fprintf(fid, '\n');
-
-Kin1 = [fr t H];
-tplt = repmat('%10.4f,',[1 size(Kin1,2)]);
-tplt = [tplt(1:end-1) '\n'];
-fprintf(fid, tplt, Kin1');
-%}
+fprintf(fid, tplt, Pts1');
 
 fclose(fid);
