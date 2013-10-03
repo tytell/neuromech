@@ -11,7 +11,7 @@ opt.method = 'hist';
 
 if (nargin > 3)
     opt = parsevarargin(opt,varargin,4, ...
-        'multival',{'method',{'hist','spline','gaussian'}});
+        'multival',{'method',{'hist','spline','gaussian','gaussianfilt'}});
 elseif (nargin == 2)
     smooth = 0;
 end;
@@ -78,6 +78,52 @@ switch lower(opt.method),
 %                 weight = coef(c) * exp(-0.5*((spiket1 - t(i)) / smooth(c)).^2);
                 
                 
+    case 'gaussianfilt',
+        if (isempty(edges)),
+            t0 = floor(min(spiket(:))/binsize)*binsize - binsize/2;
+            t1 = ceil(max(spiket(:))/binsize)*binsize + binsize/2;
+            
+            edges = (t0:binsize:t1)';
+            edges(end) = Inf;
+        end;
+        
+        n = zeros(length(edges),nchan);
+        
+        bin = NaN(size(spiket));
+        for ch = 1:nchan,
+            good = isfinite(spiket(:,ch));
+            [n(:,ch),bin1] = histc(spiket(good,ch),edges);
+            bin(good,ch) = bin1;
+        end;
+        
+        if (iseven),
+            rate = n / binsize;
+            t = edges + binsize/2;
+        else
+            rate = n ./ diff(edges);
+            t = (edges(1:end-1) + edges(2:end))/2;
+        end;
+        
+        if (smooth ~= 0),
+            maxbinwidth = ceil(smooth/binsize * sqrt(-2*log(opt.truncategaussian)));
+            if all(smooth == smooth(1))
+                d = (1:2*maxbinwidth(1)+1)*binsize;
+                d = d - d(maxbinwidth(1)+1);
+                b = exp(-0.5 * (d/smooth(1)).^2);
+                a = sum(b);
+                rate = filtfilt(b,a, rate);
+            else
+                for i = 1:nchan,
+                    d = (1:2*maxbinwidth(i)+1)*binsize;
+                    d = d - d(maxbinwidth(i)+1);
+                    b = exp(-0.5 * (d/smooth(i)).^2);
+                    a = sum(b);
+                    rate1 = filtfilt(b,a, rate(:,i));
+                    rate(:,i) = rate1;
+                end;
+            end
+        end;
+
     case 'gaussian',
         rate0 = zeros(size(spiket));
         spikedt = diff(spiket);
@@ -102,13 +148,14 @@ switch lower(opt.method),
         maxbinwidth = ceil(smooth/binsize * sqrt(-2*log(opt.truncategaussian)));
         coef = 1./(sqrt(2*pi) * smooth);
         
-        rate = NaN(nbin,nchan);
+        rate = zeros(nbin,nchan);
         for c = 1:nchan,
+            aprev = 1;
             for i = 1:nbin,
-                a = find(bin(:,c) >= i-maxbinwidth(c), 1, 'first');
-                b = find(bin(:,c) <= i+maxbinwidth(c), 1, 'last');
+                a = find(bin(aprev:end,c) >= i-maxbinwidth(c), 1, 'first') + aprev-1;
+                b = find(bin(aprev:end,c) <= i+maxbinwidth(c), 1, 'last') + aprev-1;
                 
-                if (~isempty(a) && ~isempty(b))
+                if (~isempty(a) && ~isempty(b) && (b >= a))
                     spikeind1 = a:b;
                 
                     spiket1 = spiket(spikeind1,c);
@@ -118,6 +165,8 @@ switch lower(opt.method),
                     %[~,j] = max(weight);
                     
                     rate(i,c) = sum(weight.*rate1) / sum(weight);
+                    
+                    aprev = a;
                 else
                     rate(i,c) = 0;
                 end;
