@@ -128,7 +128,7 @@ for a = 1:length(vals),
         vals{a} = vs1;
     else
         if (isnumeric(vs))
-            vals{a} = zeros(0,0,'like',vs);
+            vals{a} = zeros(0,0,class(vs));
         elseif ischar(vs)
             vals{a} = '';
         elseif iscell(vs)

@@ -16,6 +16,7 @@ opt.subtractdc = true;
 opt.highpasscutoff = 500;   % Hz
 opt.debug = false;
 opt.downsampledisplay = 1;
+opt.showdata = [];
 
 if ((nargin == 1) || ((nargin >= 2) && ischar(varargin{2})))
     p = 2;
@@ -44,11 +45,15 @@ switch opt.method,
         
         if (isempty(threshval)),
             %assume 5000Hz and take the first 10 sec
-            if (size(sig,1) < 100000),
-                k = 1:size(sig,1);
+            if isempty(opt.showdata)
+                if (size(sig,1) < 100000),
+                    k = 1:size(sig,1);
+                else
+                    k = 1:100000;
+                end;
             else
-                k = 1:100000;
-            end;
+                k = opt.showdata;
+            end
             
             box = msgbox(['Click on axes to set threshold for each channel.' ...
                 ' Hit any key to end.'],...
@@ -102,14 +107,7 @@ switch opt.method,
             ind{chan} = find(spike1);
         end;
         
-        if (nargout == nchan+1),
-            %NB: this means that for a single channel, the index will be returned
-            %as a vector, *not* as a cell
-            varargout = ind;
-            varargout{nchan+1} = threshval;
-        elseif (nargout == nchan),
-            varargout = ind;
-        elseif (nargout == 2),
+        if (nargout == 2),
             varargout = {ind, threshval};
         else
             varargout = {ind};
