@@ -15,6 +15,7 @@ function varargout = getvar(varargin)
 %    '-all' - Operates on all of the current variables
 %    '-except',variables - Except for these variables
 %    '-keepundef' - Do not clear requested variables that weren't found
+%    '-cleariferror' - Clear all requested variables if any aren't found
 %
 % Returns true if it found all of the requested variables.
 
@@ -32,6 +33,7 @@ isall = false;
 clearundef = true;
 warnundef = true;
 tostruct = false;
+cleariferror = false;
 
 %process options
 if ((nargin >= 1) && isstruct(varargin{1})),
@@ -104,6 +106,12 @@ while (p <= length(varargin)),
             isvar(p) = false;
             p = p+1;
             
+        case '-cleariferror'
+            cleariferror = true;
+            optind(end+1) = p;
+            isvar(p) = false;
+            p = p+1;
+            
         otherwise,
             isvar(p) = true;
             p = p+1;
@@ -159,6 +167,11 @@ requestedvars = requestedvars(~remove);
 
 %good requests are those that exist
 good = ismember(requestedvars, existingvars);
+
+%don't load any variables if cleariferror is set
+if (any(~good) && cleariferror)
+    good = false(size(good));
+end
 
 if (~isempty(infile)),
     %we put this off, because we don't want to load the whole file if we
