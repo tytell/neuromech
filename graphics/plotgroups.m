@@ -68,6 +68,7 @@ options.means = false;
 options.doMeans = logical([]);
 options.sortGroups = false;
 options.legend = false;
+options.errorstyle = 'line';        % or 'bar'
 
 optsynonyms = { ...
     {'xOffset',{'offx'}}, ...
@@ -283,8 +284,8 @@ for i = 1:ngp,
                                [1 ceil(gpnum(i)/length(options.Markers))]);
           end;
          case 'f',
-          fill = [options.Fill 1-options.Fill];
-          options.Fill = repmat(fill,[1 ceil(gpnum(i)/2)]);
+          isfill = [options.Fill 1-options.Fill];
+          options.Fill = repmat(isfill,[1 ceil(gpnum(i)/2)]);
          case 'c',
           if (isempty(options.Color)),
               cmap = colormap;
@@ -391,6 +392,9 @@ a = 1;
 b = 1;
 emptygroups = false(1,ncomb);
 
+hStd = -1*ones(ncomb,1);
+hSem = -1*ones(ncomb,1);
+
 for i = 1:ncomb,
     while ((b <= length(gpall)) && (gpall(b) == i)),
         b = b+1;
@@ -486,22 +490,22 @@ for i = 1:ncomb,
     end;
 
     if (isMean),
-        if (ismember(options.Trace,{'on'})),
-            px = [x1; x1(end:-1:1)];
-        else
-            px = [x1 x1 NaN([length(x1) 1])]';
-        end;
         if (strcmpi(options.Error,'std') || strcmpi(options.Error,'all')),
-            if (ismember(options.Trace,{'on'})),
+            hStd(i) = -1;
+            if (ismember(options.Trace,{'on'}) && strcmpi(options.errorstyle,'bar')),
+                px = [x1; x1(end:-1:1)];
                 py = [y1; y1(end:-1:1)] + [std1; -std1(end:-1:1)];
+                h1 = fill(px,py,col1,'EdgeColor','none');
+                hStd(i) = h1;
             else
-                py = [y1 y1 repmat(NaN,[length(y1) 1])]' + ...
-                     [std1 -std1 repmat(NaN,[length(y1) 1])]';
+                px = [x1 x1 NaN([length(x1) 1])]';
+                py = [y1 y1 NaN([length(y1) 1])]' + ...
+                     [std1 -std1 NaN([length(y1) 1])]';
             end;
-            if (~isempty(px)),
+            if (~isempty(px) && ~ishandle(hStd(i))),
                 hStd(i) = plot(px(:),py(:),'Color',col1,...
                                'LineWidth',options.stdLineWidth);
-            else
+            elseif ~ishandle(hStd(i))
                 %have to use line here to force the generation of a
                 %graphics handle even for a trace with no points
                 hStd(i) = line('XData',[],'YData',[],'Color',col1,...

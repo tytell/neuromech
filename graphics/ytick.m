@@ -75,7 +75,7 @@ elseif ((i+1 <= nargin) && isnumeric(varargin{i}) && (numel(varargin{i}) == 1) &
 elseif ((i <= nargin) && iscellstr(varargin{i})),
     tickopt = {};
     tickmodeopt = {};
-    ticklabelopt = {'XTickLabel',varargin{i}};
+    ticklabelopt = {'YTickLabel',varargin{i}};
 elseif ((i <= nargin) && isnumeric(varargin{i})),
     tickopt = {'YTick',varargin{i}};
     tickmodeopt = {'YTickMode','manual'};

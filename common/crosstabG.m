@@ -54,14 +54,6 @@ end
 N = sum(O(:));
 Ne = sum(E(:));
 
-if (abs(Ne - N) > 1)
-    if opt.adjustexpected
-        E = E/Ne * N;
-    else
-        warning('crosstabG:badE','Total number expected does not match total observed. G stat may be weird.');
-    end
-end
-
 if (nd == 2) && isempty(E)
     %compute expected frequencies
     E = S{2} * S{1} / N;
@@ -69,6 +61,12 @@ if (nd == 2) && isempty(E)
     %doesn't make sense to do the one way if the expected frequencies are
     %not provided
     opt.computemarginal = false;
+elseif (abs(Ne - N) > 1)
+    if opt.adjustexpected
+        E = E/Ne * N;
+    else
+        warning('crosstabG:badE','Total number expected does not match total observed. G stat may be weird.');
+    end
 end
 
 if all(sz == 2)
