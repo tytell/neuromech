@@ -9,6 +9,7 @@ function varargout = findbursts(t,varargin)
 %   'surprise' - Poisson surprise technique
 %   'timing' - Looks for gaps in spike times, collecting bursts based on
 %   minimum interburst intervals, etc.
+%   'simple' - Simple timing based method.
 %   'integral' - Looks for when the integrated neural signal passes above
 %   or below a threshold
 %   'peaks' - Looks for peaks in the spike rate
@@ -170,6 +171,10 @@ switch opt.method,
                 end;
                 assert(length(burststart1) == length(burstend1));
 
+                good = burstend1 - burststart1 > opt.minspikes;
+                burstend1 = burstend1(good);
+                burststart1 = burststart1(good);
+                
                 burstctr1 = zeros(size(burststart1));
                 spikeburstind1 = zeros(1,size(t,2));
 
