@@ -33,6 +33,7 @@ opt.color = '';
 opt.xoffset = [];
 opt.notch = true;
 opt.outliers = true;
+opt.marker = '.';
 
 optsyn = { ...
     {'width',{'w'}}, ...
@@ -191,7 +192,7 @@ for i = 2:length(xind),
     for j = 1:length(gps),
         ox = opt.xoffset(j);
         drawbox(x1+ox,y1(gp1 == gps(j)),opt.color(j,:),...
-                opt.width,opt.fill,opt.notch,opt.outliers);
+                opt.width,opt.fill,opt.notch,opt.outliers,opt.marker);
         hold on;
     end;
 end;
@@ -203,7 +204,7 @@ end;
 
 
 % *************************************************
-function drawbox(x,y,col,w,fill,notch,outliers)
+function drawbox(x,y,col,w,fill,notch,outliers,mark)
 whis = 1.5;
 if (isempty(y)),
     plot(x(1),NaN);
@@ -254,13 +255,13 @@ why = [upadj q3 NaN q1 loadj];
 if (~fill),
     plot(boxx,boxy,'-',medx,medy,'-',whx,why,'-','Color',col);
     if (~isempty(extreme)),
-        addplot(x,extreme,'.','Color',col);
+        addplot(x,extreme,mark,'Color',col);
     end;
 else
     patch(boxx,boxy,col,'EdgeColor','none');
     addplot(medx,medy,'Color','w');
     addplot(whx,why,'-','Color',col);
     if (~isempty(extreme)),
-        addplot(x,extreme,'.','Color',col);
+        addplot(x,extreme,mark,'Color',col);
     end;
 end;
