@@ -6,6 +6,7 @@ opt.rownames = {};
 opt.colnames = {};
 opt.showtable = false;
 opt.adjustexpected = false;
+opt.showresiduals = false;
 
 sz = size(E);
 if ((nargin == 1) || ~isnumeric(O) || any(size(O) ~= sz))
@@ -164,6 +165,34 @@ if opt.showtable
     end
 end
 
+if opt.showresiduals
+    stdresid = (O - E) ./ sqrt(E);
+    
+    fprintf('Standardized residuals:\n');
+    fprintf('---------------------------------------------\n');
+    if (~isempty(opt.colnames))
+        fprintf('%-10s ','',opt.colnames{:});
+    else
+        fprintf('%10s ','');
+        fprintf('%-10d ',1:sz(2));
+    end
+    fprintf('\n');
+    fprintf('%10s ','');
+    fprintf(repmat('-',[1 11*sz(2)]));
+    fprintf('\n');
+    
+    for i = 1:sz(1)
+        if (isempty(opt.rownames))
+            rowname1 = sprintf('row %d',i);
+        else
+            rowname1 = opt.rownames{i};
+        end
+        fprintf('%10s|', rowname1);
+        fprintf('%10g ',stdresid(i,:));
+        fprintf('\n');
+    end
+end
+    
 if nargout == 1
     varargout = {Gstat};
 elseif nargout == 3
