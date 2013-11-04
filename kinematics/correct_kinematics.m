@@ -5,6 +5,11 @@ opt = parsevarargin(opt,varargin, 2);
 
 load(filename,'indpeak','smm','t','mxmm','mymm', 'curve');
 
+if (~exist('indpeak','var'))
+    warning('File %s is not analyzed.  Skipping.',filename);
+    return;
+end
+
 fig = figureseries('Correct Kinematics');
 clf;
 
@@ -18,6 +23,8 @@ end;
 
 hax(1) = subplot(2,2,1:2);
 hpk = plot(tpeak,smm, 'k.-');
+[~,fn] = fileparts(filename);
+title(fn);
 
 pk = first(isfinite(indpeak(end,:)));
 fr = indpeak(end,pk);
@@ -45,10 +52,12 @@ goodpk(pk) = false;                 % don't show the current peak again
 hother(1,1) = addplot(hax(1), tpeak(pt,goodpk), smm(pt)*ones(1,sum(goodpk)), 'bo');
 hother(1,2) = addplot(hax(2), tpeak(pt,goodpk), curve(pt,indpeak(pt,goodpk)), 'bo');
 
-ind = find(indpeak == fr);
-[ptind,pkind] = ind2sub(size(indpeak),ind);
-ptind = ptind(pkind ~= pk);
-ind = ind(pkind ~= pk);
+ptind = last(indpeak <= fr);
+pkind = 1:size(indpeak,2);
+goodpk = (ptind ~= 0) & (pkind ~= pk);
+ptind = ptind(goodpk);
+pkind = pkind(goodpk);
+ind = sub2ind(size(indpeak),ptind,pkind);
 
 hother(2,1) = addplot(hax(1), tpeak(ind),smm(ptind), 'gd');
 hother(2,2) = addplot(hax(3), mxmm(ptind,fr),mymm(ptind,fr), 'gd');
@@ -66,6 +75,59 @@ set(fig,'KeyPressFcn',@on_key_press);
 guidata(fig,data);
 
 uiwait(fig);
+
+if (ishandle(fig))
+    data = guidata(fig);
+    delete(fig);
+    
+    if (any(~data.good))
+        [per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
+            analyzeKinematics(smm,t,mxmm,mymm, indpeak(:,data.good));
+        
+        F = load(filename,'per','amp','wavevel','wavelen');
+        figureseries('Compare kinematics');
+        
+        subplot(4,1,1);
+        plot(tpeak,F.per,'ko-', tpeak(:,data.good),per,'g*-');
+        ylabel('Period (sec)');
+        axis tight;
+        [~,fn] = fileparts(filename);
+        title(fn);
+        
+        subplot(4,1,2);
+        plot(tpeak,F.amp,'ko-', tpeak(:,data.good),amp,'g*-');
+        ylabel('Amplitude (mm)');
+        axis tight;
+        
+        subplot(4,1,3);
+        plot(tpeak(end,:),F.wavevel,'ko', tpeak(end,data.good),wavevel,'g*');
+        axis tight;
+        ylim([0 1000]);
+        nout1 = sum((F.wavevel < 0) | (F.wavevel > 1000));
+        nout2 = sum((wavevel < 0) | (wavevel > 1000));
+        if (nout1 > 0)
+            text(1,1,sprintf('N outliers = %d',nout1),'Color','k', ...
+                'Units','normalized','HorizontalAlignment','right');
+        end
+        if (nout2 > 0)
+            text(1,0,sprintf('N outliers = %d',nout1),'Color','g', ...
+                'Units','normalized','HorizontalAlignment','right');
+        end
+        
+        subplot(4,1,4);
+        plot(tpeak,F.wavelen, tpeak(:,data.good),wavelen);
+        
+        resp = questdlg('Save new data?','Save?','OK','Cancel','Cancel');
+        if (strcmp(resp,'OK'))
+            indpeakold = indpeak;
+            goodpeak = data.good;
+            indpeak = indpeak(:,goodpeak);
+            save(filename,'indpeakold','goodpeak','indpeak','per','amp','midx','midy','exc','wavevel',...
+                'waven','waver','wavelen','-append');
+        end
+    end
+    fprintf('Done.\n');
+end
 
 %--------------------------------------------------------------------------
 function on_key_press(obj, event)
@@ -135,10 +197,12 @@ if ((pk1 >= 1) && (pk1 <= npk) && (pt1 >= 1) && (pt1 <= npt) && ...
     set(data.hother(1,1),'XData',data.tpeak(pt1,goodpk), 'YData',data.smm(pt1)*ones(1,sum(goodpk)));
     set(data.hother(1,2),'XData',data.tpeak(pt1,goodpk), 'YData',data.curve(pt1,data.indpeak(pt1,goodpk)));
     
-    ind = find(data.indpeak == fr1);
-    [ptind,pkind] = ind2sub(size(data.indpeak),ind);
-    ptind = ptind(pkind ~= pk1);
-    ind = ind(pkind ~= pk1);
+    ptind = last(data.indpeak <= fr1);
+    pkind = 1:size(data.indpeak,2);
+    goodpk = (ptind ~= 0) & (pkind ~= pk1);
+    ptind = ptind(goodpk);
+    pkind = pkind(goodpk);
+    ind = sub2ind(size(data.indpeak),ptind,pkind);
     
     set(data.hother(2,1), 'XData', data.tpeak(ind), 'YData', data.smm(ptind));
     set(data.hother(2,2), 'XData',data.mxmm(ptind,fr1), 'YData',data.mymm(ptind,fr1));
