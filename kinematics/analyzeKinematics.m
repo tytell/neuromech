@@ -82,7 +82,7 @@ if ((nargin == 4) || ~isnumeric(varargin{1}) ),
     i = 1;
 end;
 
-opt = parsevarargin(opt,varargin,4+i, ...
+opt = parsevarargin(opt,varargin(i:end),4+i, ...
                     'multival',{'track',{'peaks','zeros'}}, 'typecheck',false);
 
 if (isnumeric(good)),
@@ -214,7 +214,7 @@ if (~isindpeak),
         rat = min(c,[],2) ./ max(c,[],2);
         choose = rat .* sum(c,2);
         
-        [q,pt0] = max(choose);
+        [~,pt0] = max(choose);
     else
         pt0 = round(opt.startpoint * npt);
     end;
@@ -237,7 +237,7 @@ if (~isindpeak),
         if (sum(tooclose) > 1),
             %take the biggest one
             j = pk0(tooclose);
-            [q,ind] = max(abs(curve(pt0,j)));
+            [~,ind] = max(abs(curve(pt0,j)));
             ind = j(ind);
             
             pk0(tooclose) = NaN;
@@ -267,7 +267,7 @@ if (~isindpeak),
             
             if (~isempty(peaks)),
                 %find the closest in time and height
-                [q,ind] = min(abs(peaks - curpk) + abs(curve(pt,peaks) - curpkval));
+                [~,ind] = min(abs(peaks - curpk) + abs(curve(pt,peaks) - curpkval));
                 curpk = peaks(ind);
                 curpkval = curve(pt,curpk);
 
@@ -310,7 +310,7 @@ if (~isindpeak),
     % Make sure we tracked each peak for more than one time
     k = sum(isfinite(indpeak)) > 1;
     indpeak = indpeak(:,k);
-end;
+end    
 
 npk = size(indpeak,2);
 
@@ -354,7 +354,13 @@ ypeak(goodpk) = y(pkind);
 xpeak = NaN(size(indpeak));
 xpeak(goodpk) = x(pkind);
 sgnpeak = zeros(size(indpeak));
-sgnpeak(goodpk) = pksign(pkind);
+
+if (~isindpeak)
+    sgnpeak(goodpk) = pksign(pkind);
+else
+    sgnpeak(goodpk) = sign(curve(pkind));
+    pt0 = round(opt.startpoint * npt);
+end
 
 % Sometimes we skip a peak.  If the sign of y at pt0 doesn't change
 % from one peak to the next, then we skipped one.  Add columns of NaNs
@@ -369,13 +375,13 @@ if (~isempty(k)),
     ip(:,k) = indpeak;
     indpeak = ip;
 
-    yp = repmat(NaN,[npt npk2]);
+    yp = NaN([npt npk2]);
     yp(:,k) = ypeak;
     ypeak = yp;
-    xp = repmat(NaN,[npt npk2]);
+    xp = NaN([npt npk2]);
     xp(:,k) = xpeak;
     xpeak = xp;
-    tp = repmat(NaN,[npt npk2]);
+    tp = NaN([npt npk2]);
     tp(:,k) = tpeak;
     tpeak = tp;
     
@@ -402,7 +408,7 @@ for i = 1:size(indpeak,2)-1,
 
     % Get the minimum time difference.  These peaks are the ones that are
     % on the body at almost the same time
-    [q,ind] = min(abs(dist));
+    [~,ind] = min(abs(dist));
     delta = dist(sub2ind(size(dist),ind,1:npt));
     
     % Linearly interpolate time to get the positions of the peaks at
@@ -434,7 +440,7 @@ if (~isempty(wavelen) && isnan(wavelen(end,end)) && isfinite(indpeak(end,end))),
     peakfr = find(cv1(2:end-1) > cv1(1:end-2) & ...
         cv1(2:end-1) > cv1(3:end)) + 1;
     
-    [m,ind] = min(abs(peakfr - guesspos));
+    [~,ind] = min(abs(peakfr - guesspos));
     ind = peakfr(ind);
     
     if (~isempty(ind)),

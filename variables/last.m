@@ -154,8 +154,8 @@ else
 end;
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% last functions based on the builtin find function
+%--------------------------------------------------------
+% last functions based on the builtin find function
 function ind = last0ind(cond)
 
 N = size(cond,2);
@@ -204,8 +204,8 @@ for k = 1:N,
 end;
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% last functions based on vectorized logical array manipulations
+%--------------------------------------------------------------------
+% last functions based on vectorized logical array manipulations
 function ind = last1ind(cond)
 
 N = size(cond,2);
@@ -219,7 +219,7 @@ islast = cond & (num == 1);
 ind = zeros(1,N);
 [r,c] = find(islast);
 
-r = N - r + 1;
+r = size(cond,1) - r + 1;
 ind(c) = r;
 
 
