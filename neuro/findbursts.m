@@ -162,7 +162,7 @@ switch opt.method,
             burststart1 = find((dt(ch,1:end-1) > opt.interburstdur) & (dt(ch,2:end) <= opt.interburstdur)) + 1;
             burstend1 = find((dt(ch,1:end-1) <= opt.interburstdur) & (dt(ch,2:end) > opt.interburstdur)) + 1;
 
-            if (~isempty(burststart1) && ~isempty(burstend1))
+            if ((length(burststart1) > 1) && (length(burstend1) > 1))
                 if (burststart1(1) > burstend1(1))
                     burstend1 = burstend1(2:end);
                 end;
