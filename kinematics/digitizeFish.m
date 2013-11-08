@@ -324,7 +324,8 @@ else
 end;
 
 scrsz = get(0,'ScreenSize');
-fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+fig = figure;
+%fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
 clf;
 [hx,hy] = manualTrackPoint(fn, skip);
 close(fig);
@@ -352,7 +353,8 @@ else
 end;
 
 scrsz = get(0,'ScreenSize');
-fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+fig = figure;
+%fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
 clf;
 [tx,ty] = manualTrackPoint(fn, skip);
 close(fig);
