@@ -5,6 +5,6 @@ fig = findobj('Type','figure', 'Name',name);
 if (isempty(fig))
     fig = figure('Name',name);
 end
-figure(fig)
+figure(fig(1));
 
 
