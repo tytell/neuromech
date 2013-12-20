@@ -29,6 +29,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     properties(GetAccess='public', SetAccess='public')
         UserData        % Generic field for any user-defined data.
         isaviread
+        isphantom
     end
     
     %------------------------------------------------------------------
@@ -54,6 +55,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     
     properties(Access='private', Hidden)
         vid
+        cine
         info
         tifinfo
         istimestamp
@@ -74,7 +76,9 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             end
 
             obj.isaviread = ~isempty(which('aviread'));
-
+            obj.isphantom = exist('LoadPhantomLibraries','file');
+            obj.cine = struct([]);
+            
             [pn,fn,ext] = fileparts(fileName);
             
             if (strcmpi(ext,'.tif') || strcmpi(ext, '.tiff'))
@@ -95,6 +99,54 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                         rethrow(err);
                     end
                 end
+            elseif (strcmpi(ext,'.cine') && obj.isphantom)
+                LoadPhantomLibraries();
+                RegisterPhantom(true); %Register the Phantom dll's ignoring connected cameras. 
+                [HRES, cineHandle] = PhNewCineFromFile(fileName);
+                if (HRES<0)
+                    [msg] = PhGetErrorMessage( HRES );
+                    error(['Cine handle creation error: ' msg]);
+                end
+                obj.vid = struct([]);
+                obj.info = struct([]);
+                obj.Path = pn;
+                obj.Name = [fn ext];
+
+                pFirstIm = libpointer('int32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_FIRSTIMAGENO, pFirstIm);
+                firstIm = pFirstIm.Value;
+                pImCount = libpointer('uint32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_IMAGECOUNT, pImCount);
+                lastIm = int32(double(firstIm) + double(pImCount.Value) - 1);
+                
+                %get cine image buffer size
+                pInfVal = libpointer('uint32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_MAXIMGSIZE, pInfVal);
+                imgSizeInBytes = pInfVal.Value;
+
+                pInfVal = libpointer('uint32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_FRAMERATE, pInfVal);
+                framerate = pInfVal.Value;
+                
+                pInfVal = libpointer('uint32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_IMWIDTH, pInfVal);
+                w = pInfVal.Value;
+                
+                pInfVal = libpointer('uint32Ptr',0);
+                PhGetCineInfo(cineHandle, PhFileConst.GCI_IMHEIGHT, pInfVal);
+                h = pInfVal.Value;
+                
+                %The image flip for GetCineImage function is inhibated.
+                pInfVal = libpointer('int32Ptr',false);
+                PhSetCineInfo(cineHandle, PhFileConst.GCI_VFLIPVIEWACTIVE, pInfVal);
+
+                obj.cine(1).handle = cineHandle;
+                obj.cine.nframes = lastIm-firstIm+1;
+                obj.cine.firstIm = firstIm;
+                obj.cine.imgSize = imgSizeInBytes;
+                obj.cine.width = w;
+                obj.cine.height = h;
+                obj.cine.fps = framerate;
             else
                 try
                     obj.vid = VideoReader(fileName, varargin{:});
@@ -139,6 +191,51 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                     [dv,imnum] = getPCOtimestamp(fn);
                     varargout(2:3) = {imnum,dv};
                 end
+            elseif ~isempty(obj.cine)
+                if ((nargin == 3) && ischar(varargin{2}))
+                    frameopt = varargin{2};
+                else
+                    frameopt = 'fromstart';
+                end
+                switch lower(frameopt)
+                    case 'fromtrigger'
+                        fr = varargin{1};
+                    case 'fromstart'
+                        fr = varargin{1} + obj.cine.firstIm-1;
+                    otherwise
+                        fr = varargin{1} + obj.cine.firstIm-1;
+                end
+                
+                if ((fr < obj.cine.firstIm) || (fr > obj.cine.firstIm + obj.cine.nframes))
+                    error('VideoReader2:outofrange','Frame is out of range for CINE file');
+                end
+                %Create the image reange to be readed
+                imgRange = get(libstruct('tagIMRANGE'));
+                %take one image at imageNo
+                imgRange.First = fr;
+                imgRange.Cnt = 1;
+                
+                % Read the cine image into the buffer 
+                %The image will have image processings applied 
+                [HRES, unshiftedIm, imgHeader] = PhGetCineImage(obj.cine.handle, ...
+                    imgRange, obj.cine.imgSize);
+
+                % Read image information from header
+                isColorImage = IsColorHeader(imgHeader);
+                is16bppImage = Is16BitHeader(imgHeader);
+
+                % Transform 1D image pixels to 1D/3D image pixels to be used with MATLAB
+                if (HRES >= 0)
+                    [unshiftedIm] = ExtractImageMatrixFromImageBuffer(unshiftedIm, imgHeader);
+                    if (isColorImage)
+                        samplespp = 3;
+                    else
+                        samplespp = 1;
+                    end
+                    bps = GetEffectiveBitsFromIH(imgHeader);
+                    [I, ~] = ConstructMatlabImage(unshiftedIm, imgHeader.biWidth, imgHeader.biHeight, samplespp, bps);
+                    varargout = {I};
+                end
             else
                 w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');
                 fr = aviread(fullfile(obj.Path,obj.Name),varargin{:});  %#ok
@@ -158,6 +255,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 [~,imnum1] = getPCOtimestamp(I1);
                 [~,imnum2] = getPCOtimestamp(I2);
                 N = imnum2 - imnum1 + 1;
+            elseif ~isempty(obj.cine)
+                N = obj.cine.nframes;
             else
                 N = get(obj,'NumberOfFrames');
             end
@@ -187,6 +286,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function disp(obj)
             if ~isempty(obj.vid)
                 obj.vid.display();
+            elseif ~isempty(obj.cine)
+                fprintf('Phantom CINE file ''%s''\n', obj.Name);
             elseif isempty(obj.tifinfo)
                 fprintf('Multiframe tiff ''%s''\n', obj.Name);
             else
@@ -219,6 +320,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Duration(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Duration;
+            elseif ~isempty(obj.cine)
+                value = NaN;
             elseif ~isempty(obj.tifinfo)
                 value = NaN;
             else
@@ -245,6 +348,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.BitsPerPixel(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.BitsPerPixel;
+            elseif ~isempty(obj.cine)
+                value = NaN;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).BitsPerSample;
             else
@@ -255,6 +360,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.FrameRate(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.FrameRate;
+            elseif ~isempty(obj.cine)
+                value = obj.cine.fps;
             elseif ~isempty(obj.tifinfo)
                 value = NaN;
             else
@@ -265,6 +372,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Height(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Height;
+            elseif ~isempty(obj.cine)
+                value = obj.cine.height;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).Height;
             else
@@ -275,6 +384,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.NumberOfFrames(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.NumberOfFrames;
+            elseif ~isempty(obj.cine)
+                value = obj.cine.nframes;
             elseif ~isempty(obj.tifinfo)
                 value = numel(obj.tifinfo);
             else
@@ -285,6 +396,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.VideoFormat(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.VideoFormat;
+            elseif ~isempty(obj.cine)
+                value = 'CINE';
             elseif ~isempty(obj.tifinfo)
                 value = 'TIFF';
             else
@@ -295,6 +408,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Width(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Width;
+            elseif ~isempty(obj.cine)
+                value = obj.cine.width;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).Width;
             else
@@ -345,6 +460,9 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             % Delete VideoReader object.
             if ~isempty(obj.vid)
                 delete(obj.vid);
+            elseif ~isempty(obj.cine)
+                UnregisterPhantom();
+                UnloadPhantomLibraries();
             end
         end
    
