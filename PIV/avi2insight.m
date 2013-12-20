@@ -10,6 +10,8 @@ opt.fieldskip = 1;
 opt.frames = [1 Inf];
 opt.basename = '';
 opt.filespec = '%s%06d.T%03d.D%03d.P%03d.H%03d.%c%c.tif';
+opt.insightdir = 'C:\Experiments10';
+opt.framerate = 300;
 
 opt.display = true;
 
@@ -18,10 +20,10 @@ opt = parsevarargin(opt,varargin, 3);
 if nargin == 0
     [fn,pn] = uigetfile({'*.avi';'*.cine';'*.*'},'Select movie file');
     aviname = fullfile(pn,fn);
-    vr = VideoReader(aviname);
+    vr = VideoReader2(aviname);
     nframes = vr.NumberOfFrames;
     
-    outdir = uigetdir(pn, 'Select output directory');
+    outdir = uigetdir(opt.insightdir, 'Select output directory');
     
     [~,basename,~] = fileparts(fn);
     
@@ -47,7 +49,7 @@ if nargin == 0
         opt.display = false;
     end;
 else
-    vr = VideoReader(aviname);
+    vr = VideoReader2(aviname);
     nframes = vr.NumberOfFrames;
     if isempty(opt.basename)
         [~,basename,~] = fileparts(aviname);
@@ -108,7 +110,15 @@ for i = 1:nconv
     end
 end
 
-close(fig);
+if opt.display
+    close(fig);
+end
+
+cmd = sprintf('TiffTagUtility4G -t%.2f "%s\\*.tif"', opt.pairskip/opt.framerate*1e6, outdir);
+system(cmd, '-echo');
+rmdir(fullfile(outdir,'backup'),'s');
+
+
 
 
         
