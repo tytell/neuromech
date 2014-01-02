@@ -49,7 +49,7 @@ plot(f, Py);
 xlabel('Frequency');
 ylabel('Power');
 
-if (nargout == 2),
-    varargout = {f,Py};
+if (nargout >= 2),
+    varargout = {f,Py,y};
 end;
 
