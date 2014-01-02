@@ -56,7 +56,8 @@ if (~isempty(files)),
         if (good)
             if (opt.recursive && exist(fn1,'dir')),
                 rec = getfilenames(fullfile(fn1,[fn ext]),'recursive',opt.recursive, ...
-                    'exclude',opt.exclude, 'baseexclude',opt.baseexclude);
+                    'exclude',opt.exclude, 'baseexclude',opt.baseexclude, ...
+                    'include',opt.include);
                 if (~isempty(rec))
                     filenames(a:a+length(rec)-1,1) = rec;
                 end;

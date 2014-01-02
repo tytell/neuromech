@@ -110,7 +110,7 @@ if (opt.copyfig)
     figcopy = figure;
     pos = get(fig,'Position');
     units = get(fig,'Units');
-    set(figcopy,'Units',units,'Position',pos);
+    set(figcopy, 'WindowStyle','normal','Units',units,'Position',pos);
     
     children = get(fig,'Children');
     for i = length(children):-1:1,
@@ -151,7 +151,7 @@ if (opt.rescale)
     figpos(4) = h0*scale;
     figpos(2) = figpos(2)+h0 - figpos(4);
     
-    set(fig,'Position',figpos);
+    set(fig,'Position',figpos, 'WindowStyle','normal');
     
     drawnow;
     %for some reason, a brief pause here seems to help Matlab get the figure
