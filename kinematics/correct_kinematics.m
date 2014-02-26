@@ -48,33 +48,37 @@ hsel(3) = addplot(mxmm(pt,fr),mymm(pt,fr), 'r*');
 axis equal tight;
 
 goodpk = isfinite(tpeak(pt,:));
-goodpk(pk) = false;                 % don't show the current peak again
-hother(1,1) = addplot(hax(1), tpeak(pt,goodpk), smm(pt)*ones(1,sum(goodpk)), 'bo');
-hother(1,2) = addplot(hax(2), tpeak(pt,goodpk), curve(pt,indpeak(pt,goodpk)), 'bo');
+if all(~goodpk)
+    delete(fig);
+else
+    goodpk(pk) = false;                 % don't show the current peak again
+    hother(1,1) = addplot(hax(1), tpeak(pt,goodpk), smm(pt)*ones(1,sum(goodpk)), 'bo');
+    hother(1,2) = addplot(hax(2), tpeak(pt,goodpk), curve(pt,indpeak(pt,goodpk)), 'bo');
 
-ptind = last(indpeak <= fr);
-pkind = 1:size(indpeak,2);
-goodpk = (ptind ~= 0) & (pkind ~= pk);
-ptind = ptind(goodpk);
-pkind = pkind(goodpk);
-ind = sub2ind(size(indpeak),ptind,pkind);
+    ptind = last(indpeak <= fr);
+    pkind = 1:size(indpeak,2);
+    goodpk = (ptind ~= 0) & (pkind ~= pk);
+    ptind = ptind(goodpk);
+    pkind = pkind(goodpk);
+    ind = sub2ind(size(indpeak),ptind,pkind);
 
-hother(2,1) = addplot(hax(1), tpeak(ind),smm(ptind), 'gd');
-hother(2,2) = addplot(hax(3), mxmm(ptind,fr),mymm(ptind,fr), 'gd');
+    hother(2,1) = addplot(hax(1), tpeak(ind),smm(ptind), 'gd');
+    hother(2,2) = addplot(hax(3), mxmm(ptind,fr),mymm(ptind,fr), 'gd');
 
-good = true(1,size(indpeak,2));
+    good = true(1,size(indpeak,2));
 
-data = struct('hpk',hpk,'hsel',hsel,'good',good, 'hcurve',hcurve, 'hmid',hmid, ...
-    'hax',hax, 'hother',hother,...
-    'tpeak',tpeak, 'indpeak',indpeak, 'curve',curve, ...
-    't',t, 'mxmm',mxmm, 'mymm',mymm, 'smm',smm, ...
-    'pk',pk, 'pt',pt, 'fr',fr);
+    data = struct('hpk',hpk,'hsel',hsel,'good',good, 'hcurve',hcurve, 'hmid',hmid, ...
+        'hax',hax, 'hother',hother,...
+        'tpeak',tpeak, 'indpeak',indpeak, 'curve',curve, ...
+        't',t, 'mxmm',mxmm, 'mymm',mymm, 'smm',smm, ...
+        'pk',pk, 'pt',pt, 'fr',fr);
 
-set(fig,'KeyPressFcn',@on_key_press);
+    set(fig,'KeyPressFcn',@on_key_press);
 
-guidata(fig,data);
+    guidata(fig,data);
 
-uiwait(fig);
+    uiwait(fig);
+end
 
 if (ishandle(fig))
     data = guidata(fig);
