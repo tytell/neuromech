@@ -544,7 +544,7 @@ for i = 1:size(tpeak,2),
     good1 = isfinite(tpeak(:,i)) & opt.goodwavepts;
 
     %If we have enough points, do the fit
-    if (sum(good1) > 1),
+    if (sum(good1) >= 3),
         p = polyfit(tpeak(good1,i),s(good1),1);
         r = corrcoef(tpeak(good1,i),s(good1));
 

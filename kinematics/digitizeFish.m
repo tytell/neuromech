@@ -11,6 +11,7 @@ Menu = {'C','Calibrate',@dfCalibrate; ...
         'V','Plot head velocity and acceleration',@dfPlotPts; ...
         'W','Get fish width',@dfWidth; ...
         %'1','Click first midline',@dfFirstMidline; ...
+        'B','Subtract background',@dfSubBack; ...
         'M','Digitize midline',@dfMidline; ...
         'A','Smooth midline',@dfSmoothMid; ...
         'K','Generate kinematic parameters',@dfAnalyze; ...
@@ -55,7 +56,7 @@ end;
 
 %get a file if we don't have one
 if (~isavi),
-    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.mpg','MPG';'*.tif','TIFF'},'Choose movie file');
+    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.cine','Cine';'*.mpg','MPG';'*.tif','TIFF'},'Choose movie file');
     if (isnumeric(avifile) && (avifile == 0)),
         return;
     end;
@@ -149,7 +150,7 @@ if (~isfield(DF,'scale')),
 	fprintf('Warning: No scale value saved.\n');
 end;
 
-fpsdefault = DF.mmfile.FrameRate;
+fpsdefault = double(DF.mmfile.FrameRate);
 fps = input(sprintf('Frames per second? (default %g) ', fpsdefault));
 if (isempty(fps)),
     fps = fpsdefault;
@@ -638,6 +639,51 @@ xy = fnval(sp, s);
 DF.mx1 = xy(1,:)';
 DF.my1 = xy(2,:)';
 
+% ****************************
+function DF = dfSubBack(DF)
+
+if ~inputyn('Subtract backgound? ', 'default',true)
+    DF.background = [];
+else
+    done = false;
+    while ~done
+        n = input('How many frames to use to generate background image? (default = 10) ');
+        if isempty(n)
+            n = 10;
+        end
+
+        fr = linspace(1,DF.nFrames,n);
+        fr = round(fr);
+        back = zeros(DF.mmfile.Height, DF.mmfile.Width);
+
+        timedWaitBar(0, 'Generating background image');
+        for i = fr
+            I1 = im2double(read(DF.mmfile, i));
+            if (size(I1,3) == 3)
+                I1 = rgb2gray(I1);
+            end
+            back = back + I1;
+            timedWaitBar(i/DF.nFrames);
+        end
+        timedWaitBar(1);
+
+        switch class(I1)
+            case 'uint8'
+                m = 255;
+            case 'uint16'
+                m = 65535;
+            case 'double'
+                m = 1;
+        end
+        back = back/n / m;
+       
+        imshow6(back);
+        title('Average background');
+
+        done = inputyn('Is background OK? ', 'default',true);
+    end
+    DF.background = back;
+end
 
 % ****************************
 function DF = dfMidline(DF)
@@ -716,7 +762,7 @@ if (~isempty(avifile)),
         case 'getMidlineExt',
             [mx,my] = getMidlineExt(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
                 DF.width, DF.fishlenpix, maxSegAng, 'invert',invert, 'enforcetail', ...
-                'noedges','nohomogeneity');
+                'noedges','nohomogeneity', 'subtractbackground',DF.background);
         case 'getMidline3',
             [mx,my] = getMidline3(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
                 DF.width,DF.fishlenpix,...
@@ -759,7 +805,7 @@ else
         [mx(:,fr),my(:,fr)] = getMidlineExt(I, 1, DF.hxs(fr),DF.hys(fr), ...
             DF.txs(fr),DF.tys(fr), npts, DF.width,DF.fishlenpix,maxSegAng, ...
             'invert',invert, 'enforcetail','nohomogeneity','eqhist','useedges', ...
-            'previousmidline',prevmx, prevmy);
+            'previousmidline',prevmx, prevmy, 'subtractbackground',DF.background);
         
         prevmx = mx(:,fr);
         prevmy = mx(:,fr);
