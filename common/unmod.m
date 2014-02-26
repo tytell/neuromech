@@ -1,4 +1,4 @@
-function f = unmod(f,m,delta,dim)
+function f = unmod(f,m,delta,dim,direc)
 % function y = unmod(f,m,delta)
 % Removes the modulus from discrete data, by looking for large jumps and
 % assuming they represent points when the values have wrapped around in
@@ -10,15 +10,18 @@ function f = unmod(f,m,delta,dim)
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
 % deal with optional arguments
-if (nargin < 4)
-	dim = [];
-	if (nargin < 3),
-		delta = [];
-		if (nargin < 2),
-			m = 2*pi;
-		end;       
-	end;
-end;
+if (nargin < 5)
+    direc = 'both';
+    if (nargin < 4)
+        dim = [];
+        if (nargin < 3),
+            delta = [];
+            if (nargin < 2),
+                m = 2*pi;
+            end;
+        end;
+    end;
+end
 
 if (isempty(dim)),
     if ((ndims(f) == 2) && (size(f,1) == 1)),
@@ -58,10 +61,15 @@ for i = 1:rest,
         d = diff(f1);
 
         % eliminate differences that are close to m
-        jump = (abs(m - abs(d)) < delta) & (d > 0);
-        d(jump) = d(jump) - m;
-        jump = (abs(m - abs(d)) < delta) & (d < 0);
-        d(jump) = d(jump) + m;
+        jumpup = (abs(m - abs(d)) < delta) & (d > 0);
+        jumpdown = (abs(m - abs(d)) < delta) & (d < 0);
+
+        if (ismember(lower(direc),{'up','both'}))
+            d(jumpup) = d(jumpup) - m;
+        end
+        if (ismember(lower(direc),{'down','both'}))
+            d(jumpdown) = d(jumpdown) + m;
+        end
 
         % use a cumulative sum to get f back
         f(good,i) = cumsum([f1(1); d]);
