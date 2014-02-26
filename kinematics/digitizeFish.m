@@ -7,6 +7,7 @@ function digitizeFish(datafile)
 Menu = {'C','Calibrate',@dfCalibrate; ...
         'H','Click head position',@dfHead; ...
         'T','Click tail position',@dfTail; ...
+        'X','Click extra points',@dfExtraPoints; ...
         'S','Smooth head and tail positions',@dfSmoothPts; ...
         'V','Plot head velocity and acceleration',@dfPlotPts; ...
         'W','Get fish width',@dfWidth; ...
@@ -312,6 +313,11 @@ end;
 % ****************************
 function DF = dfHead(DF)
 
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
 skip = input('Frame skip? ');
 
 fn = DF.avifile;
@@ -342,6 +348,11 @@ DF.hy = hy;
 % ****************************
 function DF = dfTail(DF)
 
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
 skip = input('Frame skip? ');
 fn = DF.avifile;
 if (isfield(DF,'avi2file')),
@@ -367,6 +378,77 @@ end;
 
 DF.tx = tx;
 DF.ty = ty;
+
+% ****************************
+function DF = dfExtraPoints(DF)
+
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
+defname = [];
+if (~isfield(DF,'ex') || isempty(DF.ex))
+    DF.ex = NaN(0,DF.nFrames);
+    DF.ey = NaN(0,DF.nFrames);
+    DF.exptnames = cell(0,1);
+    pt = 1;
+else
+    fprintf('You have %d extra points:\n', size(DF.ex,1));
+    for i = 1:size(DF.ex,1)
+        fprintf('  %d: %s\n', i, DF.exptnames{i});
+    end
+    pt = input('Choose point to modify, or hit return to add another point. ');
+    if (isempty(pt) || ~isnumeric(pt) || (pt < 1) || (pt > size(DF.ex,1)))
+        pt = size(DF.ex,1)+1;
+    else
+        defname = DF.exptnames{pt};
+    end
+end
+
+if isempty(defname)
+    defname = sprintf('pt%d',pt+1);
+end
+ptname = input(sprintf('Name of point (%s): ',defname),'s');
+if isempty(ptname)
+    ptname = defname;
+end
+    
+skip = input('Frame skip? ');
+
+fn = DF.avifile;
+if (isfield(DF,'avi2file')),
+	fnum = input('Which avi file (1 or 2)? ');
+	if (fnum == 2),
+		fn = DF.avi2file;
+	end;
+else
+    fnum = 1;
+end;
+
+scrsz = get(0,'ScreenSize');
+fig = figure;
+%fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+clf;
+[ex,ey] = manualTrackPoint(fn, skip);
+close(fig);
+
+if ((fnum == 2) && isfield(DF,'tform')),
+	good = isfinite(ex);
+	[ex(good), ey(good)] = feval(DF.tformfcn, DF.tform, ex(good), ey(good)); 
+end;
+
+if (all(~isfinite(ex)) && inputyn('No points were clicked.  Delete extra point completely? ','default',false))
+    if (pt < size(DF.ex,1))
+        DF.ex = DF.ex([1:pt-1 pt+1:end],:);
+        DF.ey = DF.ey([1:pt-1 pt+1:end],:);
+        DF.exptnames = DF.exptnames([1:pt-1 pt+1:end]);
+    end
+end
+
+DF.ex(pt,:) = ex;
+DF.ey(pt,:) = ey;
+DF.exptnames{pt} = ptname;
 
 % ****************************
 function DF = dfSmoothPts(DF)
@@ -403,7 +485,7 @@ else
     hspan(kh(1):kh(end)) = true;
 end;
 
-%% same thing for the tail points
+%** same thing for the tail points
 %and look for how many frames separate each defined frame
 d = diff(kt);
 
@@ -491,16 +573,42 @@ else
 	fprintf('Warning: No scale value.  Please calibrate.\n');
 end;
 
+%smooth extra points if they exist
+if isfield(DF,'ex')
+    exs = NaN(size(DF.ex));
+    eys = NaN(size(DF.ey));
+    
+    for i = 1:size(DF.ex,1)
+        good = isfinite(DF.ex(i,:));
+        span = first(good):last(good);
+        esp = spaps(DF.fr(good), [DF.ex(i,good); DF.ey(i,good)], MSE(1)^2, 3, ...
+            ones(1,sum(good))/sum(good));
+        
+        exys = fnval(esp, DF.fr(span));
+        exs(i,span) = exys(1,:);
+        eys(i,span) = exys(2,:);
+    end
+    
+    DF.exs = exs;
+    DF.eys = eys;
+    
+    if (isfield(DF,'scale'))
+        DF.exmm = exs*DF.scale;
+        DF.eymm = exs*DF.scale;
+    end
+end
+
 % ****************************
 function DF = dfPlotPts(DF)
 
 if (nanmean2(abs(DF.hxs-DF.txs)) > nanmean2(abs(DF.hys-DF.tys))),
+    ishoriz = true;
     if (isfield(DF,'scale')),
         hs = DF.hymm;
         h = DF.hy*DF.scale;
         ts = DF.tymm;
         t = DF.ty*DF.scale;
-
+        
         u = DF.humms;
         a = DF.haxmmss;
         units = 'mm';
@@ -515,6 +623,7 @@ if (nanmean2(abs(DF.hxs-DF.txs)) > nanmean2(abs(DF.hys-DF.tys))),
         units = 'pix';
     end;
 else
+    ishoriz = false;
     if (isfield(DF,'scale')),
         hs = DF.hxmm;
         h = DF.hx*DF.scale;
@@ -538,6 +647,14 @@ end;
 
 subplot(3,1,1);
 plot(DF.t,h,'bo',DF.t,t,'ro',DF.t,hs,'k-',DF.t,ts,'k-');
+if (isfield(DF,'ex'))
+    if (ishoriz)
+        addplot(DF.t,DF.ey,'+', DF.t,DF.eys,'b-');
+    else
+        addplot(DF.t,DF.ex,'+', DF.t,DF.exs,'b-');
+    end        
+end
+
 legend('Head','Tail');
 ylabel(['Position (' units ')']);
 
