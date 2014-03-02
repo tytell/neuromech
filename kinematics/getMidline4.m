@@ -6,6 +6,7 @@ opt.subtractbackground = [];
 opt.eqhist = false;
 opt.ntransect = 5;
 opt.gridsize = 10;
+opt.offsetfrac = 0.5;
 
 opt = parsevarargin(opt,varargin, 10);
 
@@ -134,6 +135,8 @@ for i = 1:length(frames)
         trans1 = interp2(I1,perpx,perpy, '*linear');
         transprev = interp2(Iprev,perpx,perpy, '*linear');
         %transnext = interp2(Inext,perpx,perpy, '*linear');
+        
+        vel = segmentvel(transprev,trans1, opt.gridsize, opt.offsetfrac);
         
         C1 = normxcorr2(transprev,trans1);
         k = (-maxoff:maxoff)+size(trans1,2);
@@ -281,6 +284,17 @@ vertplot(speak1,'k-');
 xlim([-maxoff maxoff]);
 
 
+% -------------------------------------------------------
+function segmentvel(T1,T2, gridsz, offfrac)
+%segment a transect depending on what is moving and what isn't
+
+offsz = gridsz * offfrac;
+n = floor((size(T1,2)-offsz) / offsz);
+
+offx = (0:n-1)*offsz;
+offx = offx + round((size(T1,2)-(offx(end)-gridsz))/2);
+
+%CONTINUE - do PIV style cross correlation here
 
     
     
