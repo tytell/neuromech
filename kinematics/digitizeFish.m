@@ -807,11 +807,11 @@ function DF = dfMidline(DF)
 
 clf;
 
-midfcns = {'getMidlineExt','getMidline3'};
-%sel = listdlg('PromptString','Midline tracking function:',...
-%                'SelectionMode','single',...
-%                'ListString',midfcns);
-midfcn = midfcns{1};
+midfcns = {'getMidlineExt','getMidline4'};
+sel = listdlg('PromptString','Midline tracking function:',...
+                'SelectionMode','single',...
+                'ListString',midfcns);
+midfcn = midfcns{sel};
 
 frame = first(DF.fr,isfinite(DF.hxs));
 fishlenpix = sqrt((DF.hxs(frame)-DF.txs(frame))^2 + (DF.hys(frame)-DF.tys(frame))^2);
@@ -884,6 +884,9 @@ if (~isempty(avifile)),
             [mx,my] = getMidline3(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
                 DF.width,DF.fishlenpix,...
                 'invert',invert,'fps',DF.fps, firstmid{:});
+        case 'getMidline4'
+            [mx,my] = getMidline4(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
+                DF.fishlenpix, maxSegAng, 'invert',invert, 'subtractbackground',DF.background);            
     end;
 else
     mx = NaN([npts length(DF.hxs)]);
