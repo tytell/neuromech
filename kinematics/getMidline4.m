@@ -7,6 +7,9 @@ opt.eqhist = false;
 opt.ntransect = 5;
 opt.gridsize = 10;
 opt.offsetfrac = 0.5;
+opt.gradient = 'sobel';
+opt.gradthresh = 0.3;
+opt.diffthresh = 0.3;
 
 opt = parsevarargin(opt,varargin, 10);
 
@@ -65,8 +68,8 @@ if (isempty(mx1))
     fprintf('Click first midline (excluding head and tail)\n');
     [mx0,my0] = ginputb;
     
-    mx0 = [hx(fr); mx0; tx(fr)];
-    my0 = [hy(fr); my0; ty(fr)];
+    mx0 = [hx(fr); mx0(:); tx(fr)];
+    my0 = [hy(fr); my0(:); ty(fr)];
     
     s0 = [0; cumsum(sqrt(diff(mx0).^2 + diff(my0).^2))];
     
@@ -91,15 +94,14 @@ for i = 1:length(frames)
     if (iseven)
         Iprev = I1;
         I1 = im2double(read(vid, fr));
-        I1 = processFrame(I1,opt);
+        [I1,G1x,G1y] = processFrame(I1,opt);
     else
+        Iprev = im2double(read(vid, fr-1));
+        Iprev = processFrame(Iprev,opt);
+
         I1 = im2double(read(vid, fr));
-        I1 = processFrame(I1,opt);
+        [I1,G1x,G1y] = processFrame(I1,opt);
     end
-    
-    %get the next frame
-    %Inext = im2double(read(vid, fr+1));
-    %Inext = processFrame(Inext,opt);
     
     %rotate and scale so that the previous midline fits between the
     %current head and tail positions
@@ -117,9 +119,13 @@ for i = 1:length(frames)
     offy1 = my2 - my1;
     
     offpar = offx1.*dxds + offy1.*dyds;
-    offperp = zeros(n,1);
+    coff = zeros(n,1);
     
     maxcorr = zeros(n,1);
+    goff = zeros(n,1);
+    goffmag = zeros(n,1);
+    doff = zeros(n,1);
+    doffmag = zeros(n,1);
     for pt = 2:n-1
         %create a transect perpendicular to the midline
         step = perpd; %*seglen;
@@ -134,10 +140,7 @@ for i = 1:length(frames)
 
         trans1 = interp2(I1,perpx,perpy, '*linear');
         transprev = interp2(Iprev,perpx,perpy, '*linear');
-        %transnext = interp2(Inext,perpx,perpy, '*linear');
-        
-        vel = segmentvel(transprev,trans1, opt.gridsize, opt.offsetfrac);
-        
+
         C1 = normxcorr2(transprev,trans1);
         k = (-maxoff:maxoff)+size(trans1,2);
         [maxC1, imax] = max(flatten(C1(:,k)));
@@ -146,17 +149,37 @@ for i = 1:length(frames)
         frac1 = subpixel(C1(npeak1,speak1+(-1:1))');
         speak1 = speak1 - size(trans1,2) + frac1;
         
-%         C2 = normxcorr2(trans1,transnext);
-%         [maxC2, imax] = max(flatten(C2(:,k)));
-%         [npeak2,speak2] = ind2sub([size(C2,1) length(k)], imax);
-%         speak2 = speak2+k(1)-1;
-%         frac2 = subpixel(C2(npeak2,speak2+(-1:1))');
-%         speak2 = speak2 - size(trans1,2) + frac2;
-
-        offperp(pt) = speak1;
+        coff(pt) = speak1;
         maxcorr(pt) = maxC1;
+        
+        perpx = mx1(pt) - (perps+speak1)*dyds(pt) + perpn*dxds(pt);
+        perpy = my1(pt) + (perps+speak1)*dxds(pt) + perpn*dyds(pt);
+
+        transgradx = interp2(G1x,perpx,perpy, '*linear');
+        transgrady = interp2(G1y,perpx,perpy, '*linear');
+        transgrad = -transgradx.*dyds(pt) + transgrady.*dxds(pt);
+        
+        transdiff = interp2(abs(I1 - Iprev), perpx,perpy, '*linear');
+        transdiff = abs(transdiff);
+        
+        for j = 1:size(transgrad,1)
+            [gpks1,gpos1] = findpeaks(transgrad(j,:),'minpeakheight',opt.gradthresh, ...
+                'minpeakdistance',3);
+            if (length(gpos1) >= 2)
+                goff(pt) = diff(perps(gpos1([1 end]))) + speak1;
+                goffmag(pt) = sum(gpks1([1 end]));
+            end
+            [dpks1,dpos1] = findpeaks(transdiff(j,:),'minpeakheight',opt.diffthresh, ...
+                'minpeakdistance',3);
+            if (length(dpos1) >= 2)
+                doff(pt) = diff(perps(dpos1([1 end]))) + speak1;
+                doffmag(pt) = sum(dpks1([1 end]));
+            end
+        end
     end
-    
+
+    offperp = (coff.*maxcorr + goff.*goffmag + doff.*doffmag) ./ ...
+        (maxcorr + goffmag + doffmag);
     mx2 = mx1 + offpar.*dxds - offperp.*dyds;
     my2 = my1 + offpar.*dyds + offperp.*dxds;
     mx2([1 end]) = [hx(fr); tx(fr)];
@@ -197,8 +220,8 @@ for i = 1:length(frames)
 
 end
 
-
-function I = processFrame(I, opt)
+% -------------------------------------------------------
+function [I,Gx,Gy] = processFrame(I, opt)
 
 if (size(I,3) > 1),
     I = I(:,:,1);
@@ -214,6 +237,9 @@ end;
 if (opt.eqhist)
     I = histeq(I);
 end;
+if (nargout == 3)
+    [Gx,Gy] = imgradientxy(I,opt.gradient);
+end
 
 % -------------------------------------------------------
 function [x,y] = rotateAndScale(x,y, a,xa,ya, b,xb,yb)
