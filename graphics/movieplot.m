@@ -27,66 +27,91 @@ opt.axisequal = true;
 opt.axislimits = [];
 opt.outputfile = '';
 opt.fps = 5;
+opt.plotfcn = @plot;
+opt.size = [];          %size of AVI image in pixels
+opt.background = 'w';
 
-set(gcf,'DoubleBuffer','on');
+if ((numel(varargin{1}) == 1) && ishandle(varargin{1}) && ...
+        strcmp(get(varargin{1},'type'), 'figure'))
+    fig = varargin{1};
+    p = 2;
+else
+    fig = gcf;
+    p = 1;
+end
 
-[opt,p] = parsevarargin(opt,varargin,1,'allowno','leaveunknown');
+set(fig,'DoubleBuffer','on', 'Color',opt.background);
 
-if (length(p) < 2)
+[opt,params] = parsevarargin(opt,varargin(p:end),1,'allowno','leaveunknown');
+
+if (length(params) < 2)
     error('Too few arguments');
 end;
 
-if (size(p{1},2) == 1),
-    N = size(p{2},2);
+if (size(params{1},2) == 1),
+    N = size(params{2},2);
 else
-    N = size(p{1},2);
+    N = size(params{1},2);
 end;
+
+if (~isempty(opt.size))
+    set(fig, 'WindowStyle','normal', 'Units','pixels');
+    pos = get(fig, 'Position');
+    pos([3 4]) = opt.size;
+    set(fig, 'Position',pos);
+    
+    clf;
+    if (opt.hideaxis)
+        axes('Position',[0 0 1 1]);
+    end
+end
 
 if (isempty(opt.axislimits)),
     ax = [Inf -Inf Inf -Inf];
     i = 1;
     done = false;
-    while (~done && (i <= length(p))),
-        if (i+1 > length(p)),
+    while (~done && (i <= length(params))),
+        if (i+1 > length(params)),
             error('Cannot parse plot parameters');
         end;
 
-        ax(1) = min([ax(1); p{i}(:)]);
-        ax(2) = max([ax(2); p{i}(:)]);
-        ax(3) = min([ax(3); p{i+1}(:)]);
-        ax(4) = max([ax(4); p{i+1}(:)]);
-        
-        i = i+2;
-        
-        if ((i <= length(p)) && ischar(p{i})),
-            if (matchlinespec(p{i})),
-                i = i+1;
-            else
-                %this should be options for the plot function
-                done = true;
+        if (ischar(params{i}))
+            done = true;
+        else        
+            ax(1) = min([ax(1); params{i}(:)]);
+            ax(2) = max([ax(2); params{i}(:)]);
+            ax(3) = min([ax(3); params{i+1}(:)]);
+            ax(4) = max([ax(4); params{i+1}(:)]);
+
+            i = i+2;
+
+            if ((i <= length(params)) && ischar(params{i})),
+                if (matchlinespec(params{i})),
+                    i = i+1;
+                end;
             end;
-        end;
+        end
     end;
 
     opt.axislimits = ax;
 end;
 
 if (~isempty(opt.outputfile)),
-    aviobj = avifile(opt.outputfile,'fps',opt.fps);
+    aviobj = VideoWriter(opt.outputfile);
+    set(aviobj,'FrameRate',opt.fps);
+    open(aviobj);
 end;
 
-fig = gcf;
-
-p1 = cell(size(p));
+p1 = cell(size(params));
 for i = 1:N,
-    for j = 1:length(p),
-        if (isnumeric(p{j}) && (size(p{j},2) == N)),
-            p1{j} = p{j}(:,i);
+    for j = 1:length(params),
+        if (isnumeric(params{j}) && (size(params{j},2) == N)),
+            p1{j} = params{j}(:,i);
         else
-            p1{j} = p{j};
+            p1{j} = params{j};
         end;
     end;
-    plot(p1{:});
+    feval(opt.plotfcn,p1{:});
 
     if (opt.axisequal),
         axis equal;
@@ -106,7 +131,7 @@ for i = 1:N,
         sz = floor(sz(1:2)/4)*4;
         F.cdata = F.cdata(1:sz(1),1:sz(2),:);
         
-        aviobj = addframe(aviobj,F);
+        writeVideo(aviobj,F);
     end;
         
     if (opt.delay > 0),
@@ -115,6 +140,6 @@ for i = 1:N,
 end;
 
 if (~isempty(opt.outputfile)),
-    aviobj = close(aviobj);
+    close(aviobj);
 end;
 
