@@ -9,7 +9,9 @@ opt.gridsize = 10;
 opt.offsetfrac = 0.5;
 opt.gradient = 'sobel';
 opt.gradthresh = 0.3;
-opt.diffthresh = 0.3;
+opt.diffthresh = 0.2;
+opt.centering = false;
+opt.ignore = [0.3 0.55];        % ignore pectoral fins in this region
 
 opt = parsevarargin(opt,varargin, 10);
 
@@ -87,6 +89,15 @@ axis(hax,lim);
 
 ntrans1 = floor(opt.ntransect/2);
 
+if ~isempty(opt.ignore)
+    s0 = (0:n-1) * seglen;
+    s0 = s0 / s0(end);
+    
+    goodpt = find((s0 <= opt.ignore(1)) | (s0 >= opt.ignore(2)));
+else
+    goodpt = 1:npt;
+end
+
 for i = 1:length(frames)
     fr = frames(i);
     
@@ -126,7 +137,7 @@ for i = 1:length(frames)
     goffmag = zeros(n,1);
     doff = zeros(n,1);
     doffmag = zeros(n,1);
-    for pt = 2:n-1
+    for pt = goodpt
         %create a transect perpendicular to the midline
         step = perpd; %*seglen;
         perps = -step:step;
@@ -155,48 +166,67 @@ for i = 1:length(frames)
         perpx = mx1(pt) - (perps+speak1)*dyds(pt) + perpn*dxds(pt);
         perpy = my1(pt) + (perps+speak1)*dxds(pt) + perpn*dyds(pt);
 
-        transgradx = interp2(G1x,perpx,perpy, '*linear');
-        transgrady = interp2(G1y,perpx,perpy, '*linear');
-        transgrad = -transgradx.*dyds(pt) + transgrady.*dxds(pt);
+        transgrad = interp2(-G1x*dyds(pt) + G1y.*dxds(pt),perpx,perpy, '*linear');
+        %transgrady = interp2(G1y,perpx,perpy, '*nearest');
+        %transgrad = -transgradx.*dyds(pt) + transgrady.*dxds(pt);
         
         transdiff = interp2(abs(I1 - Iprev), perpx,perpy, '*linear');
         transdiff = abs(transdiff);
         
+        gpk1 = NaN(size(transgrad,1),2);
+        gpkmag1 = NaN(size(transgrad,1),2);
+        dpk1 = NaN(size(transgrad,1),2);
+        dpkmag1 = NaN(size(transgrad,1),2);
         for j = 1:size(transgrad,1)
-            [gpks1,gpos1] = findpeaks(transgrad(j,:),'minpeakheight',opt.gradthresh, ...
-                'minpeakdistance',3);
-            if (length(gpos1) >= 2)
-                goff(pt) = diff(perps(gpos1([1 end]))) + speak1;
-                goffmag(pt) = sum(gpks1([1 end]));
+            if any(transgrad(j,:) > opt.gradthresh)
+                [gpks1,gpos1] = findpeaks(transgrad(j,:),'minpeakheight',opt.gradthresh, ...
+                    'minpeakdistance',3);
+                if (length(gpos1) >= 2)
+                    gpos1 = perps(1,gpos1([1 end]));
+                    if (~opt.centering || (sign(gpos1(1)) ~= sign(gpos1(2))))
+                        gpk1(j,:) = gpos1;
+                        gpkmag1(j,:) = gpks1([1 end]);
+                    end
+                end
             end
-            [dpks1,dpos1] = findpeaks(transdiff(j,:),'minpeakheight',opt.diffthresh, ...
-                'minpeakdistance',3);
-            if (length(dpos1) >= 2)
-                doff(pt) = diff(perps(dpos1([1 end]))) + speak1;
-                doffmag(pt) = sum(dpks1([1 end]));
+            
+            if any(transdiff(j,:) > opt.diffthresh)
+                [dpks1,dpos1] = findpeaks(transdiff(j,:),'minpeakheight',opt.diffthresh, ...
+                    'minpeakdistance',3);
+                if (length(dpos1) >= 2)
+                    dpos1 = perps(1,dpos1([1 end]));
+                    if (~opt.centering || (sign(dpos1(1)) ~= sign(dpos1(2))))
+                        dpk1(j,:) = dpos1;
+                        dpkmag1(j,:) = dpks1([1 end]);
+                    end
+                end
             end
         end
+        goff(pt) = mean(nanmedian(gpk1)) - speak1;
+        goffmag(pt) = sum(nanmean(gpkmag1));
+        doff(pt) = mean(nanmedian(dpk1)) - speak1;
+        doffmag(pt) = sum(nanmean(dpkmag1));
     end
 
-    offperp = (coff.*maxcorr + goff.*goffmag + doff.*doffmag) ./ ...
-        (maxcorr + goffmag + doffmag);
+    offperp = nansum([coff goff doff].*[maxcorr goffmag doffmag], 2) ./ ...
+        nansum([maxcorr goffmag doffmag],2);
     mx2 = mx1 + offpar.*dxds - offperp.*dyds;
     my2 = my1 + offpar.*dyds + offperp.*dxds;
     mx2([1 end]) = [hx(fr); tx(fr)];
     my2([1 end]) = [hy(fr); ty(fr)];
     
-    ang1 = atan2(diff(my2), diff(mx2));
-    curve1 = [0; diff(ang1) / (2*seglen); 0];
+    ang1 = atan2(diff(my2(goodpt)), diff(mx2(goodpt)));
+    curve1 = [0; diff(ang1) ./ (2*seglen*diff(goodpt(1:end-1))'); 0];
     dcurveds1 = (abs(curve1(3:end) - curve1(2:end-1)) + ...
-        abs(curve1(2:end-1) - curve1(1:end-2)))/(2*seglen);
+        abs(curve1(2:end-1) - curve1(1:end-2)))./(2*seglen*diff(goodpt(1:end-1)'));
     
     weight1 = 1./dcurveds1;
     weight1(weight1 > 1e6) = 1e6;
     weight1 = [2*max(weight1); weight1; 2*max(weight1)];
     weight1 = weight1 / sum(weight1);
     
-    s1 = [0; cumsum(sqrt(diff(mx2).^2 + diff(my2).^2))];
-    sp = spaps(s1', [mx2 my2]', -0.8, weight1);
+    s1 = [0; cumsum(sqrt(diff(mx2(goodpt)).^2 + diff(my2(goodpt)).^2))];
+    sp = spaps(s1', [mx2(goodpt) my2(goodpt)]', -0.8, weight1);
     
     mxy = fnval(sp, s);
     mx1 = mxy(1,:)';
