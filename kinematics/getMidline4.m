@@ -11,7 +11,7 @@ opt.gradient = 'sobel';
 opt.gradthresh = 0.3;
 opt.diffthresh = 0.2;
 opt.centering = false;
-opt.ignore = [0.3 0.55];        % ignore pectoral fins in this region
+opt.ignore = [0.25 0.6];        % ignore pectoral fins in this region
 
 opt = parsevarargin(opt,varargin, 10);
 
@@ -87,6 +87,8 @@ hln(2) = addplot(mx1,my1,'bo-');
 lim = [min(mx1)-0.5*len max(mx1)+0.5*len min(my1)-0.5*len max(my1)+0.5*len];
 axis(hax,lim);
 
+ht = title(sprintf('Frame %d (%d%%)', frames(1), 0));
+
 ntrans1 = floor(opt.ntransect/2);
 
 if ~isempty(opt.ignore)
@@ -94,11 +96,16 @@ if ~isempty(opt.ignore)
     s0 = s0 / s0(end);
     
     goodpt = find((s0 <= opt.ignore(1)) | (s0 >= opt.ignore(2)));
+    goodpt = goodpt((goodpt ~= 1) & (goodpt ~= n));
 else
-    goodpt = 1:npt;
+    goodpt = 2:n-1;
 end
 
+cycletimes = NaN(size(frames));
+totaltimer = tic;
 for i = 1:length(frames)
+    cycletimer = tic;
+    
     fr = frames(i);
     
     %load the frame
@@ -214,26 +221,27 @@ for i = 1:length(frames)
     my2 = my1 + offpar.*dyds + offperp.*dxds;
     mx2([1 end]) = [hx(fr); tx(fr)];
     my2([1 end]) = [hy(fr); ty(fr)];
+    goodpt1 = [1 goodpt n];
     
-    ang1 = atan2(diff(my2(goodpt)), diff(mx2(goodpt)));
-    curve1 = [0; diff(ang1) ./ (2*seglen*diff(goodpt(1:end-1))'); 0];
+    ang1 = atan2(diff(my2(goodpt1)), diff(mx2(goodpt1)));
+    curve1 = [0; diff(ang1) ./ (2*seglen*diff(goodpt1(1:end-1))'); 0];
     dcurveds1 = (abs(curve1(3:end) - curve1(2:end-1)) + ...
-        abs(curve1(2:end-1) - curve1(1:end-2)))./(2*seglen*diff(goodpt(1:end-1)'));
+        abs(curve1(2:end-1) - curve1(1:end-2)))./(2*seglen*diff(goodpt1(1:end-1)'));
     
     weight1 = 1./dcurveds1;
     weight1(weight1 > 1e6) = 1e6;
     weight1 = [2*max(weight1); weight1; 2*max(weight1)];
     weight1 = weight1 / sum(weight1);
     
-    s1 = [0; cumsum(sqrt(diff(mx2(goodpt)).^2 + diff(my2(goodpt)).^2))];
-    sp = spaps(s1', [mx2(goodpt) my2(goodpt)]', -0.8, weight1);
+    s1 = [0; cumsum(sqrt(diff(mx2(goodpt1)).^2 + diff(my2(goodpt1)).^2))];
+    sp = spaps(s1', [mx2(goodpt1) my2(goodpt1)]', -0.8, weight1);
     
     mxy = fnval(sp, s);
     mx1 = mxy(1,:)';
     my1 = mxy(2,:)';
 
-    mx1(end) = tx(fr);
-    my1(end) = ty(fr);
+    mx1([1 end]) = [hx(fr); tx(fr)];
+    my1([1 end]) = [hy(fr); ty(fr)];
     
     mx(:,fr) = mx1;
     my(:,fr) = my1;
@@ -245,6 +253,14 @@ for i = 1:length(frames)
 
         lim = [min(mx1)-0.5*len max(mx1)+0.5*len min(my1)-0.5*len max(my1)+0.5*len];
         axis(hax,lim);
+        
+        cycletimes(i) = toc(cycletimer);
+        elapsed = toc(totaltimer);
+        cyclemn = nanmedian(cycletimes);
+        timeleft = (length(frames)-i)*cyclemn;
+        set(ht, 'String', sprintf('Frame %d (%d%%): %s elapsed, %s remaining', ...
+            fr, round((i/length(frames))*100), ...
+            formatseconds(elapsed), formatseconds(timeleft)));
         drawnow;
     end
 

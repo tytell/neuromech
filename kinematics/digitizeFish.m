@@ -11,7 +11,7 @@ Menu = {'C','Calibrate',@dfCalibrate; ...
         'S','Smooth head and tail positions',@dfSmoothPts; ...
         'V','Plot head velocity and acceleration',@dfPlotPts; ...
         'W','Get fish width',@dfWidth; ...
-        %'1','Click first midline',@dfFirstMidline; ...
+        '1','Click first midline',@dfFirstMidline; ...
         'B','Subtract background',@dfSubBack; ...
         'M','Digitize midline',@dfMidline; ...
         'A','Smooth midline',@dfSmoothMid; ...
@@ -722,7 +722,7 @@ DF.width = w;
 % ****************************
 function DF = dfFirstMidline(DF)
 
-reader = mmreader(DF.avifile);
+reader = VideoReader2(DF.avifile);
 
 frame = first(DF.fr,isfinite(DF.hxs));
 
@@ -731,6 +731,7 @@ if (size(I,3) > 1),
     I = rgb2gray(I);
 end;
 
+clf;
 imshow6(I,'n');
 
 input('Zoom to fish and press return');
@@ -750,7 +751,7 @@ s1 = [0; cumsum(sqrt(diff(mx1).^2 + diff(my1).^2))];
 
 sp = spaps(s1',[mx1 my1]',0.5^2);
 
-s = linspace(0,max(s1),DF.npts);
+s = linspace(0,max(s1),20);
 xy = fnval(sp, s);
 
 DF.mx1 = xy(1,:)';
@@ -814,10 +815,14 @@ sel = listdlg('PromptString','Midline tracking function:',...
 midfcn = midfcns{sel};
 
 frame = first(DF.fr,isfinite(DF.hxs));
-fishlenpix = sqrt((DF.hxs(frame)-DF.txs(frame))^2 + (DF.hys(frame)-DF.tys(frame))^2);
+if (isfield(DF,'mx1') && ~isempty(DF.mx1))
+    fishlenpix = sum(sqrt(diff(DF.mx1).^2 + diff(DF.my1).^2));
+else
+    fishlenpix = sqrt((DF.hxs(frame)-DF.txs(frame))^2 + (DF.hys(frame)-DF.tys(frame))^2);
+end
 
 if (isfield(DF,'scale')),
-    fishlenmm = fishlenpix / DF.scale;
+    fishlenmm = fishlenpix * DF.scale;
     units = 'mm';
 else
     fishlenmm = fishlenpix;
@@ -867,6 +872,10 @@ else
     avifile = DF.avifile;
 end;
 
+if (~isfield(DF,'background'))
+    DF.background = [];
+end
+
 frames = DF.fr(isfinite(DF.hxs) & isfinite(DF.txs));
 if (~isempty(avifile)),
     if (isfield(DF,'mx1') && strcmp(midfcn,'getMidline3')),
@@ -885,8 +894,32 @@ if (~isempty(avifile)),
                 DF.width,DF.fishlenpix,...
                 'invert',invert,'fps',DF.fps, firstmid{:});
         case 'getMidline4'
-            [mx,my] = getMidline4(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
-                DF.fishlenpix, maxSegAng, 'invert',invert, 'subtractbackground',DF.background);            
+            if (~isfield(DF, 'mx1') || isempty(DF.mx1))
+                warning('Must digitize the first midline before running getMidline4');
+                mx = [];
+                my = [];
+            else
+                if (length(DF.mx1) ~= npts)
+                    s1 = [0; cumsum(sqrt(diff(DF.mx1).^2 + diff(DF.my1).^2))];
+                    s2 = linspace(0,s1(end), npts);
+                    
+                    DF.mx1 = spline(s1, DF.mx1, s2);
+                    DF.my1 = spline(s1, DF.my1, s2);
+                end
+                if (inputyn('Ignore pectoral fin region?'))
+                    rgn = input('Pectoral fin region, in fraction of body length (default [0.3 0.55]): ');
+                    if (length(rgn) ~= 2)
+                        rgn = [0.25 0.6];
+                    end
+                else
+                    rgn = [];
+                end
+                [mx,my] = getMidline4(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, ...
+                    DF.mx1,DF.my1, npts, ...
+                    DF.fishlenpix, maxSegAng, ...
+                    'invert',invert, 'subtractbackground',DF.background, ...
+                    'ignore',rgn);
+            end
     end;
 else
     mx = NaN([npts length(DF.hxs)]);
@@ -949,7 +982,7 @@ terr1 = input('Temporal smoothing value (0.05): ');
 if (isempty(terr1))
     DF.terr = 0.05;
 else
-    DF.terr = serr1;
+    DF.terr = terr1;
 end
 
 [mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr);
