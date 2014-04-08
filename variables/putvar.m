@@ -14,6 +14,7 @@ function varargout = putvar(varargin)
 %    workspace.  (equivalent to putvar(S,fields...))
 %    '-all' - Operates on all of the current variables
 %    '-except',variables - Except for these variables
+%    '-v7.3','-v7','-v6','-v4' - Matlab file format
 %
 % Note that the syntax is a bit different than SAVE.  For example,
 %   putvar('-fromstruct',S,'-all')
@@ -37,6 +38,7 @@ tostruct = false;
 ishidden = false;
 isall = false;
 fromstruct = false;
+filefmt = '-v7.3';
 
 p = 1;
 if ((nargin >= 1) && isstruct(varargin{1})),
@@ -91,6 +93,12 @@ while (p <= length(vars)),
             ishidden = true;
             optind(end+1) = p;
             isvar(p) = false;
+            p = p+1;
+            
+        case {'-v7.3','-v7','-v6','-v4'}
+            filefmt = varargin{p};
+            isvar(p) = false;
+            optind(end+1) = p;
             p = p+1;
             
         otherwise,
@@ -173,7 +181,7 @@ if (tostruct),
     end;
 elseif (~isempty(outfile)),
     if (exist(outfile,'file'))
-        save(outfile,'-append','-struct','F');
+        save(outfile,'-append','-struct','F',filefmt);
     else
         save(outfile,'-struct','F');
     end
