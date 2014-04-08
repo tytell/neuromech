@@ -77,6 +77,7 @@ facedir = 1;
 sumtransect = 0;
 prevmx = [];
 prevmy = [];
+background = [];
 i = 1;
 while (i <= length(opts)),
     switch lower(opts{i}),
@@ -123,6 +124,10 @@ while (i <= length(opts)),
             prevmx = opts{i+1};
             prevmy = opts{i+2};
             i = i+2;
+            
+        case 'subtractbackground',
+            background = opts{i+1};
+            i = i+1;
             
         otherwise,
             error('Unrecognized option %s',opts{i});
@@ -199,6 +204,11 @@ for j = 1:length(frames),
     else
         I1 = I(:,:,fr);
     end;
+    
+    if (~isempty(background))
+        I1 = I1 - background;
+        I1 = I1 - min(I1(:));
+    end
     
     if (invert),
         I1 = 1-I1;

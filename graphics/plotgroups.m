@@ -514,15 +514,19 @@ for i = 1:ncomb,
         end;
         if (strcmpi(options.Error,'sem') || strcmpi(options.Error,'all')),
             if (ismember(options.Trace,{'on'})),
+                px = [x1; x1(end:-1:1)];
                 py = [y1; y1(end:-1:1)] + [sem1; -sem1(end:-1:1)];
+                h1 = fill(px,py,col1,'EdgeColor','none');
+                hSem(i) = h1;
             else
-                py = [y1 y1 repmat(NaN,[length(y1) 1])]' + ...
-                     [sem1 -sem1 repmat(NaN,[length(y1) 1])]';
+                px = [x1 x1 NaN([length(x1) 1])]';
+                py = [y1 y1 NaN([length(y1) 1])]' + ...
+                     [sem1 -sem1 NaN([length(y1) 1])]';
             end;
-            if (~isempty(px)),
+            if (~isempty(px) && ~ishandle(hSem(i))),
                 hSem(i) = plot(px(:),py(:),'Color',col1,...
                                'LineWidth',options.semLineWidth);
-            else
+            elseif ~ishandle(hSem(i))
                 hSem(i) = line('XData',[],'YData',[],'Color',col1,...
                                'LineStyle','none');
             end;

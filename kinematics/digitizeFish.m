@@ -7,10 +7,12 @@ function digitizeFish(datafile)
 Menu = {'C','Calibrate',@dfCalibrate; ...
         'H','Click head position',@dfHead; ...
         'T','Click tail position',@dfTail; ...
+        'X','Click extra points',@dfExtraPoints; ...
         'S','Smooth head and tail positions',@dfSmoothPts; ...
         'V','Plot head velocity and acceleration',@dfPlotPts; ...
         'W','Get fish width',@dfWidth; ...
-        %'1','Click first midline',@dfFirstMidline; ...
+        '1','Click first midline',@dfFirstMidline; ...
+        'B','Subtract background',@dfSubBack; ...
         'M','Digitize midline',@dfMidline; ...
         'A','Smooth midline',@dfSmoothMid; ...
         'K','Generate kinematic parameters',@dfAnalyze; ...
@@ -55,7 +57,7 @@ end;
 
 %get a file if we don't have one
 if (~isavi),
-    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.mpg','MPG';'*.tif','TIFF'},'Choose movie file');
+    [avifile,pathname] = uigetfile({'*.avi','AVI';'*.cine','Cine';'*.mpg','MPG';'*.tif','TIFF'},'Choose movie file');
     if (isnumeric(avifile) && (avifile == 0)),
         return;
     end;
@@ -149,7 +151,7 @@ if (~isfield(DF,'scale')),
 	fprintf('Warning: No scale value saved.\n');
 end;
 
-fpsdefault = DF.mmfile.FrameRate;
+fpsdefault = double(DF.mmfile.FrameRate);
 fps = input(sprintf('Frames per second? (default %g) ', fpsdefault));
 if (isempty(fps)),
     fps = fpsdefault;
@@ -311,6 +313,11 @@ end;
 % ****************************
 function DF = dfHead(DF)
 
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
 skip = input('Frame skip? ');
 
 fn = DF.avifile;
@@ -341,6 +348,11 @@ DF.hy = hy;
 % ****************************
 function DF = dfTail(DF)
 
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
 skip = input('Frame skip? ');
 fn = DF.avifile;
 if (isfield(DF,'avi2file')),
@@ -366,6 +378,77 @@ end;
 
 DF.tx = tx;
 DF.ty = ty;
+
+% ****************************
+function DF = dfExtraPoints(DF)
+
+if (~isfield(DF,'fps'))
+    fprintf('You must select a calibration option before clicking points');
+    return
+end
+
+defname = [];
+if (~isfield(DF,'ex') || isempty(DF.ex))
+    DF.ex = NaN(0,DF.nFrames);
+    DF.ey = NaN(0,DF.nFrames);
+    DF.exptnames = cell(0,1);
+    pt = 1;
+else
+    fprintf('You have %d extra points:\n', size(DF.ex,1));
+    for i = 1:size(DF.ex,1)
+        fprintf('  %d: %s\n', i, DF.exptnames{i});
+    end
+    pt = input('Choose point to modify, or hit return to add another point. ');
+    if (isempty(pt) || ~isnumeric(pt) || (pt < 1) || (pt > size(DF.ex,1)))
+        pt = size(DF.ex,1)+1;
+    else
+        defname = DF.exptnames{pt};
+    end
+end
+
+if isempty(defname)
+    defname = sprintf('pt%d',pt+1);
+end
+ptname = input(sprintf('Name of point (%s): ',defname),'s');
+if isempty(ptname)
+    ptname = defname;
+end
+    
+skip = input('Frame skip? ');
+
+fn = DF.avifile;
+if (isfield(DF,'avi2file')),
+	fnum = input('Which avi file (1 or 2)? ');
+	if (fnum == 2),
+		fn = DF.avi2file;
+	end;
+else
+    fnum = 1;
+end;
+
+scrsz = get(0,'ScreenSize');
+fig = figure;
+%fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
+clf;
+[ex,ey] = manualTrackPoint(fn, skip);
+close(fig);
+
+if ((fnum == 2) && isfield(DF,'tform')),
+	good = isfinite(ex);
+	[ex(good), ey(good)] = feval(DF.tformfcn, DF.tform, ex(good), ey(good)); 
+end;
+
+if (all(~isfinite(ex)) && inputyn('No points were clicked.  Delete extra point completely? ','default',false))
+    if (pt < size(DF.ex,1))
+        DF.ex = DF.ex([1:pt-1 pt+1:end],:);
+        DF.ey = DF.ey([1:pt-1 pt+1:end],:);
+        DF.exptnames = DF.exptnames([1:pt-1 pt+1:end]);
+    end
+end
+
+DF.ex(pt,:) = ex;
+DF.ey(pt,:) = ey;
+DF.exptnames{pt} = ptname;
 
 % ****************************
 function DF = dfSmoothPts(DF)
@@ -402,7 +485,7 @@ else
     hspan(kh(1):kh(end)) = true;
 end;
 
-%% same thing for the tail points
+%** same thing for the tail points
 %and look for how many frames separate each defined frame
 d = diff(kt);
 
@@ -490,16 +573,42 @@ else
 	fprintf('Warning: No scale value.  Please calibrate.\n');
 end;
 
+%smooth extra points if they exist
+if isfield(DF,'ex')
+    exs = NaN(size(DF.ex));
+    eys = NaN(size(DF.ey));
+    
+    for i = 1:size(DF.ex,1)
+        good = isfinite(DF.ex(i,:));
+        span = first(good):last(good);
+        esp = spaps(DF.fr(good), [DF.ex(i,good); DF.ey(i,good)], MSE(1)^2, 3, ...
+            ones(1,sum(good))/sum(good));
+        
+        exys = fnval(esp, DF.fr(span));
+        exs(i,span) = exys(1,:);
+        eys(i,span) = exys(2,:);
+    end
+    
+    DF.exs = exs;
+    DF.eys = eys;
+    
+    if (isfield(DF,'scale'))
+        DF.exmm = exs*DF.scale;
+        DF.eymm = exs*DF.scale;
+    end
+end
+
 % ****************************
 function DF = dfPlotPts(DF)
 
 if (nanmean2(abs(DF.hxs-DF.txs)) > nanmean2(abs(DF.hys-DF.tys))),
+    ishoriz = true;
     if (isfield(DF,'scale')),
         hs = DF.hymm;
         h = DF.hy*DF.scale;
         ts = DF.tymm;
         t = DF.ty*DF.scale;
-
+        
         u = DF.humms;
         a = DF.haxmmss;
         units = 'mm';
@@ -514,6 +623,7 @@ if (nanmean2(abs(DF.hxs-DF.txs)) > nanmean2(abs(DF.hys-DF.tys))),
         units = 'pix';
     end;
 else
+    ishoriz = false;
     if (isfield(DF,'scale')),
         hs = DF.hxmm;
         h = DF.hx*DF.scale;
@@ -537,6 +647,14 @@ end;
 
 subplot(3,1,1);
 plot(DF.t,h,'bo',DF.t,t,'ro',DF.t,hs,'k-',DF.t,ts,'k-');
+if (isfield(DF,'ex'))
+    if (ishoriz)
+        addplot(DF.t,DF.ey,'+', DF.t,DF.eys,'b-');
+    else
+        addplot(DF.t,DF.ex,'+', DF.t,DF.exs,'b-');
+    end        
+end
+
 legend('Head','Tail');
 ylabel(['Position (' units ')']);
 
@@ -604,7 +722,7 @@ DF.width = w;
 % ****************************
 function DF = dfFirstMidline(DF)
 
-reader = mmreader(DF.avifile);
+reader = VideoReader2(DF.avifile);
 
 frame = first(DF.fr,isfinite(DF.hxs));
 
@@ -613,6 +731,7 @@ if (size(I,3) > 1),
     I = rgb2gray(I);
 end;
 
+clf;
 imshow6(I,'n');
 
 input('Zoom to fish and press return');
@@ -632,29 +751,78 @@ s1 = [0; cumsum(sqrt(diff(mx1).^2 + diff(my1).^2))];
 
 sp = spaps(s1',[mx1 my1]',0.5^2);
 
-s = linspace(0,max(s1),DF.npts);
+s = linspace(0,max(s1),20);
 xy = fnval(sp, s);
 
 DF.mx1 = xy(1,:)';
 DF.my1 = xy(2,:)';
 
+% ****************************
+function DF = dfSubBack(DF)
+
+if ~inputyn('Subtract backgound? ', 'default',true)
+    DF.background = [];
+else
+    done = false;
+    while ~done
+        n = input('How many frames to use to generate background image? (default = 10) ');
+        if isempty(n)
+            n = 10;
+        end
+
+        fr = linspace(1,DF.nFrames,n);
+        fr = round(fr);
+        back = zeros(DF.mmfile.Height, DF.mmfile.Width);
+
+        timedWaitBar(0, 'Generating background image');
+        for i = fr
+            I1 = im2double(read(DF.mmfile, i));
+            if (size(I1,3) == 3)
+                I1 = rgb2gray(I1);
+            end
+            back = back + I1;
+            timedWaitBar(i/DF.nFrames);
+        end
+        timedWaitBar(1);
+
+        switch class(I1)
+            case 'uint8'
+                m = 255;
+            case 'uint16'
+                m = 65535;
+            case 'double'
+                m = 1;
+        end
+        back = back/n / m;
+       
+        imshow6(back);
+        title('Average background');
+
+        done = inputyn('Is background OK? ', 'default',true);
+    end
+    DF.background = back;
+end
 
 % ****************************
 function DF = dfMidline(DF)
 
 clf;
 
-midfcns = {'getMidlineExt','getMidline3'};
-%sel = listdlg('PromptString','Midline tracking function:',...
-%                'SelectionMode','single',...
-%                'ListString',midfcns);
-midfcn = midfcns{1};
+midfcns = {'getMidlineExt','getMidline4'};
+sel = listdlg('PromptString','Midline tracking function:',...
+                'SelectionMode','single',...
+                'ListString',midfcns);
+midfcn = midfcns{sel};
 
 frame = first(DF.fr,isfinite(DF.hxs));
-fishlenpix = sqrt((DF.hxs(frame)-DF.txs(frame))^2 + (DF.hys(frame)-DF.tys(frame))^2);
+if (isfield(DF,'mx1') && ~isempty(DF.mx1))
+    fishlenpix = sum(sqrt(diff(DF.mx1).^2 + diff(DF.my1).^2));
+else
+    fishlenpix = sqrt((DF.hxs(frame)-DF.txs(frame))^2 + (DF.hys(frame)-DF.tys(frame))^2);
+end
 
 if (isfield(DF,'scale')),
-    fishlenmm = fishlenpix / DF.scale;
+    fishlenmm = fishlenpix * DF.scale;
     units = 'mm';
 else
     fishlenmm = fishlenpix;
@@ -704,6 +872,10 @@ else
     avifile = DF.avifile;
 end;
 
+if (~isfield(DF,'background'))
+    DF.background = [];
+end
+
 frames = DF.fr(isfinite(DF.hxs) & isfinite(DF.txs));
 if (~isempty(avifile)),
     if (isfield(DF,'mx1') && strcmp(midfcn,'getMidline3')),
@@ -716,11 +888,38 @@ if (~isempty(avifile)),
         case 'getMidlineExt',
             [mx,my] = getMidlineExt(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
                 DF.width, DF.fishlenpix, maxSegAng, 'invert',invert, 'enforcetail', ...
-                'noedges','nohomogeneity');
+                'noedges','nohomogeneity', 'subtractbackground',DF.background);
         case 'getMidline3',
             [mx,my] = getMidline3(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, npts, ...
                 DF.width,DF.fishlenpix,...
                 'invert',invert,'fps',DF.fps, firstmid{:});
+        case 'getMidline4'
+            if (~isfield(DF, 'mx1') || isempty(DF.mx1))
+                warning('Must digitize the first midline before running getMidline4');
+                mx = [];
+                my = [];
+            else
+                if (length(DF.mx1) ~= npts)
+                    s1 = [0; cumsum(sqrt(diff(DF.mx1).^2 + diff(DF.my1).^2))];
+                    s2 = linspace(0,s1(end), npts);
+                    
+                    DF.mx1 = spline(s1, DF.mx1, s2);
+                    DF.my1 = spline(s1, DF.my1, s2);
+                end
+                if (inputyn('Ignore pectoral fin region?'))
+                    rgn = input('Pectoral fin region, in fraction of body length (default [0.3 0.55]): ');
+                    if (length(rgn) ~= 2)
+                        rgn = [0.25 0.6];
+                    end
+                else
+                    rgn = [];
+                end
+                [mx,my] = getMidline4(avifile, frames, DF.hxs,DF.hys, DF.txs,DF.tys, ...
+                    DF.mx1,DF.my1, npts, ...
+                    DF.fishlenpix, maxSegAng, ...
+                    'invert',invert, 'subtractbackground',DF.background, ...
+                    'ignore',rgn);
+            end
     end;
 else
     mx = NaN([npts length(DF.hxs)]);
@@ -759,7 +958,7 @@ else
         [mx(:,fr),my(:,fr)] = getMidlineExt(I, 1, DF.hxs(fr),DF.hys(fr), ...
             DF.txs(fr),DF.tys(fr), npts, DF.width,DF.fishlenpix,maxSegAng, ...
             'invert',invert, 'enforcetail','nohomogeneity','eqhist','useedges', ...
-            'previousmidline',prevmx, prevmy);
+            'previousmidline',prevmx, prevmy, 'subtractbackground',DF.background);
         
         prevmx = mx(:,fr);
         prevmy = mx(:,fr);
@@ -783,7 +982,7 @@ terr1 = input('Temporal smoothing value (0.05): ');
 if (isempty(terr1))
     DF.terr = 0.05;
 else
-    DF.terr = serr1;
+    DF.terr = terr1;
 end
 
 [mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr);

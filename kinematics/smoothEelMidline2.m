@@ -63,7 +63,7 @@ end;
 
 subplot(2,1,1);
 q = round([1 2 3]*nfr/4);
-plot(xx(:,q),yy(:,q),'.');
+plot(xx(:,q),yy(:,q),'o');
 addplot(xxs(:,q),yys(:,q),'-');
 xlabel('X position (mm)');
 ylabel('Y position (mm)');
@@ -71,7 +71,7 @@ title('Three midlines at different times');
 
 subplot(2,1,2);
 q = [2 round(npt/2) npt-1];
-plot(t,yy(q,:),'.');
+plot(t,yy(q,:),'o');
 addplot(t,yys(q,:),'k-');
 xlabel('Time (s)');
 ylabel('Y position (mm)');

@@ -12,6 +12,7 @@ if (ischar(files)),
 	files = {files};
 end;
 
+insightdata = struct([]);
 for i = 1:length(files),
 	fn = files{i};
 	
@@ -20,35 +21,34 @@ for i = 1:length(files),
 		title = fgets(fid);
 		
         tok = regexp(title, '(\w+)=(([^ ,"]+)|("[^"]+"(,\s*"[^"]+")*))','tokens');
-        insightdata = struct();
         for j = 1:length(tok)
             vals = regexp(tok{j}{2}, '"([^"]+)"', 'tokens');
             if isempty(vals)
                 if ~isempty(regexp(tok{j}{2}, '^[0-9.e]+$', 'once'))
-                    insightdata.(tok{j}{1}) = str2double(tok{j}{2});
+                    insightdata1.(tok{j}{1}) = str2double(tok{j}{2});
                 else
-                    insightdata.(tok{j}{1}) = tok{j}{2};
+                    insightdata1.(tok{j}{1}) = tok{j}{2};
                 end;
             elseif ((length(vals) == 1) && ~isempty(regexp(vals{1}{1}, '^[0-9.e]+$', 'once')))
-                insightdata.(tok{j}{1}) = str2double(vals{1}{1});
+                insightdata1.(tok{j}{1}) = str2double(vals{1}{1});
             elseif (length(vals) == 1)
-                insightdata.(tok{j}{1}) = vals{1}{1};
+                insightdata1.(tok{j}{1}) = vals{1}{1};
             else
-                insightdata.(tok{j}{1}) = cellfun(@(x) x{1}, vals, 'UniformOutput',false);
+                insightdata1.(tok{j}{1}) = cellfun(@(x) x{1}, vals, 'UniformOutput',false);
             end                
         end
 
-        if (~isfield(insightdata,'I') || ~isfield(insightdata,'J'))
+        if (~isfield(insightdata1,'I') || ~isfield(insightdata1,'J'))
             error('Cannot parse data file');
         end
         
-        m = insightdata.I;
-        n = insightdata.J;
+        m = insightdata1.I;
+        n = insightdata1.J;
         
-        if (isfield(insightdata,'Height'))
-            h = insightdata.Height;
-        elseif (isfield(insightdata,'SourceImageHeight') && strcmp(insightdata.LengthUnit,'pixel'))
-            h = insightdata.SourceImageHeight;
+        if (isfield(insightdata1,'Height'))
+            h = insightdata1.Height;
+        elseif (isfield(insightdata1,'SourceImageHeight') && strcmp(insightdata1.LengthUnit,'pixel'))
+            h = insightdata1.SourceImageHeight;
         else
             h = 0;
         end
@@ -69,6 +69,8 @@ for i = 1:length(files),
 		u(:,:,i) = reshape(data(:,3),[m n])';
 		v(:,:,i) = -reshape(data(:,4),[m n])';
 		err(:,:,i) = reshape(data(:,5),[m n])';
+        
+        insightdata = makestructarray(insightdata,insightdata1);
 	else
 		warning(sprintf('Could not open file %s. Skipping it...',fn));
 	end;
