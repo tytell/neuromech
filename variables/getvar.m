@@ -173,7 +173,7 @@ if (any(~good) && cleariferror)
     good = false(size(good));
 end
 
-if (~isempty(infile)),
+if (~isempty(infile) && exist(infile,'file') && ~exist(infile,'dir')),
     %we put this off, because we don't want to load the whole file if we
     %don't need to
     data = load(infile, requestedvars{good});

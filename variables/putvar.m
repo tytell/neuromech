@@ -172,7 +172,11 @@ if (tostruct),
         varargout = {outdata};
     end;
 elseif (~isempty(outfile)),
-    save(outfile,'-append','-struct','F');
+    if (exist(outfile,'file'))
+        save(outfile,'-append','-struct','F');
+    else
+        save(outfile,'-struct','F');
+    end
 elseif (ishidden),
     setappdata(0,'HiddenData',outdata);
 end;
