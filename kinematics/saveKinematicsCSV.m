@@ -1,9 +1,15 @@
-function saveKinematicsCSV(outfile,kinfile)
+function saveKinematicsCSV(outfile,kinfile, varargin)
 % function saveKinematicsCSV(outfile,kinfile)
 % Converts kinematic data in kinfile (a .mat file) and saves in CSV form to
 % outfile
 %
 % Copyright (c) 2013, Eric Tytell
+
+opt.smoothper = 1;      % in sec
+opt.smoothmethod = 'loess';
+opt.ampthresh = 0.01;   % fraction of body length
+opt.npt = 20;
+opt = parsevarargin(opt,varargin, 3);
 
 K = load(kinfile);
 
@@ -32,10 +38,37 @@ end;
 tpeak = NaN([size(K.indpeak,2) 1]);
 tpeak(k) = t(K.indpeak(end,k));
 
-pathcurve = curvature(K.hxmm,K.hymm, 'smooth',1, 'splineindiv');
-speed = sqrt(K.humms.^2 + K.hvmms.^2);
-accel = sqrt(K.haxmmss.^2 + K.haymmss.^2);
-pathang = unwrap(atan2(K.hvmms, K.humms)+pi) - pi;
+
+dt = t(2)-t(1);
+assert(isfinite(dt));
+
+good = isfinite(K.hxmm) & isfinite(K.hymm);
+smoothfrac = opt.smoothper / (sum(good)*dt);
+pathx = NaN(size(K.hxmm));
+pathy = NaN(size(K.hymm));
+
+if (smoothfrac < 1)
+    pathx(good) = smooth(K.hxmm(good),smoothfrac,opt.smoothmethod);
+    pathy(good) = smooth(K.hymm(good),smoothfrac,opt.smoothmethod);
+else
+    p = polyfit(t,K.hxmm(good),2);
+    pathx(good) = polyval(t(good),p);
+    p = polyfit(t,K.hymm(good),2);
+    pathy(good) = polyval(t(good),p);
+end
+
+pathcurve = curvature(pathx,pathy, 'smooth',1, 'splineindiv');
+
+swimvecx = [diff(pathx) NaN];
+swimvecy = [diff(pathy) NaN];
+mag = sqrt(swimvecx.^2 + swimvecy.^2);
+swimvecx = swimvecx ./ mag;
+swimvecy = swimvecy ./ mag;
+
+pathang = unwrap(atan2(swimvecy,swimvecx)+pi) - pi;
+
+speed = K.humms.*swimvecx + K.hvmms.*swimvecy;
+accel = K.haxmmss.*swimvecx + K.haymmss.*swimvecy;
 
 speedmn = NaN(nbt,1);
 accelmn = NaN(nbt,1);
@@ -64,8 +97,16 @@ pkamp = pkamp';
 pkamppos = s(pkamppt) / s(end);
 
 exc = nanmean(K.exc,3)';
-wavevel = K.wavevel';
-wavelen = nanmedian(K.wavelen)';
+if (~isempty(K.wavevel))
+    wavevel = K.wavevel';
+else
+    wavevel = NaN(size(tpeak));
+end
+if (~isempty(K.wavelen))
+    wavelen = nanmedian(K.wavelen)';
+else
+    wavelen = NaN(size(tpeak));
+end
 
 fid = fopen(outfile,'w');
 fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);

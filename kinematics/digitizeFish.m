@@ -1006,19 +1006,41 @@ else
     smooth = 0;
 end;
 
-if (isfield(DF,'scale')),
-    if (istoolbox('statistics'))
-        smm = nanmedian(s,2)*DF.scale;
+if (~isfield(DF,'mxs') && ~isfield(DF,'mys') || ...
+        ~inputyn('Analyze entire midline (Y), or just the tailbeat (n)?','default',false))
+    s = NaN(20,1);
+    s([1 end]) = [0; DF.fishlenpix];
+    if isfield(DF,'scale')
+        smm = s*DF.scale;
+        [indpeak,per,amp] = analyzeTailbeat(DF.fishlenmm,DF.t, DF.hxmm,DF.hymm,...
+            DF.txmm,DF.tymm);
     else
-        smm = nanmedian2(s,2)*DF.scale;
+        [indpeak,per,amp] = analyzeTailbeat(DF.fishlenmm,DF.t, DF.hxmm,DF.hymm,...
+            DF.txmm,DF.tymm);
     end
-    
-    [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-        analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dssmoothcurve',0.2);
+    confpeak = [];
+    midx = [];
+    midy = [];
+    exc = [];
+    wavevel = [];
+    wavelen = [];
+    waver = [];
+    waven = [];
 else
-    [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-        analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dssmoothcurve',0.2);
-end;
+    if (isfield(DF,'scale')),
+        if (istoolbox('statistics'))
+            smm = nanmedian(s,2)*DF.scale;
+        else
+            smm = nanmedian2(s,2)*DF.scale;
+        end
+
+        [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
+            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dssmoothcurve',0.2);
+    else
+        [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
+            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dssmoothcurve',0.2);
+    end;
+end
 
 DF.s = s;
 DF.smm = smm;
