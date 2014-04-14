@@ -48,13 +48,20 @@ switch where,
         return;
         
     case 'insight',
-        [x1,y1,u1,v1,~,~,insightdata] = loadInsight(files{1});
+        [x1,y1,u1,v1,err1,~,insightdata] = loadInsight(files{1});
+        goodcol = any(err1 ~= -2,1);
+        goodrow = any(err1 ~= -2,2);
+        x1 = x1(goodrow,goodcol);
+        y1 = y1(goodrow,goodcol);
+        u1 = u1(goodrow,goodcol);
+        v1 = v1(goodrow,goodcol);
+        sz = size(u1);
+        
         piv.x = x1;
         piv.y = y1;
         piv.u = u1;
         piv.v = v1;
         piv.w = [];  % right now only load in u,v vectors
-        sz = size(u1);
         
         N = length(files);
         if (N > 20),
@@ -62,6 +69,12 @@ switch where,
         end;
         for i = 2:N,
             [x1,y1,u1,v1] = loadInsight(files{i});
+            goodcol = any(err1 ~= -2,1);
+            goodrow = any(err1 ~= -2,2);
+            x1 = x1(goodrow,goodcol);
+            y1 = y1(goodrow,goodcol);
+            u1 = u1(goodrow,goodcol);
+            v1 = v1(goodrow,goodcol);
             if (any(size(u1) ~= sz)),
                 lasterr('Insight files have different numbers of vectors.');
                 uiresume;

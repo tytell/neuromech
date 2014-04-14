@@ -355,10 +355,20 @@ else
     px = data.PIV.x(:,:,1);
     py = data.PIV.y(:,:,1);
 end;
-pu = data.PIV.u(:,:,data.curFrame) - data.subtractVector(1);
-pv = data.PIV.v(:,:,data.curFrame) - data.subtractVector(2);
+if (isfield(data.PIV,'us'))
+    pu = data.PIV.us(:,:,data.curFrame) - data.subtractVector(1);
+    pv = data.PIV.vs(:,:,data.curFrame) - data.subtractVector(2);
+else
+    pu = data.PIV.u(:,:,data.curFrame) - data.subtractVector(1);
+    pv = data.PIV.v(:,:,data.curFrame) - data.subtractVector(2);
+end
+
 if bStereo
-    pw = data.PIV.w(:,:,data.curFrame) - data.subtractVector(3);
+    if isfield(data.PIV,'ws')
+        pw = data.PIV.ws(:,:,data.curFrame) - data.subtractVector(3);
+    else
+        pw = data.PIV.w(:,:,data.curFrame) - data.subtractVector(3);
+    end
 else
     pw = [];
 end
@@ -554,9 +564,9 @@ end;
 
 switch (data.SaveDataType),
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Full Matlab file output - more data, but only readable in
-%% Matlab
+%------------------------------------------------
+% Full Matlab file output - more data, but only readable in
+% Matlab
  case 'matlab',
   if (exist(data.SaveDataFile)),
       existing = who('-file',data.SaveDataFile);
@@ -645,10 +655,10 @@ switch (data.SaveDataType),
   save(data.SaveDataFile,names{:},errnames{:},opt{:});
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% comma separated value file output - readable by Excel
-%% and standard stats packages, but doesn't include all
-%% the information we can save in a Matlab file
+%-----------------------------------------------------------
+% comma separated value file output - readable by Excel
+% and standard stats packages, but doesn't include all
+% the information we can save in a Matlab file
  case 'csv',
   fid = fopen(data.SaveDataFile,'w');
   if (isfield(data.PIV,'files')),
@@ -864,8 +874,13 @@ else
     px = data.PIV.x(:,:,1);
     py = data.PIV.y(:,:,1);
 end;
-pu = data.PIV.u(:,:,data.curFrame);
-pv = data.PIV.v(:,:,data.curFrame);
+if (isfield(data.PIV,'us'))    
+    pu = data.PIV.us(:,:,data.curFrame);
+    pv = data.PIV.vs(:,:,data.curFrame);
+else
+    pu = data.PIV.u(:,:,data.curFrame);
+    pv = data.PIV.v(:,:,data.curFrame);
+end
 
 d = nanmean([flatten(diff(px,[],2)); flatten(diff(py,[],2))]);
 
@@ -1115,11 +1130,18 @@ yd(end+1) = yd(1);
 
 mask = inpolygon(x,y, xd,yd);
 
-u = data.PIV.u(:,:,data.curFrame) - data.subtractVector(1);
-v = data.PIV.v(:,:,data.curFrame) - data.subtractVector(2);
+if isfield(data.PIV,'us')
+    u = data.PIV.us(:,:,data.curFrame) - data.subtractVector(1);
+    v = data.PIV.vs(:,:,data.curFrame) - data.subtractVector(2);
+else
+    u = data.PIV.u(:,:,data.curFrame) - data.subtractVector(1);
+    v = data.PIV.v(:,:,data.curFrame) - data.subtractVector(2);
+end
 if ~data.PIV.isStereo, 
     w = []; 
-else, 
+elseif isfield(data.PIV,'ws')
+    w = data.PIV.ws(:,:,data.curFrame) - data.subtractVector(3);
+else
     w = data.PIV.w(:,:,data.curFrame) - data.subtractVector(3);
 end
 u = u(mask);

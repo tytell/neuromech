@@ -34,10 +34,17 @@ for i = 1:length(what),
                 data.vectorOpts.x = data.PIV.x;
                 data.vectorOpts.y = data.PIV.y;
             end;
-            data.vectorOpts.u = data.PIV.u(:,:,data.curFrame) - ...
-                data.subtractVector(1);
-            data.vectorOpts.v = data.PIV.v(:,:,data.curFrame) - ...
-                data.subtractVector(2);
+            if isfield(data.PIV,'us')
+                data.vectorOpts.u = data.PIV.us(:,:,data.curFrame) - ...
+                    data.subtractVector(1);
+                data.vectorOpts.v = data.PIV.vs(:,:,data.curFrame) - ...
+                    data.subtractVector(2);
+            else
+                data.vectorOpts.u = data.PIV.u(:,:,data.curFrame) - ...
+                    data.subtractVector(1);
+                data.vectorOpts.v = data.PIV.v(:,:,data.curFrame) - ...
+                    data.subtractVector(2);
+            end
             [data.hVectors,data.vectorOpts] = quiverc(data.vectorOpts);
             set(data.hVectors,'HitTest','off');
 
@@ -82,7 +89,8 @@ for i = 1:length(what),
                         ca = [-ca ca];
                         caxis(ca);
                     end;
-                    colorbar;
+                    hcol = colorbar;
+                    ylabel(hcol, data.Background);
                 end;
             end;
     end;

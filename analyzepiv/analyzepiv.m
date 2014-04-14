@@ -114,11 +114,13 @@ else
     units.vel = u{2};
 end;
 
+piv.smoothval = 0;
+
 fig = openfig(mfilename, 'new');
 data = guihandles(fig);
 
 data.Panel = fig;
-data.Figure = figure;
+data.Figure = figure('WindowStyle','normal');
 set(data.Figure,'UserData',fig);
 data.PIV = piv;
 data.SaveDataFile = '';
@@ -145,13 +147,25 @@ data.rgnRotHandle = -1;
 data.generalFcns.apConvertUnits = @apConvertUnits;
 data.generalFcns.apSetFrame = @apSetFrame;
 
+if (data.PIV.smoothval ~= 0)
+    d = 0.5*((piv.x(1,2,1) - piv.x(1,1,1)) + (piv.y(2,1,1) - piv.y(1,1,1)));
+    [piv.us,piv.vs] = agw(piv.x(:,:,1),piv.y(:,:,1), piv.u,piv.v, ...
+        data.PIV.smoothval*d);
+else
+    piv.us = piv.u;
+    piv.vs = piv.v;
+end
+%try to show 50x50 vectors
 shw = 50/max([size(piv.u,1) size(piv.u,2)]);
 if (shw > 1),
     shw = 1;
 end;
 shw = diground(shw^2,0.05);               % round to the nearest 5%
+if (shw == 0)
+    shw = 0.05;
+end
 [data.hVectors,data.vectorOpts] = quiverc(piv.x(:,:,1),piv.y(:,:,1),...
-                        piv.u(:,:,1),piv.v(:,:,1),'show',shw);
+                        piv.us(:,:,1),piv.vs(:,:,1),'show',shw);
 axis('equal','tight',data.axisOrient);
 data.Axes = gca;
 if (~isempty(data.Units.pos)),
@@ -168,7 +182,7 @@ data.OldMotionFcn = {@apVecMouseMove,data.Panel};
 set(data.Figure,'WindowButtonMotionFcn',{@apVecMouseMove,data.Panel});
 
 ax = [min(piv.x(:)) max(piv.x(:)) min(piv.y(:)) max(piv.y(:))];
-rnguv = prctile(sqrt(piv.u(:).^2 + piv.v(:).^2),95) * ...
+rnguv = prctile(sqrt(piv.us(:).^2 + piv.vs(:).^2),95) * ...
         data.vectorOpts.Scale;
 ax = ax + [-rnguv rnguv -rnguv rnguv];  % ensure vectors fit in the axes
 axis(ax);
@@ -510,8 +524,65 @@ end;
 
 guidata(obj,data);
 
+
 % -------------------------------------------------
-function data = apCalcDeriv(data, what)
+function data = apDoSmooth(data)
+
+if (data.PIV.smoothval > 0)
+    posscalefac = apConvertUnits(data.Units.pos, data.Units.vel{1});
+    d = 0.5*((data.PIV.x(1,2,1) - data.PIV.x(1,1,1)) + (data.PIV.y(2,1,1) - data.PIV.y(1,1,1)));
+    d = d*posscalefac;
+    [data.PIV.us, data.PIV.vs, DU] = agw(posscalefac*data.PIV.x,posscalefac*data.PIV.y, ...
+        data.PIV.u,data.PIV.v, ...
+        posscalefac*data.PIV.x,posscalefac*data.PIV.y, data.PIV.smoothval*d);
+else
+    data.PIV.us = data.PIV.u;
+    data.PIV.vs = data.PIV.v;
+    DU = [];
+end
+if (ismember(data.Background,{'vorticity','shear','dcev'}))
+    data.PIV.(data.Background) = [];
+    data = apCalcDeriv(data,data.Background, DU);
+end
+data = analyzePIVupdate(data,{'vectors','background'});
+
+% -------------------------------------------------
+function apSmoothToggle(obj,eventdata)
+
+data = guidata(obj);
+
+issmooth = get(obj,'Value') > 0;
+
+if (issmooth)
+    set(data.SmoothEdit,'Enable','on');
+    smoothval1 = str2double(get(data.SmoothEdit, 'String'));
+    if (~isempty(smoothval1) && (smoothval1 > 0))
+        data.PIV.smoothval = smoothval1;
+    end
+else
+    set(data.SmoothEdit,'Enable','off');
+    data.PIV.smoothval = 0;
+end;
+data = apDoSmooth(data);
+
+guidata(obj,data);
+
+% -------------------------------------------------
+function apSmoothEdit(obj,eventdata)
+
+data = guidata(obj);
+
+smoothval1 = str2double(get(obj,'String'));
+if (~isempty(smoothval1) && (smoothval1 > 0))
+    data.PIV.smoothval = smoothval1;
+    data = apDoSmooth(data);
+end
+
+guidata(obj,data);
+
+
+% -------------------------------------------------
+function data = apCalcDeriv(data, what, DU)
 
 if (~isfield(data.PIV,what) || isempty(data.PIV.(what))),
     % need to rescale position so that it has the same units as
@@ -519,9 +590,16 @@ if (~isfield(data.PIV,what) || isempty(data.PIV.(what))),
     % weird
     posscalefac = apConvertUnits(data.Units.pos, data.Units.vel{1});
 
-    DU = velderiv(posscalefac*data.PIV.x,posscalefac*data.PIV.y, ...
-                  data.PIV.u,data.PIV.v);
-
+    if ((nargin == 2) || isempty(DU))
+        if isfield(data.PIV,'us')
+            DU = velderiv(posscalefac*data.PIV.x,posscalefac*data.PIV.y, ...
+                data.PIV.us,data.PIV.vs);
+        else
+            DU = velderiv(posscalefac*data.PIV.x,posscalefac*data.PIV.y, ...
+                data.PIV.u,data.PIV.v);
+        end
+    end
+    
     switch what,
      case 'vorticity',
       data.PIV.vorticity = cat(3,DU.dvdx) - cat(3,DU.dudy);
@@ -546,7 +624,7 @@ conv2meters = [1 1e-2 1e-3 1e-6 1e-6 3.0480e-1 2.54e-2];
 if (strcmp(from,to)),
     fac = 1;
     converr = 0;
-else,
+else
     % otherwise, try to sort out the conversion
     fromind = strmatch(lower(from),knownunits,'exact');
     toind = strmatch(lower(to),knownunits,'exact');
@@ -572,18 +650,21 @@ switch sub,
  case 1,
   val = [0 0 0];
  case 2,  % subtract average flow
-  val = nanmean([data.PIV.u(:) data.PIV.v(:)]);
-  if bStereo, val = [val, nanmean(data.PIV.w(:))]; end
+  val = nanmean([data.PIV.us(:) data.PIV.vs(:)]);
+  if bStereo, val = [val, nanmean(data.PIV.ws(:))]; end
  case 3,  % substract average flow
-  val = nanmedian([data.PIV.u(:) data.PIV.v(:)]);
+  val = nanmedian([data.PIV.us(:) data.PIV.vs(:)]);
   if bStereo, val = [val, nanmean(data.PIV.w(:))]; end
  case 4, % subtract average u
-  val = [nanmean(data.PIV.u(:)) 0 0];
+  val = [nanmean(data.PIV.us(:)) 0 0];
  case 5, % subtract average v
-  val = [0 nanmean(data.PIV.v(:)) 0];
+  val = [0 nanmean(data.PIV.vs(:)) 0];
  case 6, % subtract average w
-  if ~isempty(data.PIV.w), val = [0 0 nanmean(data.PIV.w(:))];
-  else, val = [0 0 0]; end
+  if ~isempty(data.PIV.w), 
+      val = [0 0 nanmean(data.PIV.ws(:))];
+  else
+      val = [0 0 0]; 
+  end
  otherwise,
   warndlg('This feature is not supported yet.');
   val = [0 0 0];
@@ -609,15 +690,22 @@ else
     px = data.PIV.x(1,:);
     py = data.PIV.y(:,1);
 end;
-[m,i] = min(abs(pt(1,2)-py));
-[m,j] = min(abs(pt(1,1)-px));
+[~,i] = min(abs(pt(1,2)-py));
+[~,j] = min(abs(pt(1,1)-px));
 
-u = data.PIV.u(i,j,data.curFrame) - data.subtractVector(1);
-v = data.PIV.v(i,j,data.curFrame) - data.subtractVector(2);
-if data.PIV.isStereo
-    w = data.PIV.w(i,j,data.curFrame) - data.subtractVector(3);
+if (isfield(data.PIV,'us'))
+    u = data.PIV.us(i,j,data.curFrame) - data.subtractVector(1);
+    v = data.PIV.vs(i,j,data.curFrame) - data.subtractVector(2);
 else
+    u = data.PIV.u(i,j,data.curFrame) - data.subtractVector(1);
+    v = data.PIV.v(i,j,data.curFrame) - data.subtractVector(2);
+end
+if ~data.PIV.isStereo
     w = NaN;
+elseif isfield(data.PIV,'ws')
+    w = data.PIV.ws(i,j,data.curFrame) - data.subtractVector(3);
+else
+    w = data.PIV.w(i,j,data.curFrame) - data.subtractVector(3);
 end
 
 if (~isempty(data.Units.vel)),
@@ -707,10 +795,14 @@ set(data.ColorDrop,'Callback',@apArrowColor, ...
 set(data.BackgroundDrop,'Callback',@apBackgroundColor);
 set(data.SubtractDrop,'Callback',@apSubtract);
 
+set(data.SmoothCheck,'Callback',@apSmoothToggle);
+set(data.SmoothEdit,'Callback',@apSmoothEdit);
+
 [data,rgn] = analyzePIVrgn(data);
 data.rgnFcns = rgn;
 
 set(data.SaveButton,'Callback',@apSave);
+set(data.SaveDataMenu,'Callback',@apSave);
 
 [data,calcgui,calc] = analyzePIVcalc(data);
 data.calcGuiFcns = calcgui;
