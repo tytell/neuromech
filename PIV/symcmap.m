@@ -1,4 +1,4 @@
-function varargout = symmetricColormap(cmap0,ctr,nsteps)
+function varargout = symcmap(cmap0,ctr,nsteps)
 
 if (nargin < 3),
     nsteps = Inf;
@@ -7,7 +7,7 @@ if (nargin < 3),
     end;
 end;
 
-if (isnumeric(cmap0) & (size(cmap0,1) ~= 3)),
+if (isnumeric(cmap0) && (size(cmap0,1) ~= 3)),
     error('cmap can only have three entries.');
 end;
 
