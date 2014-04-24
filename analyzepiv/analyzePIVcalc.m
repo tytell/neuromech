@@ -89,6 +89,7 @@ function data = apAddCalc(data)
 % regions
 newfcns = zeros(size(data.Regions,1)-size(data.Calc.doFcns,1), ...
                 length(data.calcFcns));
+newfcns(1) = 1;     % circulation calculation is on by default
 data.Calc.doFcns = cat(1,data.Calc.doFcns,newfcns);
 
 data = apScrollCalc(data,'visible',size(data.Regions,1));

@@ -15,7 +15,7 @@ if (ischar(what)),
 end;
 
 charOpts = find(cellfun('isclass',options,'char'));
-if (strmatch('rescale',options(charOpts))),
+if (ismember('rescale',options(charOpts))),
     data.vectorOpts.AbsScale = [];
 end;
 

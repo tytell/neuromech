@@ -427,7 +427,7 @@ switch strs{ind},
  case 'Custom',
    % do nothing for the moment
  otherwise
-  data = apSetArrowColor(data, strs(ind));
+  data = apSetArrowColor(data, strs{ind});
 end;
 
 guidata(obj,data);
@@ -648,27 +648,35 @@ sub = get(obj,'Value');
 
 switch sub,
  case 1,
-  val = [0 0 0];
+     fcn = @(u,v,w) [0 0 0];
  case 2,  % subtract average flow
-  val = nanmean([data.PIV.us(:) data.PIV.vs(:)]);
-  if bStereo, val = [val, nanmean(data.PIV.ws(:))]; end
+     fcn = @(u,v,w) [nanmean(u(:)) nanmean(v(:)) nanmean(w(:))];
  case 3,  % substract average flow
-  val = nanmedian([data.PIV.us(:) data.PIV.vs(:)]);
-  if bStereo, val = [val, nanmean(data.PIV.w(:))]; end
+     fcn = @(u,v,w) [nanmedian(u(:)) nanmedian(v(:)) nanmedian(w(:))];
  case 4, % subtract average u
-  val = [nanmean(data.PIV.us(:)) 0 0];
+     fcn = @(u,v,w) [nanmean(u(:)) 0 0];
  case 5, % subtract average v
-  val = [0 nanmean(data.PIV.vs(:)) 0];
+     fcn = @(u,v,w) [0 nanmean(v(:)) 0];
  case 6, % subtract average w
-  if ~isempty(data.PIV.w), 
-      val = [0 0 nanmean(data.PIV.ws(:))];
-  else
-      val = [0 0 0]; 
-  end
+     fcn = @(u,v,w) [0 0 nanmean(w(:))];
  otherwise,
-  warndlg('This feature is not supported yet.');
-  val = [0 0 0];
+     warndlg('This feature is not supported yet.');
+     fcn = @(u,v,w) [0 0 0];
 end;
+
+if isfield(data.PIV,'us')
+    if bStereo
+        val = fcn(data.PIV.us(:), data.PIV.vs(:), data.PIV.ws(:));
+    else
+        val = fcn(data.PIV.us(:), data.PIV.vs(:), 0);
+    end
+else
+    if bStereo
+        val = fcn(data.PIV.u(:), data.PIV.v(:), data.PIV.w(:));
+    else
+        val = fcn(data.PIV.u(:), data.PIV.v(:), 0);
+    end
+end
 
 data.subtractVector = val;
 data = analyzePIVupdate(data,'vectors');
