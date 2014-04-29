@@ -18,6 +18,7 @@ function install_here(varargin)
 opt.maxdepth = 2;
 opt.exclude = {'^\..*','private','^@'};
 
+%parse varargin without using parsevarargin, since it's not on the path yet
 i = 1;
 while (i <= length(varargin))
     if (ischar(varargin{i}))
@@ -51,6 +52,7 @@ end;
 
 pathnames = {basepath};
 
+%scan the current directory tree
 done = false;
 depth = 0;
 prevpath = {basepath};
@@ -103,7 +105,7 @@ curpath = regexp(path,pathsep,'split');
 newpaths = ~ismember(pathnames,curpath);
 
 if (sum(newpaths) == 0)
-    fprintf('No new paths need to be added.');
+    fprintf('No new paths need to be added.\n');
 else
     pathnames = pathnames(newpaths);
     
@@ -116,20 +118,40 @@ else
     butt = questdlg(prompt,'Setup path','OK','Cancel','Cancel');
     
     if (strcmp(butt,'OK'))
-        fid = fopen('uninstall_here.m','w');
-        fprintf(fid,'%% Generated on %s\n', datestr(now));
-        for i = 1:length(pathnames)
-            fprintf(fid,'fprintf(''Removing ''''%s'''' from the path\\n'');\n', pathnames{i});
-            fprintf(fid,'rmpath(''%s'');\n', pathnames{i});
-        end;
-        fprintf(fid,'savepath;\n');
-        fclose(fid);
-        
+        try
+            fid = fopen('uninstall_here.m','w');
+            fprintf(fid,'%% Generated on %s\n', datestr(now));
+            for i = 1:length(pathnames)
+                fprintf(fid,'fprintf(''Removing ''''%s'''' from the path\\n'');\n', pathnames{i});
+                fprintf(fid,'rmpath(''%s'');\n', pathnames{i});
+            end;
+            fprintf(fid,'savepath;\n');
+            fclose(fid);
+        catch err
+            butt = questdlg({'Could not write to uninstall_here.',...
+                'Changes will have to be manually removed.',...
+                'Continue?'},...
+                'Write error','OK','Cancel','Cancel');
+            if ~strcmp(butt, 'OK')
+                fprintf('No changes.\n');
+                return;
+            end
+        end
+            
         addpath(pathnames{:},'-begin');
         upath = userpath;
         if (~isempty(upath) && ((upath(end) == ':') || (upath(end) == ';')))
             upath = upath(1:end-1);
         end;
-        savepath(fullfile(upath,'pathdef.m'));
+        try 
+            savepath(fullfile(upath,'pathdef.m'));
+        catch err
+            fprintf('Error writing path. Writing to startup.m instead.\n');
+            fn = fullfile(upath, 'startup.m');
+            fid = fopen(fn, 'a');
+            fprintf(fid, 'addpath(...\n');
+            fprintf(fid, '\t''%s'', ...\n', pathnames{1:end-1});
+            fprintf(fid, '\t''%s'', ''-begin'');\n', pathnames{end});
+        end
     end;
 end;
