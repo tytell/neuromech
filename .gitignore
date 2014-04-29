@@ -36,3 +36,5 @@ Cl_matcont4p1
 phaser
 *.orig
 pathdef.m
+
+**/.ignore
