@@ -178,6 +178,12 @@ if (~isempty(opt.bodyregions)),
     E.muscleactnegworkbyrgn = zeros(nrgn,ncycle);
 end;    
 
+ispos = E.workratemus > 0;
+E.workratepos = E.workratemus;
+E.workratepos(~ispos) = 0;
+E.workrateneg = E.workratemus;
+E.workrateneg(ispos) = 0;
+
 prevke = 0;
 prevbke = 0;
 prevaxke = 0;
@@ -205,6 +211,8 @@ for i = 1:ncycle,
     
     E.totalworkbycycle(i) = trapz(t(iscycle),sum(sum(E.workrate(:,iscycle,:),1),3));
     E.muscleworkbycycle(i) = trapz(t(iscycle),sum(sum(E.workratemus(:,iscycle,:),1),3));
+    E.muscleworkposbycycle(i) = trapz(t(iscycle),sum(sum(E.workratepos(:,iscycle,:),1),3));
+    E.muscleworknegbycycle(i) = trapz(t(iscycle),sum(sum(E.workrateneg(:,iscycle,:),1),3));
     if (~isempty(opt.bodyregions)),
         for j = 1:nrgn,
             isrgn = bodypts(j):bodypts(j+1)-1;
