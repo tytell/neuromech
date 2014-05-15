@@ -6,16 +6,20 @@ opt = parsevarargin(opt, varargin);
 F = load(filename);
 
 nchan = length(F.datastart);
-ismultirate = any(F.samplerate ~= F.samplerate(1));
+
+goodchan = F.samplerate ~= 0;
+ismultirate = any(F.samplerate(goodchan) ~= F.samplerate(1));
 if (ismultirate)
     t = cell(1,nchan);
 end
 data = cell(1,nchan);
 for i = 1:nchan
-    data{i} = F.data(F.datastart(i):F.dataend(i))';
-    
-    if (ismultirate)
-        t{i} = (0:length(data{i})-1)'/F.samplerate(i) + F.firstsampleoffset(i);
+    if goodchan(i)
+        data{i} = F.data(F.datastart(i):F.dataend(i))';
+
+        if (ismultirate)
+            t{i} = (0:length(data{i})-1)'/F.samplerate(i) + F.firstsampleoffset(i);
+        end
     end
 end
 if (~ismultirate)
@@ -65,29 +69,35 @@ if ischar(opt.channelnames)
         case 'auto'
             channelnames = cell(1,nchan);
             for i = 1:nchan
-                channelnames{i} = genvarname(F.titles(i,:));
+                if goodchan(i)
+                    channelnames{i} = genvarname(F.titles(i,:));
+                end
             end
     end
 elseif iscell(opt.channelnames)
     channelnames = opt.channelnames;
 end
 
-S = cell2struct(data,channelnames,2);
+S = cell2struct(data(goodchan),channelnames(goodchan),2);
 
 if ismultirate
     for i = 1:nchan
-        tname1 = genvarname([channelnames{i} 't']);
-        S.(tname1) = t{i};
+        if goodchan(i)
+            tname1 = genvarname([channelnames{i} 't']);
+            S.(tname1) = t{i};
+        end
     end
 else
     S.t = t{1};
 end
 
-S.spiket = spiket;
-S.spikenum = spikenum;
-S.spikeheight = spikeheight;
-S.spikewidth = spikewidth;
-S.spikeunit = spikeunit;
+if ~isempty(spiket)
+    S.spiket = spiket;
+    S.spikenum = spikenum;
+    S.spikeheight = spikeheight;
+    S.spikewidth = spikewidth;
+    S.spikeunit = spikeunit;
+end
 S.eventt = eventt;
 S.blocktimes = F.blocktimes;
 S.tickrate = F.tickrate;
