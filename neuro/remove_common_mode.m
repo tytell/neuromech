@@ -1,27 +1,34 @@
 function [rem,common,commonmag] = remove_common_mode(sig, varargin)
 
-opt.clip = 10;
-opt.average = 'median';
+opt.nfft = 512;
+opt.window = [];
+opt.noverlap = [];
+opt.coherethresh = 0.1;
+opt = parsevarargin(opt, varargin, 2);
 
-sig(abs(sig) >= opt.clip) = NaN;
-
-switch opt.average
-    case 'mean'
-        common = nanmean(sig,2);
-    case 'median'
-        common = nanmedian(sig,2);
-    otherwise
-        error('Unrecognized average method');
+nchan = size(sig,2);
+coh = zeros(opt.nfft,nchan*(nchan-1)/2);
+k = 1;
+for i = 1:nchan
+    for j = i+1:nchan
+        [coh(:,k),f1] = mscohere(sig(:,i),sig(:,j),hanning(opt.nfft),opt.noverlap,opt.nfft,'twosided');
+        k = k+1;
+    end
 end
 
-common = common ./ sqrt(nanmean(common.^2));
+cohall = median(coh,2);
+f2 = linspace(0,2*pi,size(sig,1)+1)';
+f2 = f2(1:end-1);
+cohall = interp1(f1,cohall, f2, 'linear',0);
 
-rem = sig;
-commonmag = zeros(1,size(sig,2));
-for i = 1:size(sig,2)
-    commonmag(i) = sqrt(nanmean((sig(:,i).*common).^2));
-    
-    rem(:,i) = rem(:,i) - common.*commonmag(i);
+F = fft(sig);
+common = zeros(size(sig));
+iscommon = cohall > opt.coherethresh;
+commonsign = ones(1,nchan);
+for i = 1:nchan
+    common(:,i) = real(ifft(F(:,i).*double(iscommon)));
+    if (i > 1)
+        commonsign(i) = sign(sum(common(:,1).*common(:,i)));
+    end
 end
-
-
+rem = sig - common;
