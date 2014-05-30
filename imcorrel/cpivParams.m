@@ -81,8 +81,8 @@ if (~isempty(params)),
     error('Unrecognized parameters.');
 end;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% utility function for scanning for options
+%------------------------------%
+% utility function for scanning for options
 function [val,options] = getOption(options, name,default)
 
 q = find(cellfun('isclass',options, 'char'));

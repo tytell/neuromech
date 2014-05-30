@@ -28,7 +28,8 @@ if (iscellstr(p{1})),
 
     i = 2;
 elseif (ischar(p{1})),
-    if (strfind(lower(p{1}), 'avi')),		% avi file
+    [~,~,ext] = fileparts(p{1});
+    if ismember(lower(ext),{'.avi','.tif','.tiff','.cine','.mpg','.mp4'})       % video file
         id.AVIName = p{1};
         
         vid = VideoReader2(id.AVIName);
@@ -38,6 +39,8 @@ elseif (ischar(p{1})),
         id.Video = vid;
         
         if (ischar(p{2})),					% second avi
+            [~,~,ext2] = fileparts(p{2});
+            assert(strcmpi(ext,ext2));      % check to make sure the extensions are the same
             id.AVI2Name = p{2};
             
             vid2 = VideoReader2(id.AVI2Name);
