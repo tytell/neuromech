@@ -78,7 +78,7 @@ switch opt.method,
                 waitfor(gcf,'UserData');
                 
                 thresh0 = get(h(1),'YData');
-                threshval(i) = thresh0(1);
+                threshval(1:2,i) = [-1;1]*thresh0(1);
                 delete(h);
             end;
             if (ishandle(box)),
@@ -88,15 +88,20 @@ switch opt.method,
             set(gcf,'KeyPressFcn','');
         end;
         
+        if (numel(threshval) == nchan)
+            threshval = [-1;1] * threshval(:)';
+        end
+        
         ind = cell(nchan,1);
         for chan = 1:nchan,
-            %subtract the median and rectify
-            asig = abs(sig(:,chan) - nanmedian(sig(:,chan)));
+            %subtract the median (don't rectify)
+            asig = sig(:,chan) - nanmedian(sig(:,chan));
             len = length(asig);
             
             %find spikes
             %first, find anything above the spike threshold
-            spike1 = asig >= threshval(chan);
+            spike1 = (asig <= threshval(1,chan)) | (asig >= threshval(2,chan));
+            asig = abs(asig);
             %now make sure they're real peaks, by checking that each one is the
             %maximum value in the nspike elements around it
             k = opt.nspike+1:len-opt.nspike;

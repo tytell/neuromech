@@ -102,18 +102,23 @@ for i = 1:nfcns,
                     error('Unrecognized movie arguments.');
                 end;
                 
-                [path,name,ext] = fileparts(fn);
-                switch lower(ext),
-                    case '.avi',
-                        info = aviinfo(fn);
-                        sz(3,end+1) = info.NumFrames;
-                        
-                        reader = mmreader(fn);
-                        fcns{i}{j} = reader;
+                [~,~,ext] = fileparts(fn);
+                k = size(sz,2)+1;
+                if ismember(ext,{'.avi','.tif','.cine','.mpg'})
+                    reader = VideoReader2(fn);
+                    sz(3,k) = reader.NumberOfFrames;
 
-                    otherwise,
-                        error('Unrecognized movie file type');
+                    fcns{i}{j} = reader;
+                else
+                    error('Unrecognized movie file type');
                 end;
+                if (length(fcns{i}) >= j+1)
+                    frames = fcns{i}{j+1};
+                    sz(3,k) = length(frames);
+                else
+                    frames = 1:reader.NumberOfFrames;
+                    fcns{i}{j+1} = frames;
+                end
                 
             otherwise,
                 if ((i == 1) && ischar(fcns{i}{1}) && (length(fcns{i}) == 1)),
@@ -291,15 +296,13 @@ h = imshow6(arg{:},'n');
 % ---------------------------------------------------
 function h = mpMovShow(varargin)
 
-fig = gcf;
-data = guidata(fig);
-
 arg = varargin;
-reader = arg{end};
+reader = arg{end-1};
+fr1 = arg{end};
 
-I = im2double(read(reader, data.fr));
+I = im2double(read(reader, fr1));
 
-h = imshow6(arg{1:end-1},I,'n');
+h = imshow6(arg{1:end-2},I,'n');
 
 % ---------------------------------------------------
 function mpCleanup(fig, data)

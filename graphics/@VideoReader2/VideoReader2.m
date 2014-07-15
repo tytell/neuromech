@@ -81,6 +81,17 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             
             [pn,fn,ext] = fileparts(fileName);
             
+            if ~exist(fileName,'file')
+                warning('VideoReader2:cannotFindFile','The filename is not on the MATLAB path');
+                
+                obj.vid = struct([]);
+                obj.info = struct([]);
+                
+                obj.Path = pn;
+                obj.Name = [fn ext];
+                return
+            end
+            
             if (strcmpi(ext,'.tif') || strcmpi(ext, '.tiff'))
                 obj.tifinfo = imfinfo(fileName);
                 obj.vid = struct([]);

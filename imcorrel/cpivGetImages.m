@@ -18,6 +18,8 @@ elseif (isfield(id,'Video')),
         I1 = read(id.Video, fr1);
         I2 = read(id.Video, fr2);
     end;
+    I1 = im2double(I1);
+    I2 = im2double(I2);
     if (size(I1,3) == 3)
         I1 = rgb2gray(I1);
         I2 = rgb2gray(I2);
