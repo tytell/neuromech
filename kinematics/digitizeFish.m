@@ -205,7 +205,13 @@ fn = fullfile(pn,fn);
 
 if (strcmpi(fn(end-2:end),'avi')),
     vid = VideoReader2(fn);
-    im = read(vid, 1);
+    fr = input('Which frame to load? ');
+    if (isempty(fr) || ~isnumeric(fr))
+        fr = 1;
+    elseif (fr < 1) || (fr > vid.NumberOfFrames)
+        error('Frame is out of range');
+    end
+    im = read(vid, fr);
     if (size(im,3) == 3),
         im = im(:,:,1);
     end;
