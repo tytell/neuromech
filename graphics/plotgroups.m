@@ -66,6 +66,8 @@ options.Trace = 'off';
 options.isMarker = true;
 options.means = false;
 options.doMeans = logical([]);
+options.meanfcn = @mean;
+options.errfcn = [];
 options.sortGroups = false;
 options.legend = false;
 options.errorstyle = 'line';        % or 'bar'
@@ -77,6 +79,7 @@ optsynonyms = { ...
     {'semLineWidth',{'semlw'}}, ...
     {'showTicks',{'st'}}, ...
     {'sortGroups',{'sg'}}, ...
+    {'Trace',{'Traces'}}, ...
     };
 
 if (nargin == 2)
@@ -392,8 +395,7 @@ a = 1;
 b = 1;
 emptygroups = false(1,ncomb);
 
-hStd = -1*ones(ncomb,1);
-hSem = -1*ones(ncomb,1);
+hErr = -1*ones(ncomb,1);
 
 for i = 1:ncomb,
     while ((b <= length(gpall)) && (gpall(b) == i)),
@@ -406,7 +408,7 @@ for i = 1:ncomb,
         k = [];
     end;
     x1 = x(k);
-    if (~isempty(x1) & (size(options.xOffset,1) == length(x))),
+    if (~isempty(x1) && (size(options.xOffset,1) == length(x))),
         x1 = x1 + sum(options.xOffset(k,:),2);
     end;
     y1 = y(k);
@@ -428,9 +430,11 @@ for i = 1:ncomb,
         yp = NaN([nxval 1]);
         stdp = NaN([nxval 1]);
         semp = NaN([nxval 1]);
-
+        if ~isempty(options.errfcn)
+            errp = NaN([nxval 1]);
+        end
         for j = 1:nxval,
-            while ((b2 <= n) & (xind1(b2) == j)),
+            while ((b2 <= n) && (xind1(b2) == j)),
                 b2 = b2+1;
             end;
             k2 = xord(a2:b2-1);
@@ -444,18 +448,24 @@ for i = 1:ncomb,
                 xp(j) = x1(xord(a2));
 
                 y2 = y1(k2);
-                yp(j) = mean(y2);
+                yp(j) = feval(options.meanfcn,y2);
                 stdp(j) = std(y2);
                 semp(j) = stdp(j)/sqrt(length(y2));
+                if ~isempty(options.errfcn)
+                    errp(j) = feval(options.errfcn,y2);
+                end
             end;
             a2 = b2;
         end;
 
-        q = find(isfinite(yp) & isfinite(xp));
-        x1 = xp(q);
-        y1 = yp(q);
-        std1 = stdp(q);
-        sem1 = semp(q);
+        good = isfinite(yp) & isfinite(xp);
+        x1 = xp(good);
+        y1 = yp(good);
+        std1 = stdp(good);
+        sem1 = semp(good);
+        if ~isempty(options.errfcn)
+            err1 = errp(good);
+        end
     end;
 
     col1 = options.Color(1,:);
@@ -490,44 +500,49 @@ for i = 1:ncomb,
     end;
 
     if (isMean),
-        if (strcmpi(options.Error,'std') || strcmpi(options.Error,'all')),
-            hStd(i) = -1;
+        if ~isempty(options.errfcn)
+            px = [x1 x1 NaN([length(x1) 1])]';
+            py = [y1 y1 NaN([length(y1) 1])]' + ...
+                 [err1 -err1 NaN([length(y1) 1])]';
+            hErr(i) = plot(px(:),py(:),'Color',col1, ...
+                'LineWidth',options.stdLineWidth);
+        elseif strcmpi(options.Error,'std')
+            hErr(i) = -1;
             if (ismember(options.Trace,{'on'}) && strcmpi(options.errorstyle,'bar')),
                 px = [x1; x1(end:-1:1)];
                 py = [y1; y1(end:-1:1)] + [std1; -std1(end:-1:1)];
                 h1 = fill(px,py,col1,'EdgeColor','none');
-                hStd(i) = h1;
+                hErr(i) = h1;
             else
                 px = [x1 x1 NaN([length(x1) 1])]';
                 py = [y1 y1 NaN([length(y1) 1])]' + ...
                      [std1 -std1 NaN([length(y1) 1])]';
             end;
-            if (~isempty(px) && ~ishandle(hStd(i))),
-                hStd(i) = plot(px(:),py(:),'Color',col1,...
+            if (~isempty(px) && ~ishandle(hErr(i))),
+                hErr(i) = plot(px(:),py(:),'Color',col1,...
                                'LineWidth',options.stdLineWidth);
-            elseif ~ishandle(hStd(i))
+            elseif ~ishandle(hErr(i))
                 %have to use line here to force the generation of a
                 %graphics handle even for a trace with no points
-                hStd(i) = line('XData',[],'YData',[],'Color',col1,...
+                hErr(i) = line('XData',[],'YData',[],'Color',col1,...
                                'LineStyle','none');
             end;
-        end;
-        if (strcmpi(options.Error,'sem') || strcmpi(options.Error,'all')),
+        elseif strcmpi(options.Error,'sem')
             if (ismember(options.Trace,{'on'})),
                 px = [x1; x1(end:-1:1)];
                 py = [y1; y1(end:-1:1)] + [sem1; -sem1(end:-1:1)];
                 h1 = fill(px,py,col1,'EdgeColor','none');
-                hSem(i) = h1;
+                hErr(i) = h1;
             else
                 px = [x1 x1 NaN([length(x1) 1])]';
                 py = [y1 y1 NaN([length(y1) 1])]' + ...
                      [sem1 -sem1 NaN([length(y1) 1])]';
             end;
-            if (~isempty(px) && ~ishandle(hSem(i))),
-                hSem(i) = plot(px(:),py(:),'Color',col1,...
+            if (~isempty(px) && ~ishandle(hErr(i))),
+                hErr(i) = plot(px(:),py(:),'Color',col1,...
                                'LineWidth',options.semLineWidth);
-            elseif ~ishandle(hSem(i))
-                hSem(i) = line('XData',[],'YData',[],'Color',col1,...
+            elseif ~ishandle(hErr(i))
+                hErr(i) = line('XData',[],'YData',[],'Color',col1,...
                                'LineStyle','none');
             end;
         end;
