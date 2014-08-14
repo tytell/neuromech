@@ -11,7 +11,6 @@ function install_here(varargin)
 %          Should always have '^\..*' to exclude '.' and '..' on
 %          MacOS/Linux systems.
 
-% Mercurial revision hash: $Revision$ $Date$
 % See https://bitbucket.org/tytell/matlab/wiki/Home
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
@@ -140,9 +139,10 @@ else
             
         addpath(pathnames{:},'-begin');
         upath = userpath;
-        if (~isempty(upath) && ((upath(end) == ':') || (upath(end) == ';')))
-            upath = upath(1:end-1);
-        end;
+        if any(upath == ':')
+            upath = regexp(upath,':','split');
+            upath = upath{1};
+        end
         try 
             savepath(fullfile(upath,'pathdef.m'));
         catch err
