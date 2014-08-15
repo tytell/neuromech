@@ -56,8 +56,10 @@ elseif (nnumeric == 3),
 end;
 
 %default values
-ctrsize = 0.75;
-bingap = 1/3;
+%ctrsize = 0.75;
+%bingap = 1/3;
+ctrsize = 0.01;
+bingap = 0.01;
 
 %process options
 while (p <= nargin),
@@ -221,7 +223,7 @@ if (isempty(angx)),
   angy = nanmean(sin(ang));
 end;
 
-h = plot((r+c0).*cos(a),(r+c0).*sin(a),'LineWidth',3);
+h = plot((r+c0).*cos(a),(r+c0).*sin(a),'LineWidth',4);
 numzero = ctrs;
 for i = 1:size(n,2),
     good = n(:,i) > 0;
