@@ -5,7 +5,18 @@ opt.threshold = [];
 opt.minspikes = [];
 opt.quiet = false;
 
-opt = parsevarargin(opt, varargin, 2);
+if ((nargin >= 2) && isnumeric(data) && isnumeric(varargin{1}) && ...
+        any(size(varargin{1}) == length(data)))
+    data = struct('t',data, 'sig',varargin{1});
+    args = varargin(2:end);
+    p = 2;
+    isdata = false;
+else
+    args = varargin;
+    p = 1;
+    isdata = true;
+end
+opt = parsevarargin(opt, args, p+1);
 
 if (~opt.quiet)
     fig = openfig(mfilename, 'new');
@@ -83,61 +94,72 @@ ctr1 = {data.burst.ctr};
 ctr1 = cellfun(@(x) x', ctr1, 'UniformOutput',false);
 data.burstt = catuneven(2,ctr1{:});
 
-data.spikephase = NaN(size(data.spiket));
-data.burstphase = NaN(size(data.burstt));
-data.spikecyclet = NaN(size(data.spiket));
-data.burstcyclet = NaN(size(data.burstt));
-data.burstcycle = NaN(size(data.burstt));
+if isfield(data,'phase')
+    data.spikephase = NaN(size(data.spiket));
+    data.burstphase = NaN(size(data.burstt));
+    data.spikecyclet = NaN(size(data.spiket));
+    data.burstcyclet = NaN(size(data.burstt));
+    data.burstcycle = NaN(size(data.burstt));
 
-uphase = unwrap(2*pi*data.phase) / (2*pi);
-goodphase = isfinite(uphase) & [true; diff(uphase) > 0];
-for i = 1:size(data.spiket,2)
-    good = isfinite(data.spiket(:,i));
-    if any(good)
-        data.spikephase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.spiket(good,i));
-        
-        cycle1 = floor(data.spikephase(good,i));
-        data.spikecyclet(good,i) = interp1(uphase(goodphase),data.t(goodphase), cycle1);
-    end
-    
-    good = isfinite(data.burstt(:,i));
-    if any(good)
-        data.burstphase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.burstt(good,i));
-        
-        if isfield(data,'stimphase')
-            goodphase = isfinite(data.stimphase) & [true; diff(data.stimphase) > 0];
-            data.burststimphase(good,i) = interp1(data.t(goodphase),data.stimphase(goodphase), data.burstt(good,i));
-            data.burststimcycle(good,i) = interp1(data.t(goodphase),data.stimcycle(goodphase), data.burstt(good,i));
+    uphase = unwrap(2*pi*data.phase) / (2*pi);
+    goodphase = isfinite(uphase) & [true; diff(uphase) > 0];
+    for i = 1:size(data.spiket,2)
+        good = isfinite(data.spiket(:,i));
+        if any(good)
+            data.spikephase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.spiket(good,i));
+
+            cycle1 = floor(data.spikephase(good,i));
+            data.spikecyclet(good,i) = interp1(uphase(goodphase),data.t(goodphase), cycle1);
+        end
+
+        good = isfinite(data.burstt(:,i));
+        if any(good)
+            data.burstphase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.burstt(good,i));
+
+            if isfield(data,'stimphase')
+                goodphase = isfinite(data.stimphase) & [true; diff(data.stimphase) > 0];
+                data.burststimphase(good,i) = interp1(data.t(goodphase),data.stimphase(goodphase), data.burstt(good,i));
+                data.burststimcycle(good,i) = interp1(data.t(goodphase),data.stimcycle(goodphase), data.burstt(good,i));
+            end
         end
     end
+
+    data.spikephase = mod(data.spikephase,1);
+    data.burstphase = mod(data.burstphase,1);
 end
 
-data.spikephase = mod(data.spikephase,1);
-data.burstphase = mod(data.burstphase,1);
+if isfield(data,'stimfreq')
+    if (length(data.stimfreq) == 1)
+        ncycle = max(data.cycle);
+        data.stimcyclet = (0:1/data.stimfreq:ncycle-1)';
+    else
+        data.stimcyclet = interp1(uphase(goodphase),data.t(goodphase),floor(min(uphase)):ceil(max(uphase)), ...
+            'linear','extrap')';
+    end
 
-if (length(data.stimfreq) == 1)
-    ncycle = max(data.cycle);
-    data.stimcyclet = (0:1/data.stimfreq:ncycle-1)';
-else
-    data.stimcyclet = interp1(uphase(goodphase),data.t(goodphase),floor(min(uphase)):ceil(max(uphase)), ...
-        'linear','extrap')';
+    [data.burstspercycle,data.burstcycle] = histc(data.burstt,data.stimcyclet);
+    data.burstcycle(data.burstcycle == 0) = NaN;
+    good = isfinite(data.burstcycle);
+    data.burstcyclet = NaN(size(data.burstcycle));
+    data.burstcyclet(good) = data.stimcyclet(data.burstcycle(good));
 end
-
-[data.burstspercycle,data.burstcycle] = histc(data.burstt,data.stimcyclet);
-data.burstcycle(data.burstcycle == 0) = NaN;
-good = isfinite(data.burstcycle);
-data.burstcyclet = NaN(size(data.burstcycle));
-data.burstcyclet(good) = data.stimcyclet(data.burstcycle(good));
 
 if (~opt.quiet)
     ibdtxt = sprintf('%g ',gdata.interburst);
     thtxt = sprintf('%g ',gdata.thresh(1,:));
     thtxt = [thtxt(1:end-1) ';' sprintf('%g ',gdata.thresh(2,:))];
     mstxt = sprintf('%g ',gdata.minspikes);
-    
-    fprintf('%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
-        inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
+
+    if isdata
+        fprintf('%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
+            inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
+    else
+        fprintf('data = findbursts_gui(%s,%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
+            inputname(1), inputname(1), inputname(2),inputname(2),...
+            thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
+    end
 end
+
 
 %*************************************************************************
 function gdata = show_plot(gdata, type)
@@ -197,7 +219,7 @@ if (any(ismember(type, {'all','bursts'})))
 end
 
 if (any(ismember(type, {'all','plot'})))
-    xl = get(ax,'XLim');
+    xl = [min(d.t) max(d.t)];
     gdata.hthreshln = addplot(ax, xl,gdata.thresh(1,[c c]),'g--', ...
         xl,gdata.thresh(2,[c c]),'g--', ...
         'ButtonDownFcn',@on_click_thresh_line);
