@@ -191,6 +191,8 @@ if (any(ismember(type, {'all','plot'})))
         zoom(ax,'xon');
         zoom(ax,fac);
         zoom(ax,'off');
+        zoom(ax,'on');
+        zoom(ax,'off');
     end
 end
 
