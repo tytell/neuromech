@@ -94,6 +94,14 @@ ctr1 = {data.burst.ctr};
 ctr1 = cellfun(@(x) x', ctr1, 'UniformOutput',false);
 data.burstt = catuneven(2,ctr1{:});
 
+on1 = {data.burst.on};
+on1 = cellfun(@(x) x', on1, 'UniformOutput',false);
+data.burston = catuneven(2,on1{:});
+
+off1 = {data.burst.off};
+off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
+data.burstoff = catuneven(2,off1{:});
+
 if isfield(data,'phase')
     data.spikephase = NaN(size(data.spiket));
     data.burstphase = NaN(size(data.burstt));
@@ -155,7 +163,7 @@ if (~opt.quiet)
             inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
     else
         fprintf('data = findbursts_gui(%s,%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
-            inputname(1), inputname(1), inputname(2),inputname(2),...
+            inputname(1), inputname(2),...
             thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
     end
 end
