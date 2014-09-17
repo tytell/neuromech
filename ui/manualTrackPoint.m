@@ -97,7 +97,7 @@ if (isempty(mmfile))
 else
     I = read(mmfile,cur+off);
 end;
-I = imadjust(I,stretchlim(I),[]);
+I = adapthisteq(I,'range','original','cliplimit',0.05);
 set(hImage, 'CData', I);
 set(gcf,'Name',sprintf('Frame %d/%d',cur+off,N));
 
