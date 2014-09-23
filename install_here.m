@@ -137,10 +137,15 @@ else
             end
         end
             
+        if ispc
+            splitchar = ';';
+        else
+            splitchar = ':';
+        end
         addpath(pathnames{:},'-begin');
         upath = userpath;
-        if any(upath == ':')
-            upath = regexp(upath,':','split');
+        if any(upath == splitchar)
+            upath = regexp(upath,splitchar,'split');
             upath = upath{1};
         end
         try 
