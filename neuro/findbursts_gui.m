@@ -159,10 +159,10 @@ if (~opt.quiet)
     mstxt = sprintf('%g ',gdata.minspikes);
 
     if isdata
-        fprintf('%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
+        fprintf('%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')\n', ...
             inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
     else
-        fprintf('data = findbursts_gui(%s,%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')', ...
+        fprintf('data = findbursts_gui(%s,%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')\n', ...
             inputname(1), inputname(2),...
             thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
     end
@@ -180,9 +180,10 @@ c = gdata.chan;
 ax = gdata.axes;
 d = gdata.data;
 
+med = nanmedian(d.sig(:,c));
 if (any(ismember(type, {'all','plot'})))
     cla(ax,'reset');
-    plot(ax, d.t,d.sig(:,c),'k-', 'HitTest','off');
+    plot(ax, d.t,d.sig(:,c)-med,'k-', 'HitTest','off');
     axis(ax, 'tight');
 
     xl = get(ax,'XLim');    
@@ -200,7 +201,7 @@ if (any(ismember(type, {'all','spikes'})))
     if (ishandle(gdata.hspikes))
         delete(gdata.hspikes);
     end
-    gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}, 'ro', ...
+    gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}-med, 'ro', ...
         'MarkerFaceColor','r','MarkerSize',4,'HitTest','off');
 end
 
