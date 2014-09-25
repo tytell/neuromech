@@ -265,9 +265,15 @@ else
 end
 
 for i = c
-    [burst1,spike1] = findbursts(d.spiket{i}, 'simple', 'interburstdur',gdata.interburst(i), ...
-        'minspikes',gdata.minspikes(i));
-    d.burst(i) = burst1;
+    if length(d.spiket{i}) > 10
+        [burst1,spike1] = findbursts(d.spiket{i}, 'simple', 'interburstdur',gdata.interburst(i), ...
+            'minspikes',gdata.minspikes(i));
+        d.burst(i) = burst1;
+    else
+        d.burst(i).on = [];
+        d.burst(i).off = [];
+        d.burst(i).ctr = [];
+    end
 end
 gdata.data = d;
 
