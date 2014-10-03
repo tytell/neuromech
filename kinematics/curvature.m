@@ -124,7 +124,7 @@ switch lower(opt.method),
     for i = 1:size(x,2),
         good = all(isfinite(XY(:,:,i))) & isfinite(s(:,i)');
         if (sum(good) >= 3),
-            sp(i) = spaps(s(good,i),XY(:,good,i),opt.smooth(i)^2,3);
+            sp(i) = spaps(s(good,i),XY(:,good,i),opt.smooth(i)^2*range(s(good,i)),3);
 
             %estimate derivatives
             dxyds(:,:,i) = fnval(fnder(sp(i),1),s(:,i));

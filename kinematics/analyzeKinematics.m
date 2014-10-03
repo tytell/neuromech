@@ -101,7 +101,7 @@ end;
 
 %estimate curvature
 if (isempty(opt.curve)),
-    curve = curvature(x,y,'spline','smooth',opt.dssmoothcurve);
+    curve = curvature(x,y,'splineindiv','smooth',opt.dssmoothcurve);
 else
     curve = opt.curve;
 end;

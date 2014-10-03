@@ -1,4 +1,4 @@
-function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr)
+function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr, varargin)
 % function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr)
 % Smooths a midline using spaps over time and space simultaneously.  Checks
 % the total length of the midline.  serr and terr are the errors along
@@ -6,6 +6,9 @@ function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr)
 %
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
+
+opt.discardbadspacing = true;
+opt = parsevarargin(opt, varargin, 7);
 
 nfr = size(mx,2);
 npt = size(mx,1);
@@ -28,24 +31,63 @@ ds0 = actlen/(npt-1);
 good = all(isfinite(mx) & isfinite(my));
 goodspacing = all(abs((ds - ds0)/ds0) <= 0.2);
 
-if (any(~goodspacing))
+if (opt.discardbadspacing && any(~goodspacing))
     nbad = sum(good & ~goodspacing);
     warning('%d (%d%%) sequences discarded because of tracking errors', ...
         nbad, round(nbad/sum(good)*100));
+    good = good & goodspacing;
 end
-good = good & goodspacing;
 
-s = nanmedian2(s,2);
+if all(goodspacing)
+    s = nanmedian2(s,2);
 
-k = find(good);
-XY = cat(1,shiftdim(mx(:,k),-1),shiftdim(my(:,k),-1));
-sp = spaps({s,t(k)}, XY, {serr^2*range2(s)*length(t(k)) terr^2*range2(t(k))*length(s)});
-XYs = fnval(sp,{s,t(k(1):k(end))});
-
+    k = find(good);
+    XY = cat(1,shiftdim(mx,-1),shiftdim(my,-1));
+    sp = spaps({s,t(k)}, XY(:,:,k), {serr^2*range2(s)*length(t(k)) terr^2*range2(t(k))*length(s)});
+    XYs = NaN(size(XY));
+    XYs(:,:,k(1):k(end)) = fnval(sp,{s,t(k(1):k(end))});
+else
+    s0 = (0:ds0:actlen)';
+    XY = cat(1,shiftdim(mx,-1),shiftdim(my,-1));
+    XYs1 = NaN(size(XY));
+    XYs = NaN(size(XY));
+    
+    %first spatial smoothing
+    k = find(good);
+    for ii = 1:length(k)
+        i = k(ii);
+        
+        sp = spaps(s(:,i), XY(:,:,i), serr^2*range2(s(:,i)));
+        
+        if (abs(s(end,i) - actlen) < 0.5*ds0)
+            s1 = s(:,i);
+            srng = true(size(s1));
+        else
+            srng = (s0 <= s(end,i));
+            s1 = s0(srng);
+            if ((s1(end) >= s(end,i)) && (s1(end) - s(end,i) < 0.5*ds0))
+                s1(end) = s(end,i);
+            elseif (length(s1) < size(XY,2))
+                s1(end+1) = s(end,i);
+                srng(length(s1)) = true;
+            end
+        end
+        XYs1(:,srng,i) = fnval(sp,s1);
+    end
+    
+    %then temporal smoothing
+    for i = 1:size(XY,2)
+        goodt = all(isfinite(XYs1(:,i,:)),1);
+        k = find(goodt);
+        
+        sp = spaps(t(goodt),XYs1(:,i,goodt), terr^2*range2(t(goodt)));
+        XYs(:,i,k(1):k(end)) = fnval(sp,t(k(1):k(end)));
+    end
+end
 mxs = NaN(size(mx));
 mys = NaN(size(my));
-mxs(:,k(1):k(end)) = squeeze(XYs(1,:,:));
-mys(:,k(1):k(end)) = squeeze(XYs(2,:,:));
+mxs = squeeze(XYs(1,:,:));
+mys = squeeze(XYs(2,:,:));
 
 if (range2(mxs(:)) > range2(mys(:))),
 	ishoriz = 1;
