@@ -3,6 +3,7 @@ function data = findbursts_gui(data, varargin)
 opt.interburstdur = [];
 opt.threshold = [];
 opt.minspikes = [];
+opt.goodchan = [];
 opt.quiet = false;
 
 if ((nargin >= 2) && isnumeric(data) && isnumeric(varargin{1}) && ...
@@ -46,6 +47,12 @@ if (isempty(opt.minspikes))
     gdata.minspikes = 2*ones(1,nchan);
 else
     gdata.minspikes = opt.minspikes;
+end
+
+if (isempty(opt.goodchan))
+    gdata.data.goodchan = true(1,nchan);
+else
+    gdata.data.goodchan = opt.goodchan;
 end
 
 if (isfield(data,'burst'))
@@ -180,6 +187,8 @@ c = gdata.chan;
 ax = gdata.axes;
 d = gdata.data;
 
+goodchan = gdata.data.goodchan(c);
+
 if (any(ismember(type, {'all','plot'})))
     cla(ax,'reset');
     plot(ax, d.t,d.sig(:,c),'k-', 'HitTest','off');
@@ -200,31 +209,36 @@ if (any(ismember(type, {'all','spikes'})))
     if (ishandle(gdata.hspikes))
         delete(gdata.hspikes);
     end
-    gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}, 'ro', ...
-        'MarkerFaceColor','r','MarkerSize',4,'HitTest','off');
+    if goodchan
+        gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}, 'ro', ...
+            'MarkerFaceColor','r','MarkerSize',4,'HitTest','off');
+    end
 end
 
 if (any(ismember(type, {'all','bursts'})))
     if (ishandle(gdata.hbursts))
         delete(gdata.hbursts);
     end
-    b = d.burst;
     
-    on1 = b(c).on;
-    off1 = b(c).off;
-    ctr1 = b(c).ctr;
-    
-    yy = nanmean(abs(d.spikeamp{c}));
-    
-    h1 = addplot(ax, [on1; off1], repmat([yy; yy],[1 length(on1)]), 'b-', ...
-        'LineWidth',2);
-    gdata.hbursts = h1;
-    
-    if (ishandle(gdata.hburstrate))
-        burstrate = 1./diff(ctr1);
-        plot(gdata.hburstrate, ctr1(1:end-1),burstrate, 'ko');
-        xlabel('Time (sec)');
-        ylabel('Burst rate (Hz)');
+    if (goodchan)
+        b = d.burst;
+
+        on1 = b(c).on;
+        off1 = b(c).off;
+        ctr1 = b(c).ctr;
+
+        yy = nanmean(abs(d.spikeamp{c}));
+
+        h1 = addplot(ax, [on1; off1], repmat([yy; yy],[1 length(on1)]), 'b-', ...
+            'LineWidth',2);
+        gdata.hbursts = h1;
+
+        if (ishandle(gdata.hburstrate))
+            burstrate = 1./diff(ctr1);
+            plot(gdata.hburstrate, ctr1(1:end-1),burstrate, 'ko');
+            xlabel('Time (sec)');
+            ylabel('Burst rate (Hz)');
+        end
     end
 end
 
@@ -264,9 +278,16 @@ else
 end
 
 for i = c
-    [burst1,spike1] = findbursts(d.spiket{i}, 'simple', 'interburstdur',gdata.interburst(i), ...
-        'minspikes',gdata.minspikes(i));
-    d.burst(i) = burst1;
+    if (length(d.spiket{i}) > 10)
+        [burst1,spike1] = findbursts(d.spiket{i}, 'simple', 'interburstdur',gdata.interburst(i), ...
+            'minspikes',gdata.minspikes(i));
+        d.burst(i) = burst1;
+    else
+        d.burst(i).on = [];
+        d.burst(i).off = [];
+        d.burst(i).ctr = [];
+        d.burst(i).nspike = [];
+    end
 end
 gdata.data = d;
 
@@ -364,6 +385,7 @@ set(gdata.spikeThreshLoEdit, 'String', num2str(gdata.thresh(1,gdata.chan),3));
 set(gdata.spikeThreshHiEdit, 'String', num2str(gdata.thresh(2,gdata.chan),3));
 set(gdata.interburstDurEdit, 'String', num2str(gdata.interburst(gdata.chan),3));
 set(gdata.minSpikesEdit, 'String', num2str(gdata.minspikes(gdata.chan),3));
+set(gdata.skipChannelCheck, 'Value', ~gdata.data.goodchan(gdata.chan));
 
 guidata(obj,gdata);
 
@@ -450,6 +472,25 @@ end
 guidata(obj,gdata);
 
 %*************************************************************************
+function on_click_skipchannel(obj,event)
+
+gdata = guidata(obj);
+if (~get(obj,'Value'))
+    gdata.data.goodchan(gdata.chan) = true;
+    gdata = update_spikes(gdata, false);
+else
+    gdata.data.goodchan(gdata.chan) = false;
+    i = gdata.chan;
+    gdata.data.spiket{i} = [];
+    gdata.data.spikeamp{i} = [];
+    gdata = update_bursts(gdata, false);
+end
+    
+
+show_plot(gdata,{'busts','spikes'});
+guidata(obj,gdata);
+
+%*************************************************************************
 function on_click_Done(obj,event)
 
 data = guidata(obj);
@@ -467,6 +508,8 @@ set(data.spikeThreshHiEdit, 'Callback',{@on_edit_spikeThresh,1});
 set(data.interburstDurEdit, 'Callback',@on_edit_interburst);
 set(data.minSpikesEdit, 'Callback',@on_edit_minSpikes);
 set(data.burstRateCheck, 'Callback',@on_click_burstrate);
+set(data.skipChannelCheck, 'Callback',@on_click_skipchannel);
+
 
 
 
