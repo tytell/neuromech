@@ -5,6 +5,8 @@ opt.smoothwindow = 9;
 opt.outlier = 1.5;
 opt.relativeto = 'L1';
 opt.basephaselag = 0.01;
+opt.excludenear = [];
+opt.excludenum = 0;
 
 opt = parsevarargin(opt,varargin,4);
 

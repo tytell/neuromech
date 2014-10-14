@@ -50,9 +50,9 @@ else
 end
 
 if (isempty(opt.goodchan))
-    gdata.data.goodchan = true(1,nchan);
+    data.goodchan = true(1,nchan);
 else
-    gdata.data.goodchan = opt.goodchan;
+    data.goodchan = opt.goodchan > 0;
 end
 
 if (isfield(data,'burst'))
@@ -109,7 +109,7 @@ off1 = {data.burst.off};
 off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
 data.burstoff = catuneven(2,off1{:});
 
-if isfield(data,'phase')
+if isfield(data,'phase') && (data.amp > 0)
     data.spikephase = NaN(size(data.spiket));
     data.burstphase = NaN(size(data.burstt));
     data.spikecyclet = NaN(size(data.spiket));
@@ -118,23 +118,34 @@ if isfield(data,'phase')
 
     uphase = unwrap(2*pi*data.phase) / (2*pi);
     goodphase = isfinite(uphase) & [true; diff(uphase) > 0];
+
+    phoff1 = interp1(data.t(goodphase),uphase(goodphase), perstart);
+    [phoff1,roff1] = angmean(2*pi*phoff1);
+    if (roff1 < 0.8)
+        warning('CPG phase does not seem very consistent');
+    end
+    
     for i = 1:size(data.spiket,2)
-        good = isfinite(data.spiket(:,i));
-        if any(good)
-            data.spikephase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.spiket(good,i));
+        if (data.goodchan(i))
+            good = isfinite(data.spiket(:,i));
+            if any(good)
+                data.spikephase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.spiket(good,i));
+                good = isfinite(data.spikephase(:,i));
 
-            cycle1 = floor(data.spikephase(good,i));
-            data.spikecyclet(good,i) = interp1(uphase(goodphase),data.t(goodphase), cycle1);
-        end
+                cycle1 = floor(data.spikephase(good,i));
+                data.spikecyclet(good,i) = interp1(uphase(goodphase),data.t(goodphase), cycle1);
+            end
 
-        good = isfinite(data.burstt(:,i));
-        if any(good)
-            data.burstphase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.burstt(good,i));
+            good = isfinite(data.burstt(:,i));
+            if any(good)
+                data.burstphase(good,i) = interp1(data.t(goodphase),uphase(goodphase), data.burstt(good,i));
+                good = isfinite(data.burstphase(:,i));
 
-            if isfield(data,'stimphase')
-                goodphase = isfinite(data.stimphase) & [true; diff(data.stimphase) > 0];
-                data.burststimphase(good,i) = interp1(data.t(goodphase),data.stimphase(goodphase), data.burstt(good,i));
-                data.burststimcycle(good,i) = interp1(data.t(goodphase),data.stimcycle(goodphase), data.burstt(good,i));
+                if isfield(data,'stimphase')
+                    goodstimphase = isfinite(data.stimphase) & [true; diff(data.stimphase) > 0];
+                    data.burststimphase(good,i) = interp1(data.t(goodstimphase),data.stimphase(goodstimphase), data.burstt(good,i));
+                    data.burststimcycle(good,i) = interp1(data.t(goodstimphase),data.stimcycle(goodstimphase), data.burstt(good,i));
+                end
             end
         end
     end
@@ -164,14 +175,17 @@ if (~opt.quiet)
     thtxt = sprintf('%g ',gdata.thresh(1,:));
     thtxt = [thtxt(1:end-1) ';' sprintf('%g ',gdata.thresh(2,:))];
     mstxt = sprintf('%g ',gdata.minspikes);
-
+    goodtxt = sprintf('%d ',gdata.data.goodchan);
+    
     if isdata
-        fprintf('%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')\n', ...
-            inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
+        fprintf(['%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s],' ...
+            '''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
+            inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1), goodtxt(1:end-1));
     else
-        fprintf('data = findbursts_gui(%s,%s, ''threshold'', [%s], ''interburstdur'', [%s], ''minspikes'', [%s], ''quiet'')\n', ...
+        fprintf(['data = findbursts_gui(%s,%s, ''threshold'', [%s], ' ...
+            '''interburstdur'', [%s], ''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
             inputname(1), inputname(2),...
-            thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1));
+            thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1), goodtxt(1:end-1));
     end
 end
 
