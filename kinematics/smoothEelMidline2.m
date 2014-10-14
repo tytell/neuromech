@@ -8,6 +8,7 @@ function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr, varargin)
 % Copyright (c) 2010, Eric Tytell
 
 opt.discardbadspacing = true;
+opt.offscreen = 'head';
 opt = parsevarargin(opt, varargin, 7);
 
 nfr = size(mx,2);
@@ -46,11 +47,26 @@ if all(goodspacing)
     sp = spaps({s,t(k)}, XY(:,:,k), {serr^2*range2(s)*length(t(k)) terr^2*range2(t(k))*length(s)});
     XYs = NaN(size(XY));
     XYs(:,:,k(1):k(end)) = fnval(sp,{s,t(k(1):k(end))});
+    offscreenind = NaN;
 else
+    switch opt.offscreen
+        case 'head'
+            s = s - repmat(s(end,:),[npt 1]) + actlen;
+            isheadoff = true;
+        case 'tail'
+            isheadoff = false;
+        otherwise
+            error('Unrecognized offscreen option');
+    end
+    
     s0 = (0:ds0:actlen)';
     XY = cat(1,shiftdim(mx,-1),shiftdim(my,-1));
     XYs1 = NaN(size(XY));
     XYs = NaN(size(XY));
+   
+    len = range(s);
+    
+    offscreenind = first(abs(len - actlen) >= 0.5*ds0);
     
     %first spatial smoothing
     k = find(good);
@@ -59,11 +75,11 @@ else
         
         sp = spaps(s(:,i), XY(:,:,i), serr^2*range2(s(:,i)));
         
-        if (abs(s(end,i) - actlen) < 0.5*ds0)
+        if (abs(len(i) - actlen) < 0.5*ds0)
             s1 = s(:,i);
             srng = true(size(s1));
         else
-            srng = (s0 <= s(end,i));
+            srng = (s0 >= min(s(:,i))) & (s0 <= max(s(:,i)));
             s1 = s0(srng);
             if ((s1(end) >= s(end,i)) && (s1(end) - s(end,i) < 0.5*ds0))
                 s1(end) = s(end,i);
@@ -115,6 +131,13 @@ subplot(2,1,2);
 q = [2 round(npt/2) npt-1];
 plot(t,yy(q,:),'o');
 addplot(t,yys(q,:),'k-');
+
+if (isfinite(offscreenind))
+    vertplot(t(offscreenind),'k--');
+    yl = ylim;
+    text(t(offscreenind),yl(2), 'Off screen');
+end
+
 xlabel('Time (s)');
 ylabel('Y position (mm)');
 title('Head, midbody and tail Y position over time');

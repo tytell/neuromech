@@ -54,6 +54,8 @@ opt.track = 'peaks';
 opt.startpoint = 0.66;
 opt.requiretail = false;
 opt.returnpeaksign = false;
+opt.smoothper = 1;      % in sec
+opt.smoothmethod = 'loess';
 
 % Check parameters
 if ((nargin >= 5) && (size(varargin{1},1) == length(s)) && (size(varargin{1},2) > 1)),
