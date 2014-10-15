@@ -24,8 +24,8 @@ smoothfrac = opt.smoothper / (sum(good)*dt);
 if (smoothfrac < 1)
     bodyang(good) = smooth(ang(good),smoothfrac,opt.smoothmethod);
 else
-    p = polyfit(t,ang(good),2);
-    bodyang(good) = polyval(t(good),p);
+    p = polyfit(t(good),ang(good),2);
+    bodyang(good) = polyval(p,t(good));
 end
 
 tailang = ang - bodyang;

@@ -37,6 +37,7 @@ tp = tp(ord);
 if ((length(asc) < 2) || (length(desc) < 2) || (length(hi) < 2) || (length(lo) < 2))
     phase = NaN(size(t));
     cycleind = zeros(size(t));
+    cyclet = zeros(size(t));
     return;
 end;
     

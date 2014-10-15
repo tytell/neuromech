@@ -51,10 +51,13 @@ if (smoothfrac < 1)
     pathx(good) = smooth(K.hxmm(good),smoothfrac,opt.smoothmethod);
     pathy(good) = smooth(K.hymm(good),smoothfrac,opt.smoothmethod);
 else
-    p = polyfit(t,K.hxmm(good),2);
-    pathx(good) = polyval(t(good),p);
-    p = polyfit(t,K.hymm(good),2);
-    pathy(good) = polyval(t(good),p);
+    if (size(t,2) == 1)
+        t = t';
+    end
+    p = polyfit(t(good),K.hxmm(good),2);
+    pathx(good) = polyval(p,t(good));
+    p = polyfit(t(good),K.hymm(good),2);
+    pathy(good) = polyval(p,t(good),p);
 end
 
 pathcurve = curvature(pathx,pathy, 'smooth',1, 'splineindiv');
