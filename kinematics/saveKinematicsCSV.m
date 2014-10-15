@@ -9,6 +9,7 @@ opt.smoothper = 1;      % in sec
 opt.smoothmethod = 'loess';
 opt.ampthresh = 0.01;   % fraction of body length
 opt.npt = 20;
+opt.path = 'head';  % or 'COM'
 opt = parsevarargin(opt,varargin, 3);
 
 K = load(kinfile);
@@ -42,37 +43,32 @@ tpeak(k) = t(K.indpeak(end,k));
 dt = t(2)-t(1);
 assert(isfinite(dt));
 
-good = isfinite(K.hxmm) & isfinite(K.hymm);
-smoothfrac = opt.smoothper / (sum(good)*dt);
-pathx = NaN(size(K.hxmm));
-pathy = NaN(size(K.hymm));
-
-if (smoothfrac < 1)
-    pathx(good) = smooth(K.hxmm(good),smoothfrac,opt.smoothmethod);
-    pathy(good) = smooth(K.hymm(good),smoothfrac,opt.smoothmethod);
-else
-    if (size(t,2) == 1)
-        t = t';
+if ~isfield(K,'pathx')
+    switch opt.path
+        case 'head'
+            fishpath = get_fish_path(K.t,K.hxmm,K.hymm,K.humms,K.hvmms,K.haxmmss,K.haymmss, ...
+                'path','head');
+            
+            pathcurve = fishpath.pathcurve;
+            pathang = fishpath.pathang;
+            speed = fishpath.speed;
+            accel = fishpath.accel;
+                        
+        case {'COM','com'}
+            fishpath = get_fish_path(K.t,K.mxmm,K.mymm, 'path','COM');
+            
+            pathcurve = fishpath.pathcurve;
+            pathang = fishpath.pathang;
+            speed = fishpath.speed;
+            accel = fishpath.accel;
     end
-    p = polyfit(t(good),K.hxmm(good),2);
-    pathx(good) = polyval(p,t(good));
-    p = polyfit(t(good),K.hymm(good),2);
-    pathy(good) = polyval(p,t(good),p);
+else
+    pathcurve = K.pathcurve;
+    pathang = K.pathang;
+    speed = K.speed;
+    accel = K.accel;
 end
-
-pathcurve = curvature(pathx,pathy, 'smooth',1, 'splineindiv');
-
-swimvecx = [diff(pathx) NaN];
-swimvecy = [diff(pathy) NaN];
-mag = sqrt(swimvecx.^2 + swimvecy.^2);
-swimvecx = swimvecx ./ mag;
-swimvecy = swimvecy ./ mag;
-
-pathang = unwrap(atan2(swimvecy,swimvecx)+pi) - pi;
-
-speed = K.humms.*swimvecx + K.hvmms.*swimvecy;
-accel = K.haxmmss.*swimvecx + K.haymmss.*swimvecy;
-
+        
 speedmn = NaN(nbt,1);
 accelmn = NaN(nbt,1);
 pathangmn = NaN(nbt,1);

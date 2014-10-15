@@ -991,7 +991,13 @@ else
     DF.terr = terr1;
 end
 
-[mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr);
+if inputyn('Does the head go off the screen?','default',false)
+    headopt = {'discardbadspacing',false, 'offscreen','head'};
+else
+    headopt = {};
+end
+[mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr, ...
+    headopt{:});
 
 DF.mxs = mxs;
 DF.mys = mys;

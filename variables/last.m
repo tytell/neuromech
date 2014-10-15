@@ -101,6 +101,9 @@ if (ismat)
     A = reshape(A,[n N]);
 end;
 
+sznew = szorig;
+sznew(dim) = 1;
+
 %handle start indices
 if (start ~= 1)
     cond = cond(start:end,:);
@@ -144,7 +147,12 @@ else
         ind = ind + start - 1;
     end;
 end;
-        
+
+if ismat
+    f = reshape(f,sznew);
+else
+    ind = reshape(ind,sznew);
+end
 if (nargout == 2),
     varargout = {f,ind};
 elseif (ismat),
