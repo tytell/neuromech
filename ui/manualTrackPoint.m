@@ -10,6 +10,7 @@ global mmfile cur step off N imfiles;
 global hImage;
 global tx ty extrax extray;
 global showPt;
+global isadjust;
 
 if (~isempty(varargin{1})),
     if (iscell(varargin{1}))
@@ -24,7 +25,8 @@ if (~isempty(varargin{1})),
 	step = varargin{2};
 	cur = 1;
 	off = 0;
-	
+	isadjust = true;
+    
     tx = NaN(1,N);
     ty = NaN(1,N);
     extrax = [];
@@ -60,13 +62,15 @@ if (~isempty(varargin{1})),
     else
         I = read(mmfile,cur);
     end;
-    I = imadjust(I,stretchlim(I),[]);
+    if isadjust
+        I = imadjust(I,stretchlim(I),[]);
+    end
 	hImage = imshow6(I,'n');
 	
 	set(gcf, 'DoubleBuffer', 'on', ...
 				'KeyPressFcn',		'manualTrackPoint([],''OnKeyPress'');');
 	set(hImage, 'ButtonDownFcn',	'manualTrackPoint([],''OnClick'');');
-	title('Return or ''q'' when done.  Arrows step. +- looks around current frame.  ''s'' toggles trail');
+	title('Return or ''q'' when done.  Arrows step. +- looks around current frame.  ''s'' toggles trail. ''c'' to increase contrast.');
     
 	set(gcf,'Name',sprintf('Frame %d/%d',cur,N));
 
@@ -91,13 +95,16 @@ global mmfile cur step off N imfiles;
 global tx ty extrax extray;
 global hImage hPt hPtExtra;
 global showPt;
+global isadjust;
 
 if (isempty(mmfile))
     I = imread(imfiles{cur+off});
 else
     I = read(mmfile,cur+off);
 end;
-I = adapthisteq(I,'range','original','cliplimit',0.05);
+if isadjust
+    I = adapthisteq(I,'range','original','cliplimit',0.05);
+end
 set(hImage, 'CData', I);
 set(gcf,'Name',sprintf('Frame %d/%d',cur+off,N));
 
@@ -152,58 +159,64 @@ function OnKeyPress
 
 global cur step off N;
 global showPt;
+global isadjust;
 
 c = get(gcf,'CurrentCharacter');
 
 switch lower(c),
-case char(13),
-	set(gcf, 'UserData', 'done');
-case 'q',
-	set(gcf, 'UserData', 'done');
-case char(28),				% left arrow
-	cur = cur - step;
-	off = 0;
-	if (cur < 1),
-		beep;
-		cur = 1;
-	end;
-	doUpdate;
-case char(29),				% right arrow
-	cur = cur + step;
-	off = 0;
-	if (cur > N),
-		beep;
-		cur = N;
-	end;
-	doUpdate;
-case '+',
-	off = off + 1;
-	if (cur+off > N),
-		beep;
-		off = off-1;
-	end;
-	doUpdate;
-case '-',
-	off = off - 1;
-	if (cur+off < 1),
-		beep;
-		off = off+1;
-	end;
-	doUpdate;	
-case ' ',
-	if (off ~= 0),
-		off = 0;
-		doUpdate;
-	end;
-case 's',
-	showPt = ~showPt;
-	doUpdate;
-case 'g',
-	fr = input('Frame? ');
-	if ((fr >= 1) && (fr <= N)),
-		cur = fr;
-	else
-		beep;
-	end;
+    case char(13),
+        set(gcf, 'UserData', 'done');
+    case 'q',
+        set(gcf, 'UserData', 'done');
+    case char(28),				% left arrow
+        cur = cur - step;
+        off = 0;
+        if (cur < 1),
+            beep;
+            cur = 1;
+        end;
+        doUpdate;
+    case char(29),				% right arrow
+        cur = cur + step;
+        off = 0;
+        if (cur > N),
+            beep;
+            cur = N;
+        end;
+        doUpdate;
+    case '+',
+        off = off + 1;
+        if (cur+off > N),
+            beep;
+            off = off-1;
+        end;
+        doUpdate;
+    case '-',
+        off = off - 1;
+        if (cur+off < 1),
+            beep;
+            off = off+1;
+        end;
+        doUpdate;
+    case ' ',
+        if (off ~= 0),
+            off = 0;
+            doUpdate;
+        end;
+    case 's',
+        showPt = ~showPt;
+        doUpdate;
+    case 'g',
+        fr = input('Frame? ');
+        if ((fr >= 1) && (fr <= N)),
+            cur = fr;
+        else
+            beep;
+        end;
+        
+    case 'c',
+        isadjust = ~isadjust;
+        doUpdate;
+        
 end;
 
