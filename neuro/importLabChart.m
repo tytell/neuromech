@@ -1,4 +1,4 @@
-function importLabChart(filename, outname, varargin)
+function varargout = importLabChart(filename, outname, varargin)
 
 opt.channelnames = 'auto';
 opt = parsevarargin(opt, varargin);
@@ -45,6 +45,9 @@ else
     evttxt = 'Event Marker';
     evtind = find(strncmp(comtext, evttxt, length(evttxt)), 1, 'first');
 
+    if isempty(evtind)
+        evtind = -1;
+    end
     isevt = F.com(:,5) == evtind;
     eventt = F.com(isevt,3) / F.tickrate;
 
@@ -66,7 +69,9 @@ else
     isspike0 = ~isnan(spikenum0);
 
     iscom0 = ~isspike0;
-    iscom0(evtind) = false;
+    if evtind > 0
+        iscom0(evtind) = false;
+    end
 
     iscom = iscom0(F.com(:,5));
     commenttxt = comtext(F.com(iscom,5));
@@ -121,7 +126,11 @@ end
 S.commentt = commentt;
 S.commenttxt = commenttxt;
 
-save(outname,'-struct','S');
+if ~isempty(outname)
+    save(outname,'-struct','S');
+else
+    varargout = {S};
+end
 
 
 
