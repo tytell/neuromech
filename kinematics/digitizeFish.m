@@ -1010,16 +1010,18 @@ end;
 % ****************************
 function DF = dfAnalyze(DF)
 
-s = [zeros(1,size(DF.mx,2)); cumsum(sqrt(diff(DF.mxs).^2 + diff(DF.mys).^2))];
-
 if (DF.fps > 100),
     smooth = 3;
 else
     smooth = 0;
 end;
 
-if (~isfield(DF,'mxs') && ~isfield(DF,'mys') || ...
+if ((~isfield(DF,'mxs') && ~isfield(DF,'mys')) || ...
         ~inputyn('Analyze entire midline (Y), or just the tailbeat (n)?','default',false))
+    if ~isfield(DF,'fishlenmm')
+        DF.fishlenmm = input('Fish length in mm? ');
+        DF.fishlenpix = DF.fishlenmm/DF.scale;
+    end
     s = NaN(20,1);
     s([1 end]) = [0; DF.fishlenpix];
     if isfield(DF,'scale')
@@ -1039,6 +1041,8 @@ if (~isfield(DF,'mxs') && ~isfield(DF,'mys') || ...
     waver = [];
     waven = [];
 else
+    s = [zeros(1,size(DF.mx,2)); cumsum(sqrt(diff(DF.mxs).^2 + diff(DF.mys).^2))];
+
     if (isfield(DF,'scale')),
         if (istoolbox('statistics'))
             smm = nanmedian(s,2)*DF.scale;
