@@ -29,7 +29,6 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
     properties(GetAccess='public', SetAccess='public')
         UserData        % Generic field for any user-defined data.
         isaviread
-        isphantom
     end
     
     %------------------------------------------------------------------
@@ -59,6 +58,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         info
         tifinfo
         istimestamp
+        imxinfo
     end
     %------------------------------------------------------------------
     % Documented methods
@@ -76,8 +76,9 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             end
 
             obj.isaviread = ~isempty(which('aviread'));
-            obj.isphantom = exist('LoadPhantomLibraries','file');
+            isphantom = exist('LoadPhantomLibraries','file');
             obj.cine = struct([]);
+            obj.imxinfo = struct([]);
             
             [pn,fn,ext] = fileparts(fileName);
             
@@ -110,7 +111,87 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                         rethrow(err);
                     end
                 end
-            elseif (strcmpi(ext,'.cine') && obj.isphantom)
+            elseif (strcmpi(ext,'.im7'))
+                tok = regexp(fn,'^(.*\D)(\d+)$','tokens','once');
+                basename = tok{1};
+                numlen = length(tok{2});
+                
+                filenames1 = dir(fullfile(pn,[tok{1} '*.im7']));
+                isdir1 = cat(2,filenames1.isdir);
+                filenames1 = {filenames1.name};
+
+                obj.Path = pn;
+                obj.Name = filenames1{1};
+
+                tplt = sprintf('^%s(\\d{%d})\\.im7$', basename, numlen);
+                tok = regexp(filenames1,tplt,'tokens','once');
+                
+                good = ~isdir1 & ~cellfun(@isempty,tok);
+                
+                framenums = cellfun(@(x) str2double(x{1}), tok(good));
+                
+                obj.imxinfo(1).filenames = filenames1(good);
+                obj.imxinfo.framenums = framenums;
+                
+                imx1 = readimx(fullfile(pn,filenames1{1}));
+                imx2 = readimx(fullfile(pn,filenames1{end}));
+                
+                if (~isfield(imx1,'Frames') || isempty(imx1.Frames) || ...
+                        ~isfield(imx1.Frames{1}, 'Components') || ...
+                        ~isfield(imx1.Frames{1}, 'ComponentNames') || ...
+                        isempty(imx1.Frames{1}.Components))
+                    error('VideoReader2:badimx','Bad IM7 structure');
+                end
+                ind = find(strcmp(imx1.Frames{1}.ComponentNames,'PIXEL'));
+                if (length(ind) ~= 1)
+                    error('VideoReader2:badimx','Bad IM7 structure');
+                end
+                
+                obj.imxinfo.pixind = ind;
+                obj.imxinfo.width = size(imx1.Frames{1}.Components{ind}.Planes{1},2);
+                obj.imxinfo.height = size(imx1.Frames{1}.Components{ind}.Planes{1},1);
+                
+                attrnames = cellfun(@(x) x.Name, imx1.Frames{1}.Attributes, 'UniformOutput',false);
+                ind = find(strcmp(attrnames,'AcqTimeSeries'));
+                if (length(ind) ~= 1)
+                    error('VideoReader2:badimx','Bad IM7 structure');
+                end
+                
+                tok1 = regexp(imx1.Frames{1}.Attributes{ind}.Value,'(-?[\d.]+)\s(\w*)', 'tokens','once');
+                tok2 = regexp(imx2.Frames{1}.Attributes{ind}.Value,'(-?[\d.]+)\s(\w*)', 'tokens','once');
+                if (isempty(tok1) || isempty(tok2))
+                    error('VideoReader2:badimx','Bad IM7 structure');
+                end
+                t1 = str2double(tok1{1});
+                t2 = str2double(tok2{1});
+                
+                switch tok1{2}
+                    case 'µs'
+                        tscale = 1e6;
+                    case 'ms'
+                        tscale = 1000;
+                    case 's'
+                        tscale = 1;
+                end
+                t1 = t1/tscale;
+                t2 = t2/tscale;
+                
+                obj.imxinfo.starttime = t1;
+                obj.imxinfo.endtime = t2;
+                obj.imxinfo.nframes = sum(good);
+                obj.imxinfo.fps = (sum(good) - 1) / (t2 - t1);
+                
+                obj.imxinfo.scale = [imx1.Frames{1}.Scales.X.Slope ...
+                    imx1.Frames{1}.Scales.Y.Slope];
+                switch imx1.Frames{1}.Scales.X.Unit
+                    case 'µm'
+                        obj.imxinfo.scale = obj.imxinfo.scale / 1e6;
+                    case 'mm'
+                        obj.imxinfo.scale = obj.imxinfo.scale / 1000;
+                    case 'cm'
+                        obj.imxinfo.scale = obj.imxinfo.scale / 100;
+                end                                  
+            elseif (strcmpi(ext,'.cine') && isphantom)
                 LoadPhantomLibraries();
                 RegisterPhantom(true); %Register the Phantom dll's ignoring connected cameras. 
                 [HRES, cineHandle] = PhNewCineFromFile(fileName);
@@ -248,6 +329,16 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                     [I, ~] = ConstructMatlabImage(unshiftedIm, imgHeader.biWidth, imgHeader.biHeight, samplespp, bps);
                     varargout = {I};
                 end
+            elseif ~isempty(obj.imxinfo)
+                fr = varargin{1};
+                ind = find(obj.imxinfo.framenums == fr);
+                if (length(ind) ~= 1)
+                    error('VideoReader2:outofrange','Frame is out of range for IM7 file list');
+                end
+                imx = readimx(fullfile(obj.Path,obj.imxinfo.filenames{ind}));
+                
+                I = cat(3,imx.Frames{1}.Components{obj.imxinfo.pixind}.Planes{:});
+                varargout = {I};
             else
                 w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');
                 fr = aviread(fullfile(obj.Path,obj.Name),varargin{:});  %#ok
@@ -286,7 +377,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         function setdisp(obj)
             if ~isempty(obj.vid)
-                obj.vid.setdips();
+                obj.vid.setdisp();
             else
                 setdisp@hgsetget(obj);
             end
@@ -300,8 +391,11 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 obj.vid.display();
             elseif ~isempty(obj.cine)
                 fprintf('Phantom CINE file ''%s''\n', obj.Name);
-            elseif isempty(obj.tifinfo)
+            elseif ~isempty(obj.tifinfo)
                 fprintf('Multiframe tiff ''%s''\n', obj.Name);
+            elseif ~isempty(obj.imxinfo)
+                fprintf('DaVis IM7 file list ''%s'' (%d files)\n', ...
+                    obj.Name, length(obj.imxinfo.filenames));
             else
                 fprintf('Uncompressed avi ''%s''\n', obj.Name);
             end
@@ -332,6 +426,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         function value = get.Duration(obj)
             if ~isempty(obj.vid)
                 value = obj.vid.Duration;
+            elseif ~isempty(obj.imxinfo)
+                value = obj.imxinfo.endtime - obj.imxinfo.starttime;
             elseif ~isempty(obj.cine)
                 value = NaN;
             elseif ~isempty(obj.tifinfo)
@@ -362,6 +458,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.BitsPerPixel;
             elseif ~isempty(obj.cine)
                 value = NaN;
+            elseif ~isempty(obj.imxinfo)
+                value = NaN;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).BitsPerSample;
             else
@@ -374,6 +472,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.FrameRate;
             elseif ~isempty(obj.cine)
                 value = obj.cine.fps;
+            elseif ~isempty(obj.imxinfo)
+                value = obj.imxinfo.fps;
             elseif ~isempty(obj.tifinfo)
                 value = NaN;
             else
@@ -386,6 +486,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.Height;
             elseif ~isempty(obj.cine)
                 value = obj.cine.height;
+            elseif ~isempty(obj.imxinfo)
+                value = obj.imxinfo.height;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).Height;
             else
@@ -398,6 +500,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.NumberOfFrames;
             elseif ~isempty(obj.cine)
                 value = obj.cine.nframes;
+            elseif ~isempty(obj.imxinfo)
+                value = obj.imxinfo.nframes;
             elseif ~isempty(obj.tifinfo)
                 value = numel(obj.tifinfo);
             else
@@ -412,6 +516,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = 'CINE';
             elseif ~isempty(obj.tifinfo)
                 value = 'TIFF';
+            elseif ~isempty(obj.imxinfo)
+                value = 'IM7';
             else
                 value = 'Uncompressed AVI';
             end
@@ -422,6 +528,8 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 value = obj.vid.Width;
             elseif ~isempty(obj.cine)
                 value = obj.cine.width;
+            elseif ~isempty(obj.imxinfo)
+                value = obj.imxinfo.width;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).Width;
             else

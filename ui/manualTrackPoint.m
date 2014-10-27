@@ -65,7 +65,10 @@ if (~isempty(varargin{1})),
     if isadjust
         I = imadjust(I,stretchlim(I),[]);
     end
-	hImage = imshow6(I,'n');
+	hImage = imshow(I,'InitialMagnification','fit');
+    if isa(I,'uint16')
+        caxis auto;
+    end
 	
 	set(gcf, 'DoubleBuffer', 'on', ...
 				'KeyPressFcn',		'manualTrackPoint([],''OnKeyPress'');');

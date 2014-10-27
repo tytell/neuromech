@@ -196,8 +196,11 @@ for j = 1:length(frames),
 
     %load the frame
     if (isavi),
-        I1 = im2double(read(vid, fr));
-        
+        I0 = read(vid, fr);
+        I1 = im2double(I0);
+        if isa(I0,'uint16')
+            I1 = I1/max(I1(:));
+        end
         if (size(I1,3) > 1),
             I1 = I1(:,:,1);
         end;
