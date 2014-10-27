@@ -35,45 +35,51 @@ thresh = atan(opt.ampthresh);
 [phase,cycleind,cyclet] = getphase(t,tailang,'threshold',thresh);
 
 good = cycleind ~= 0;
-angamp = NaN(size(cycleind));
-angamp(good) = tailang(cycleind(good));
+if all(~good)
+    warning('No tail beats detected.');
+    indpeak = NaN(opt.npt,1);
+    amp = NaN(opt.npt,1);
+    per = NaN(opt.npt,1);
+else
+    angamp = NaN(size(cycleind));
+    angamp(good) = tailang(cycleind(good));
 
-goodcycle = any(abs(angamp) > thresh);
-cycleind = cycleind(:,goodcycle);
-cyclet = cyclet(:,goodcycle);
+    goodcycle = any(abs(angamp) > thresh);
+    cycleind = cycleind(:,goodcycle);
+    cyclet = cyclet(:,goodcycle);
 
-per1 = NaN(size(cyclet));
-per1(2,:) = cyclet(3,:) - cyclet(1,:);
-per1(4,1:end-1) = cyclet(1,2:end) - cyclet(3,1:end-1);
+    per1 = NaN(size(cyclet));
+    per1(2,:) = cyclet(3,:) - cyclet(1,:);
+    per1(4,1:end-1) = cyclet(1,2:end) - cyclet(3,1:end-1);
 
-good = cycleind ~= 0;
-txcycle = NaN(size(cycleind));
-txcycle(good) = tx(cycleind(good));
-tycycle = NaN(size(cycleind));
-tycycle(good) = ty(cycleind(good));
+    good = cycleind ~= 0;
+    txcycle = NaN(size(cycleind));
+    txcycle(good) = tx(cycleind(good));
+    tycycle = NaN(size(cycleind));
+    tycycle(good) = ty(cycleind(good));
 
-amp1 = NaN(size(cyclet));
-amp1(2,:) = 0.5*(sqrt((txcycle(2,:)-txcycle(1,:)).^2 + (tycycle(2,:)-tycycle(1,:)).^2) + ...
-    sqrt((txcycle(2,:)-txcycle(3,:)).^2 + (tycycle(2,:)-tycycle(3,:)).^2));
-amp1(4,1:end-1) = 0.5*(sqrt((txcycle(4,1:end-1)-txcycle(3,1:end-1)).^2 + ...
-    (tycycle(4,1:end-1)-tycycle(3,1:end-1)).^2) + ...
-    sqrt((txcycle(4,1:end-1)-txcycle(1,2:end)).^2 + ...
-    (tycycle(4,1:end-1)-tycycle(1,2:end)).^2));
+    amp1 = NaN(size(cyclet));
+    amp1(2,:) = 0.5*(sqrt((txcycle(2,:)-txcycle(1,:)).^2 + (tycycle(2,:)-tycycle(1,:)).^2) + ...
+        sqrt((txcycle(2,:)-txcycle(3,:)).^2 + (tycycle(2,:)-tycycle(3,:)).^2));
+    amp1(4,1:end-1) = 0.5*(sqrt((txcycle(4,1:end-1)-txcycle(3,1:end-1)).^2 + ...
+        (tycycle(4,1:end-1)-tycycle(3,1:end-1)).^2) + ...
+        sqrt((txcycle(4,1:end-1)-txcycle(1,2:end)).^2 + ...
+        (tycycle(4,1:end-1)-tycycle(1,2:end)).^2));
 
-indpeak = NaN(opt.npt,2*size(cycleind,2));
-indpeak(end,:) = flatten(cycleind([2 4],:));
-indpeak(indpeak == 0) = NaN;
+    indpeak = NaN(opt.npt,2*size(cycleind,2));
+    indpeak(end,:) = flatten(cycleind([2 4],:));
+    indpeak(indpeak == 0) = NaN;
 
-per = NaN(size(indpeak));
-per(end,:) = flatten(per1([2 4],:));
+    per = NaN(size(indpeak));
+    per(end,:) = flatten(per1([2 4],:));
 
-amp = NaN(size(indpeak));
-amp(end,:) = flatten(amp1([2 4],:));
+    amp = NaN(size(indpeak));
+    amp(end,:) = flatten(amp1([2 4],:));
 
-good = any(isfinite(indpeak));
-indpeak = indpeak(:,good);
-amp = amp(:,good);
-per = per(:,good);
-
+    good = any(isfinite(indpeak));
+    indpeak = indpeak(:,good);
+    amp = amp(:,good);
+    per = per(:,good);
+end
 
 
