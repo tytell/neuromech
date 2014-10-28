@@ -480,48 +480,191 @@ strs = get(obj,'String');
 ind = get(obj,'Value');
 
 switch strs{ind},
- case 'White',
-  set(data.Axes,'Color','w');
-  data.Background = '';
- case 'Black',
-  set(data.Axes,'Color','k');
-  data.Background = '';
- case 'Vorticity',
-  data = apCalcDeriv(data,'vorticity');
-  data.Background = 'vorticity';
-  data.bgSymmetric = 1;
-
-  data = analyzePIVupdate(data,'background');
- case 'Shear',
-  data = apCalcDeriv(data,'shear');
-  data.Background = 'shear';
-  data.bgSymmetric = 1;
-
-  data = analyzePIVupdate(data,'background');
- case 'DCEV',
-  data = apCalcDeriv(data,'dcev');
-  data.Background = 'dcev';
-  data.bgSymmetric = 0;
-
-  data = analyzePIVupdate(data,'background');
- case 'u',  % color by u component of velocity
-  data.Background = 'u';
-  data.bgSymmetric = 1;
-
-  data = analyzePIVupdate(data,'background');
- case 'v',  % color by v component of velocity
-  data.Background = 'v';
-  data.bgSymmetric = 1;
-
-  data = analyzePIVupdate(data,'background');
- case 'w',  % color by w component of velocity
-  data.Background = 'w';
-  data.bgSymmetric = 1;
-
-  data = analyzePIVupdate(data,'background');
-  
+    case 'White',
+        set(data.Axes,'Color','w');
+        data.Background = '';
+    case 'Black',
+        set(data.Axes,'Color','k');
+        data.Background = '';
+    case 'Vorticity',
+        data = apCalcDeriv(data,'vorticity');
+        data.Background = 'vorticity';
+        data.bgSymmetric = true;
+        data.bgAutoScale = 99;
+        r = prctile(abs(data.PIV.vorticity(:)),99);
+        data.bgLo = -r;
+        data.bgHi = r;
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
+    case 'Shear',
+        data = apCalcDeriv(data,'shear');
+        data.Background = 'shear';
+        data.bgSymmetric = true;
+        data.bgAutoScale = 99;
+        r = prctile(abs(data.PIV.shear(:)),99);
+        data.bgLo = -r;
+        data.bgHi = r;
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
+    case 'DCEV',
+        data = apCalcDeriv(data,'dcev');
+        data.Background = 'dcev';
+        data.bgSymmetric = false;
+        data.bgAutoScale = 99;
+        data.bgLo = prctile(data.PIV.dcev(:),0.5);
+        data.bgHi = prctile(data.PIV.dcev(:),99.5);
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
+    case 'u',  % color by u component of velocity
+        data.Background = 'u';
+        data.bgSymmetric = false;
+        data.bgAutoScale = 99;
+        data.bgLo = prctile(data.PIV.u(:),0.5);
+        data.bgHi = prctile(data.PIV.u(:),99.5);
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
+    case 'v',  % color by v component of velocity
+        data.Background = 'v';
+        data.bgSymmetric = false;
+        data.bgAutoScale = 99;
+        data.bgLo = prctile(data.PIV.v(:),0.5);
+        data.bgHi = prctile(data.PIV.v(:),99.5);
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
+    case 'w',  % color by w component of velocity
+        data.Background = 'w';
+        data.bgSymmetric = false;
+        data.bgAutoScale = 99;
+        data.bgLo = prctile(data.PIV.w(:),0.5);
+        data.bgHi = prctile(data.PIV.w(:),99.5);
+        data.bgCmap = 'jet';
+        
+        data = analyzePIVupdate(data,'background');
 end;
+if ~isempty(data.Background)
+    set(data.SymmBkgndCheck,'Enable','on');
+    if data.bgSymmetric
+        set(data.SymmBkgndCheck,'Value',1);
+    else
+        set(data.SymmBkgndCheck,'Value',0);
+    end        
+    set(data.AutoBkgndCheck,'Value',1,'Enable','on');
+    set(data.AutoBkgndPctEdit, 'Enable','on','String','99');
+    set(data.MinBkgndEdit,'Enable','off');
+    set(data.MaxBkgndEdit,'Enable','off');
+    set(data.MinBkgndEdit,'String',num2str(data.bgLo));
+    set(data.MaxBkgndEdit,'String',num2str(data.bgHi));
+    set(data.ColormapDrop,'Enable','on', 'Value',1);    
+else
+    set(data.SymmBkgndCheck,'Enable','off');
+    set(data.AutoBkgndCheck,'Enable','off');
+    set(data.AutoBkgndPctEdit, 'Enable','off');
+    set(data.MinBkgndEdit,'Enable','off');
+    set(data.MaxBkgndEdit,'Enable','off');
+    set(data.ColormapDrop,'Enable','off', 'Value',1);
+end    
 
+guidata(obj,data);
+
+% -------------------------------------------------
+function apSetBackgroundScale(obj, eventdata)
+
+data = guidata(obj);
+
+if (~isempty(data.Background))
+    isauto = get(data.AutoBkgndCheck,'Value') == 1;
+    issym = get(data.SymmBkgndCheck,'Value') == 1;
+    
+    v = data.PIV.(data.Background);
+    
+    if isauto
+        set(data.MinBkgndEdit,'Enable','off');
+        set(data.MaxBkgndEdit,'Enable','off');
+        
+        if (size(v,3) > 1)
+            v = v(:,:,data.curFrame);
+        end
+        
+        pct = get(data.AutoBkgndPctEdit,'String');
+        pct = str2double(pct);
+        if (isnan(pct) || (pct < 0) || (pct > 100))
+            pct = 99;
+            set(data.AutoBkgndPctEdit,'String','99');
+        end
+        if issym
+            r = prctile(v(:),pct);
+            lo = -r;
+            hi = r;
+        else
+            lopct = (100-pct)/2;
+            r = pctile(v(:),[lopct 100-lopct]);
+            lo = r(1);
+            hi = r(2);
+        end
+    elseif (issym)
+        set(data.MinBkgndEdit,'Enable','off');
+        set(data.MaxBkgndEdit,'Enable','on');
+        
+        r = str2double(get(data.MaxBkgndEdit,'String'));
+        if (isnan(r) || (r < 0) || (r > max(abs(v(:)))))
+            r = max(abs(v(:)));
+        end
+        lo = -r;
+        hi = r;
+    else
+        set(data.MinBkgndEdit,'Enable','on');
+        set(data.MaxBkgndEdit,'Enable','on');
+        lo = str2double(get(data.MinBkgndEdit,'String'));
+        hi = str2double(get(data.MaxBkgndEdit,'String'));
+
+        if (isnan(lo) || (lo < min(v(:))))
+            lo = min(v(:));
+        end
+        if (isnan(hi) || (hi > max(v(:))))
+            hi = max(v(:));
+        end
+    end
+    
+    lotxt = num2str(lo);
+    hitxt = num2str(hi);
+    set(data.MinBkgndEdit,'String',lotxt);
+    set(data.MaxBkgndEdit,'String',hitxt);
+
+    data.bgSymmetric = issym;
+    data.bgLo = lo;
+    data.bgHi = hi;
+    data = analyzePIVupdate(data,'background');    
+end
+guidata(obj,data);
+
+% -------------------------------------------------
+function apSetBackgroundColormap(obj, eventdata)
+
+data = guidata(obj);
+
+strs = get(obj,'String');
+ind = get(obj,'Value');
+
+switch strs{ind},
+    case {'RWB','GWY'}
+        cmap = symcmap(strs{ind},4,64);
+    case 'InvGray'
+        cmap = gray(64);
+        cmap = flipud(cmap);
+    case 'InvHot'
+        cmap = hot(64);
+        cmap = flipud(cmap);
+    otherwise
+        cmap = strs{ind};
+end
+
+data.bgCmap = cmap;
+data = analyzePIVupdate(data,'background');    
 guidata(obj,data);
 
 
@@ -794,6 +937,13 @@ set(data.HeadSizeSlider,'Callback',@apSetHeadSize, ...
                   'Value',data.vectorOpts.HeadSize);
 set(data.KeepHeadsEdit,'Callback',@apKeepHeads, ...
          'String',num2str(round(data.vectorOpts.HeadRange(1)*100)));
+set(data.MinBkgndEdit,'Callback',@apSetBackgroundScale);
+set(data.MaxBkgndEdit,'Callback',@apSetBackgroundScale);
+set(data.SymmBkgndCheck,'Callback',@apSetBackgroundScale);
+set(data.ColormapDrop,'Callback',@apSetBackgroundColormap);
+
+set(data.AutoBkgndCheck,'Callback',@apSetBackgroundScale);
+set(data.AutoBkgndPctEdit,'Callback',@apSetBackgroundScale);
 
 colstrs = get(data.ColorDrop,'String');
 [col,colstr,colstrnum] = apGetArrowColor(data,colstrs);

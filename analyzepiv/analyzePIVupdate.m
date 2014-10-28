@@ -63,6 +63,7 @@ for i = 1:length(what),
                 if (ishandle(data.hBackground)),
                     delete(data.hBackground);
                 end;
+                colorbar('off');
             else
                 bg = data.PIV.(data.Background);
                 if (size(bg,3) > 1),
@@ -75,6 +76,7 @@ for i = 1:length(what),
                     else
                         delete(data.hBackground);
                     end;
+                    caxis([data.bgLo data.bgHi]);
                 end;
                 % we use this weird if structure, rather than a normal else,
                 % because we might potentially delete the background handle
@@ -82,16 +84,14 @@ for i = 1:length(what),
                 if (~ishandle(data.hBackground)),
                     data.hBackground = imagesc(data.PIV.x(1,:,1),...
                         data.PIV.y(:,1,1),bg);
-                    caxis auto;
-                    if (data.bgSymmetric),
-                        ca = caxis;
-                        ca = max(abs(ca));
-                        ca = [-ca ca];
-                        caxis(ca);
-                    end;
-                    hcol = colorbar;
-                    ylabel(hcol, data.Background);
+                    caxis([data.bgLo data.bgHi]);
                 end;
+
+                hcol = colorbar;
+                ylabel(hcol, data.Background);
+                
+                hax = get(data.hBackground, 'Parent');
+                colormap(hax, data.bgCmap);                    
             end;
     end;
 end;

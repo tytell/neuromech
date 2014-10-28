@@ -148,8 +148,10 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 end
                 
                 obj.imxinfo.pixind = ind;
-                obj.imxinfo.width = size(imx1.Frames{1}.Components{ind}.Planes{1},2);
-                obj.imxinfo.height = size(imx1.Frames{1}.Components{ind}.Planes{1},1);
+                %note DaVis uses rows for the x axis and columns for the y
+                %(transposed from Matlab)
+                obj.imxinfo.width = size(imx1.Frames{1}.Components{ind}.Planes{1},1);
+                obj.imxinfo.height = size(imx1.Frames{1}.Components{ind}.Planes{1},2);
                 
                 attrnames = cellfun(@(x) x.Name, imx1.Frames{1}.Attributes, 'UniformOutput',false);
                 ind = find(strcmp(attrnames,'AcqTimeSeries'));
@@ -341,6 +343,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                 imx = readimx(fullfile(obj.Path,obj.imxinfo.filenames{ind}));
                 
                 I = cat(3,imx.Frames{1}.Components{obj.imxinfo.pixind}.Planes{:});
+                I = permute(I,[2 1 3]);
                 varargout = {I};
             else
                 w = warning('off','MATLAB:audiovideo:aviread:FunctionToBeRemoved');

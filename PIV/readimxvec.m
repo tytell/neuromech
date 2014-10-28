@@ -1,101 +1,68 @@
-function varargout = readimxvec(file,choice)
+function varargout = readimxvec(file)
 % function [x,y,u,v,w?,units] = readimxvec(file)
 
-if (nargin == 1),
-    choice = [];
-end;
-
 A = readimx(file);
+if (~isfield(A,'Frames') || (length(A.Frames) ~= 1))
+    error('Unrecognized IM7 file format');
+end
+A = A.Frames{1};
 
-nx = A.Nx;
-ny = A.Ny;
+if ismember('W0',A.ComponentNames)
+    nvec = 3;
+else
+    nvec = 2;
+end
+
+if any(~ismember({'U0','U1','U2','U3',...
+        'V0','V1','V2','V3',...
+        'ACTIVE_CHOICE','ENABLED'},A.ComponentNames))
+    error('Unrecognized IM7 file format');
+end
+
+if (nvec == 3) && any(~ismember({'W0','W1','W2','W3'},A.ComponentNames))
+    error('Unrecognized IM7 file format');
+end
+
+nms = genvarname(A.ComponentNames);
+S = cell2struct(A.Components,nms,1);
+
+u = S.U0.Planes{1};
+v = S.V0.Planes{1};
+if nvec == 3
+    w = S.W0.Planes{1}
+end
+
+for i = 1:3
+    txt = num2str(i);
+    uname = ['U' txt];
+    vname = ['V' txt];
+    wname = ['W' txt];
+
+    ischoice = S.ACTIVE_CHOICE.Planes{1} == i;
+    
+    u(ischoice) = S.(uname).Planes{1}(ischoice);
+    v(ischoice) = S.(vname).Planes{1}(ischoice);
+    if (nvec == 3)
+        w(ischoice) = S.(wname).Planes{1}(ischoice);
+    end
+end
+
+bad = (S.ACTIVE_CHOICE.Planes{1} == 4) | (S.ENABLED.Planes{1} == 0);
+u(bad) = NaN;
+v(bad) = NaN;
+if (nvec == 3)
+    w(bad) = NaN;
+end
+
+nx = size(u,1);
+ny = size(u,2);
 
 rx = 1:nx;
 ry = 1:ny;
 
 %set up the coordinate system
-x = (rx-1)*A.Grid*A.ScaleX(1) + A.ScaleX(2);
-y = (ry-1)*A.Grid*A.ScaleY(1) + A.ScaleY(2);
-
-switch A.IType,
- case 0,
-  error('Cannot read image files.');
-
- case {1,3,5},
-  if (A.IType == 5),
-      nvec = 3;                         % 3 component vectors
-  else
-      nvec = 2;                         % 2 component vectors
-  end;
-
-  npages = size(A.Data,2)/ny;
-  %error if we can't divide A.Data into a discrete number of pages
-  if (mod(npages,1) ~= 0),
-      error('Non-integer number of pages in Data structure.');
-  end;
-
-  data = double(reshape(A.Data,[nx ny npages]));
-
-  %first page in data is an 1-based index into successive pages for which
-  %vector DaVis chose.  Last pages are postprocessed vectors (given indices
-  %4 or 5).  But since there are a max of 4*nvec pages, we have to
-  %truncate at pageind == 3.  Don't ask me why
-  if (~isempty(choice)),
-      pageind = repmat(choice,[size(data,1) size(data,2)]);
-  else
-      pageind = data(:,:,1);
-  end;
-
-  pageind(pageind >= 4) = 4;
-  %remember where the empty vectors are
-  bad = pageind == 0;
-  %but set the index so it won't give an error
-  pageind(bad) = 1;
-
-  %add 2 to skip over the pageind data itself
-  pageind = (pageind-1)*nvec + 2;
-
-  [i,j] = ndgrid(1:nx,1:ny);
-  ind = sub2ind(size(data),i,j,pageind);
-  u = data(ind);
-
-  ind = sub2ind(size(data),i,j,pageind+1);
-  v = data(ind);
-
-  u(bad) = NaN;
-  v(bad) = NaN;
-
-  if (nvec == 3),
-      ind = sub2ind(size(data),i,j,pageind+2);
-      w = data(ind);
-      w(bad) = NaN;
-  end;
- case 2,                                % simple vector image
-  u = A.Data(:,ry);
-  v = A.Data(:,ry+ny);
- otherwise,
-  % extract the correct vectors
-  u = repmat(NaN,[nx ny]);
-  v = repmat(NaN,[nx ny]);
-
-  Achoice = A.Data(:,ry);               % defines where the correct
-                                        % vectors are
-
-  % don't ask me why this works this way
-  for i = 1:6,
-      if (i <= 4),
-          off = (2*(i-1) + 1);
-      else
-          off = 7;
-      end;
-
-      mask = (Achoice == i);
-      dat = A.Data(:,ry + off*ny);
-      u(mask) = dat(mask);
-      dat = A.Data(:,ry + (off+1)*ny);
-      v(mask) = dat(mask);
-  end;
-end;
+x = (rx-1)*A.Grids.X*A.Scales.X.Slope + A.Scales.X.Offset;
+y = (ry-1)*A.Grids.Y*A.Scales.Y.Slope + A.Scales.Y.Offset;
 
 %flip and transpose everything around so that we end up with normal
 %Matlab order for coordinates
@@ -104,21 +71,46 @@ y = y(end:-1:1);
 %make normal plaid matrices
 [x,y] = meshgrid(x,y);
 
-u = u'*A.ScaleI(1) + A.ScaleI(2);
-v = v'*A.ScaleI(1) + A.ScaleI(2);
+if isa(u,'single')
+    u = double(u);
+    v = double(v);
+    if (nvec == 3)
+        w = double(w);
+    end
+end
+
+u = u'*A.Scales.I.Slope + A.Scales.I.Offset;
+v = sign(A.Scales.Y.Slope)*v'*A.Scales.I.Slope + A.Scales.I.Offset;
 u = flipud(u);
 v = flipud(v);
 if (nvec == 3),
-    w = w'*A.ScaleI(1) + A.ScaleI(2);
+    w = w'*A.Scales.I.Slope + A.Scales.I.Offset;
     w = flipud(w);
 end;
 
-units.x = A.UnitX;
-units.y = A.UnitY;
-units.vel = A.UnitI;
+units.x = A.Scales.X.Unit;
+units.y = A.Scales.Y.Unit;
+units.vel = A.Scales.I.Unit;
 
-% TODO: extract framing rate from M.Attributes
-
+framedt = 1;
+attrnames = cellfun(@(x) x.Name, A.Attributes, 'UniformOutput',false);
+ind = find(strcmp(attrnames,'FrameDt'));
+if (length(ind) == 1)
+    txt = A.Attributes{ind}.Value;
+    tok = regexp(txt,'([\d.]+)\s(\w*)','tokens','once');
+    
+    if (length(tok) == 2)
+        framedt = str2double(tok{1});
+        
+        switch tok{2}
+            case {'us','µs'}
+                framedt = framedt/1e6;
+            case 'ms'
+                framedt = framedt/1000;
+        end
+    end
+end
+                
 if (nvec == 3),
     varargout = {x,y,u,v,w};
 else

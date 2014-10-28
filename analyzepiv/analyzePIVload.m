@@ -68,7 +68,7 @@ switch where,
             timedWaitBar(0,'Loading frames...');
         end;
         for i = 2:N,
-            [x1,y1,u1,v1] = loadInsight(files{i});
+            [x1,y1,u1,v1,err1] = loadInsight(files{i});
             goodcol = any(err1 ~= -2,1);
             goodrow = any(err1 ~= -2,2);
             x1 = x1(goodrow,goodcol);
@@ -158,15 +158,15 @@ switch where,
         data.piv = piv;
         data.pivunits = units;
         
-        [k,q,tok] = regexp(units.x,'\[(.+)\]');
-        if (~isempty(k)),
-            units.pos = units.x(tok{1}(1,1):tok{1}(1,2));
+        tok = regexp(units.x,'\[?(.+)\]?','tokens','once');
+        if (~isempty(tok)),
+            units.pos = tok{1};
         end;
-        [k,q,tok] = regexp(units.vel,'\[?(.+)/(.+)\]?');
-        if (~isempty(k)),
-            units.vel{1} = units.vel(tok{1}(1,1):tok{1}(1,2));
-            units.vel{2} = units.vel(tok{1}(2,1):tok{1}(2,2));
+        tok = regexp(units.vel,'\[?(.+)/(.+)\]?','tokens','once');
+        if (~isempty(tok)),
+            units.vel = tok;
         end;
+        w1 = [];
         
     case 'tecplot',
         i = 1;
@@ -295,7 +295,7 @@ if (~isempty(tok)),
     base = tok{1};
     num1 = str2double(tok{2});
     ext = tok{3};
-    expr = '.*\D([0-9]+)\.w{1,3}';
+    expr = '.*\D([0-9]+)\.\w{1,3}';
 else
     %insight format
     tok = regexpi(file,'^(.*\D)([0-9]+)(\.T\d+\.\D\d+\.\P\d+\.\H\d+\.[LR]\.\w{1,3})$','tokens','once');
