@@ -95,15 +95,26 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
             
             if (strcmpi(ext,'.tif') || strcmpi(ext, '.tiff'))
                 obj.tifinfo = imfinfo(fileName);
+                [obj.tifinfo.startFrame] = deal(1);
                 obj.vid = struct([]);
                 obj.info = struct([]);
                 
                 obj.Path = pn;
                 obj.Name = [fn ext];
+                
+                extrafiles = dir(fullfile(pn,[fn '@*.tif']));
                 try
                     I = imread(fileName,1, 'Info',obj.tifinfo);
                     getPCOtimestamp(I);
                     obj.istimestamp = true;
+                    
+                    if (~isempty(extrafiles))
+                        for i = 1:length(extrafiles)
+                            tifinfo1 = imfinfo(fullfile(pn,extrafiles(i).name));
+                            [tifinfo1.startFrame] = deal(length(obj.tifinfo)+1);
+                            obj.tifinfo = cat(1,obj.tifinfo, tifinfo1);
+                        end
+                    end
                 catch err
                     if strcmp(err.identifier, 'getpcotimestamp:notimestamp')
                         obj.istimestamp = false;
@@ -282,8 +293,10 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                     varargout(2:3) = {varargin{1},[]};
                 end                    
             elseif ~isempty(obj.tifinfo)
-                fn = fullfile(obj.Path,obj.Name);
-                I = imread(fn, varargin{1}, 'Info',obj.tifinfo, varargin{:});
+                fr = varargin{1};
+                fn = obj.tifinfo(fr).Filename;
+                startframe = obj.tifinfo(fr).startFrame;
+                I = imread(fn, fr-startframe+1, 'Info',obj.tifinfo, varargin{:});
                 varargout = {I};
                 if ((nargout > 1) && obj.istimestamp)
                     [dv,imnum] = getPCOtimestamp(fn);
