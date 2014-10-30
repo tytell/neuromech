@@ -19,7 +19,8 @@ calcfcns = {@apCalcCirc 1 'circ'; ...
             @apCalcMeanMag 2 'magmean'; ...
             @apCalcMaxMag 2 'magmax'; ...
             @apCalcMeanUVW 2 'uvmean'; ...
-            @apCalcMeanAng 2 'angmean'};
+            @apCalcMeanAng 2 'angmean'; ...
+            @apCalcMomFlux 1 'momflux'};
 
 set(data.RgnDataScroll,'Callback',@apSlideCalcScroll);
 
@@ -47,6 +48,8 @@ while (newrowctr - h/2 > ext(2) + gap),
     GUI.Fcns(4) = copyobj(data.DataCalcMaxMag0,data.Panel);
     GUI.Fcns(5) = copyobj(data.DataCalcUV0,data.Panel);
     GUI.Fcns(6) = copyobj(data.DataCalcAng0,data.Panel);
+    GUI.Fcns(7) = copyobj(data.DataCalcMomFlux0,data.Panel);
+    
     GUI.Properties = copyobj(data.RgnPropertiesButton0,data.Panel);
 
     % put the new row in the right position
@@ -1113,6 +1116,24 @@ else
 end
 
 ctr = [nanmean(xd(:)) nanmean(yd(:))];
+
+% -------------------------------------------------
+function [circ,err,units,N,ctr] = apCalcMomFlux(data,rgn,xd,yd,ud,vd,wd, ...
+                                   xv,yv,uv,vv,ww, vecunits)
+% wd and ww are not used because circulation is calculated in the xy plane.
+% get the scale factor between position units and velocity length unit
+[posscalefac,unitserror] = feval(data.generalFcns.apConvertUnits, ...
+                                 vecunits.pos,vecunits.vel{1});
+
+if (~unitserror),
+    vecunits.pos = vecunits.vel{1};
+end;
+
+xd = xd.*posscalefac;
+yd = yd.*posscalefac;
+
+s = [0 cumsum(sqrt(diff(xd).^2 + diff(yd).^2))];
+%%% CONTINUE here
 
 % -------------------------------------------------
 function [x,y,u,v,w, mask] = apGetVecInside(data,xd,yd)

@@ -465,9 +465,17 @@ c = get(data.Axes, 'CurrentPoint');
 dx = c(1,1) - data.dragStart(1);
 dy = c(1,2) - data.dragStart(2);
 
-set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy, ...
-                  'EraseMode','xor');
-
+try
+    set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy, ...
+                      'EraseMode','xor');
+catch err
+    set(data.Figure,'WindowButtonMotionFcn','',...
+                    'WindowButtonUpFcn', '');
+    
+    fprintf('Weird problem:\n');
+    disp(err);
+end 
+    
 guidata(panel,data);
 
 % -------------------------------------------------
