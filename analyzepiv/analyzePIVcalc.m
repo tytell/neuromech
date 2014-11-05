@@ -20,7 +20,7 @@ calcfcns = {@apCalcCirc 1 'circ'; ...
             @apCalcMaxMag 2 'magmax'; ...
             @apCalcMeanUVW 2 'uvmean'; ...
             @apCalcMeanAng 2 'angmean'; ...
-            @apCalcMomFlux 1 'momflux'};
+            @apCalcFlux 1 'flux'};
 
 set(data.RgnDataScroll,'Callback',@apSlideCalcScroll);
 
@@ -1118,9 +1118,9 @@ end
 ctr = [nanmean(xd(:)) nanmean(yd(:))];
 
 % -------------------------------------------------
-function [circ,err,units,N,ctr] = apCalcMomFlux(data,rgn,xd,yd,ud,vd,wd, ...
+function [flux,err,units,N,ctr] = apCalcFlux(data,rgn,xd,yd,ud,vd,wd, ...
                                    xv,yv,uv,vv,ww, vecunits)
-% wd and ww are not used because circulation is calculated in the xy plane.
+
 % get the scale factor between position units and velocity length unit
 [posscalefac,unitserror] = feval(data.generalFcns.apConvertUnits, ...
                                  vecunits.pos,vecunits.vel{1});
@@ -1133,7 +1133,41 @@ xd = xd.*posscalefac;
 yd = yd.*posscalefac;
 
 s = [0 cumsum(sqrt(diff(xd).^2 + diff(yd).^2))];
-%%% CONTINUE here
+
+dxds = deriv(s,xd);
+dyds = deriv(s,yd);
+mag = sqrt(dxds.^2 + dyds.^2);
+
+%normal vector
+nx = -dyds./mag;
+ny = dxds./mag;
+
+%volume flux
+vol = rho * trapz(s,ud.*nx + vd.*ny);
+ke = rho * trapz(s,(ud.^2 + vd.^2)*(ud.nx + vd.ny));
+momx = rho * trapz(s,ud .* (ud.*nx + vd.*ny));
+momy = rho * trapz(s,vd .* (ud.*nx + vd.*ny));
+
+flux.volume = vol;
+flux.ke = ke;
+flux.momx = momx;
+flux.momy = momy;
+
+N = sum(isfinite(uv) & isfinite(vv));
+ctr = [nanmean(xd(:)) nanmean(yd(:))];
+
+units = {'','','',''};
+if (~isempty(vecunits.pos) && ~isempty(vecunits.vel)),
+    if (strcmp(vecunits.pos,vecunits.vel{1})),
+        units{1} = sprintf('kg/%s/%s)',vecunits.vel{2},vecunits.vel{1});
+        units{2} = sprintf('kg.%s^2/%s^3/%s',vecunits.vel{1},vecunits.vel{2},vecunits.vel{1});
+        units{3} = sprintf('kg.%s/%s^2/%s',vecunits.vel{1},vecunits.vel{2},vecunits.vel{1});
+        units{4} = units{3};
+    else
+        warning('Flux units problem');
+    end;
+end;
+err = [];
 
 % -------------------------------------------------
 function [x,y,u,v,w, mask] = apGetVecInside(data,xd,yd)
