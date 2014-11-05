@@ -87,8 +87,13 @@ end
 data = gdata.data;
 data.spikethreshold = gdata.thresh;
 
-data.spiket = catuneven(2,data.spiket{:});
-data.spikeamp = catuneven(2,data.spikeamp{:});
+spiket1 = catuneven(2,data.spiket{data.goodchan});
+data.spiket = NaN(size(spiket1,1),nchan);
+data.spiket(:,data.goodchan) = spiket1;
+spikeamp1 = catuneven(2,data.spikeamp{data.goodchan});
+data.spikeamp = NaN(size(spiket1,1),nchan);
+data.spikeamp(:,data.goodchan) = spikeamp1;
+
 for i = 1:length(data.burst)
     if isempty(data.burst(i).ctr)
         data.burst(i).ctr = NaN;
@@ -97,17 +102,21 @@ for i = 1:length(data.burst)
         data.burst(i).nspike = NaN;
     end
 end
-ctr1 = {data.burst.ctr};
+ctr1 = {data.burst(data.goodchan).ctr};
 ctr1 = cellfun(@(x) x', ctr1, 'UniformOutput',false);
-data.burstt = catuneven(2,ctr1{:});
+burstt1 = catuneven(2,ctr1{:});
+data.burstt = NaN(size(burstt1,1),nchan);
+data.burstt(:,data.goodchan) = burstt1;
 
-on1 = {data.burst.on};
+on1 = {data.burst(data.goodchan).on};
 on1 = cellfun(@(x) x', on1, 'UniformOutput',false);
-data.burston = catuneven(2,on1{:});
+data.burston = NaN(size(data.burstt));
+data.burston(:,data.goodchan) = catuneven(2,on1{:});
 
-off1 = {data.burst.off};
+off1 = {data.burst(data.goodchan).off};
 off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
-data.burstoff = catuneven(2,off1{:});
+data.burstoff = NaN(size(data.burstt));
+data.burstoff(:,data.goodchan) = catuneven(2,off1{:});
 
 if isfield(data,'phase') && (data.amp > 0)
     data.spikephase = NaN(size(data.spiket));
@@ -115,15 +124,11 @@ if isfield(data,'phase') && (data.amp > 0)
     data.spikecyclet = NaN(size(data.spiket));
     data.burstcyclet = NaN(size(data.burstt));
     data.burstcycle = NaN(size(data.burstt));
+    data.burststimphase = NaN(size(data.burstt));
+    data.burststimcycle = NaN(size(data.burstt));
 
     uphase = unwrap(2*pi*data.phase) / (2*pi);
     goodphase = isfinite(uphase) & [true; diff(uphase) > 0];
-
-    phoff1 = interp1(data.t(goodphase),uphase(goodphase), perstart);
-    [phoff1,roff1] = angmean(2*pi*phoff1);
-    if (roff1 < 0.8)
-        warning('CPG phase does not seem very consistent');
-    end
     
     for i = 1:size(data.spiket,2)
         if (data.goodchan(i))
