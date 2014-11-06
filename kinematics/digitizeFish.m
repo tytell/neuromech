@@ -1052,10 +1052,10 @@ else
         end
 
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dssmoothcurve',0.2);
+            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dtsmoothcurve',0.1);
     else
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dssmoothcurve',0.2);
+            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dtsmoothcurve',0.1);
     end;
 end
 

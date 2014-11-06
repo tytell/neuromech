@@ -236,8 +236,7 @@ if (~isindpeak),
     for i = 1:length(pk0),
         d = pk0 - pk0(i);
         
-        tooclose = (d >= wind(1)) & (d <= wind(end)) & ...
-            (pksign0 == pksign0(i));
+        tooclose = (d >= wind(1)) & (d <= wind(end));
         if (sum(tooclose) > 1),
             %take the biggest one
             j = pk0(tooclose);
