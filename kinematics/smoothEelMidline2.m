@@ -16,19 +16,32 @@ npt = size(mx,1);
 
 s = [zeros(1,nfr); cumsum(sqrt(diff(mx).^2 + diff(my).^2))];
 
-fprintf('Digitized length in pixels is %.2f+-%.2f = %.1f%% of input (%.2f)\n', ...
-		nanmean2(s(end,:)), nanstd2(s(end,:))/sqrt(sum(isfinite(s(end,:)))), ...
-		nanmean2(s(end,:))/eellen*100, eellen);
+ds = diff(s);
+ds0 = eellen/(npt+1);
 
-if (nanmedian2(s(end,:))/eellen  > 0.05),
+len = s(end,:);
+len1 = len;
+len1(~isfinite(len)) = 0;
+mnlen = cumsum(len1) ./ cumsum(isfinite(len));
+isshort = abs(len - mnlen) >= 0.5*ds0;
+
+if any(isshort)
+    offscreenind = first(isshort);
+else
+    offscreenind = size(s,2);
+end
+
+fprintf('Digitized length in pixels is %.2f+-%.2f = %.1f%% of input (%.2f)\n', ...
+		nanmean2(s(end,1:offscreenind)), nanstd2(s(end,1:offscreenind))/sqrt(sum(isfinite(s(end,1:offscreenind)))), ...
+		nanmean2(s(end,1:offscreenind))/eellen*100, eellen);
+
+if (nanmedian2(s(end,1:offscreenind))/eellen  > 0.05),
 	warning('Lengths don''t match up (either digitized length varies or is different from input).');
-    actlen = nanmedian2(s(end,:));
+    actlen = nanmedian2(s(end,1:offscreenind));
 else
     actlen = eellen;
 end
 
-ds = diff(s);
-ds0 = actlen/(npt-1);
 good = all(isfinite(mx) & isfinite(my));
 goodspacing = all(abs((ds - ds0)/ds0) <= 0.2);
 
@@ -59,14 +72,13 @@ else
             error('Unrecognized offscreen option');
     end
     
-    s0 = (0:ds0:actlen)';
+    s0 = linspace(0,actlen,npt)';
+    ds0 = s0(2) - s0(1);
     XY = cat(1,shiftdim(mx,-1),shiftdim(my,-1));
     XYs1 = NaN(size(XY));
     XYs = NaN(size(XY));
    
     len = range(s);
-    
-    offscreenind = first(abs(len - actlen) >= 0.5*ds0);
     
     %first spatial smoothing
     k = find(good);

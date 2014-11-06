@@ -226,7 +226,9 @@ if (~isindpeak),
     pksign0 = pksign(pt0,pk0);
     
     %search window
-    wind = median(diff(pk0));
+    d = diff(pk0);
+    d = d(d > 3);
+    wind = median(d);
     wind = round(wind * [-opt.backwnd opt.fwdwnd]);
     wind = wind(1):wind(2);
     
