@@ -25,12 +25,12 @@ nbt = size(K.indpeak,2);
 
 t = shiftdim(K.t);
 
-npt = size(K.mxs,1);
-MXY(:,1:2:2*npt) = K.mxmm';
-MXY(:,2:2:2*npt) = K.mymm';
-
-H = [K.humms' K.hvmms' K.haxmmss' K.haymmss'];
-
+if isfield(K,'mxmm')
+    npt = size(K.mxmm,1);
+elseif isfield(K,'npts')
+    npt = K.npts;
+end
+    
 isPeak = zeros([nfr npt]);
 for i = 1:npt,
     k = find(isfinite(K.indpeak(i,:)));
@@ -86,8 +86,12 @@ end
         
 freq = (1./nanmedian(K.per(end-4:end,:)))';
 
-s = [zeros(1,size(K.mxmm,2)); cumsum(sqrt(diff(K.mxmm).^2 + diff(K.mymm).^2))];
-s = nanmedian(s,2);
+if isfield(K,'mxmm')
+    s = [zeros(1,size(K.mxmm,2)); cumsum(sqrt(diff(K.mxmm).^2 + diff(K.mymm).^2))];
+    s = nanmedian(s,2);
+else
+    s = linspace(0,K.fishlenmm,npt)';
+end
 
 tailamp = K.amp(end,:)';
 headamp = K.amp(1,:)';
@@ -95,7 +99,6 @@ headamp = K.amp(1,:)';
 pkamp = pkamp';
 pkamppos = s(pkamppt) / s(end);
 
-exc = nanmean(K.exc,3)';
 if (~isempty(K.wavevel))
     wavevel = K.wavevel';
 else
@@ -109,7 +112,7 @@ end
 
 fid = fopen(outfile,'w');
 fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
-fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
+fprintf(fid, '%%%% Length %f\n', K.fishlenmm);
 fprintf(fid,'\n');
 
 fprintf(fid,'%%%% General kinematics:\n');
@@ -127,24 +130,26 @@ fprintf(fid, tplt, Kin1');
 
 fclose(fid);
 
-[pn,fn,ext] = fileparts(outfile);
-outfile2 = fullfile(pn,[fn '-points' ext]);
-
-fid = fopen(outfile2,'w');
-fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
-fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
-fprintf(fid,'\n');
-
-fprintf(fid, '%%%% Midline coordinates (mm)\n');
-ttl = {'FrameNum','Time(s)','PointNum','X(mm)','Y(mm)'};
-fprintf(fid, '%s,', ttl{:});
-fprintf(fid, '\n');
-
-[ptnum,frnum] = ndgrid(1:K.npts, K.fr);
-t2 = repmat(K.t,[K.npts 1]);
-Pts1 = [frnum(:) t2(:) ptnum(:) K.mxmm(:) K.mymm(:)];
-tplt = repmat('%10.4f,',[1 size(Pts1,2)]);
-tplt = [tplt(1:end-1) '\n'];
-fprintf(fid, tplt, Pts1');
-
-fclose(fid);
+if isfield(K,'mxmm')
+    [pn,fn,ext] = fileparts(outfile);
+    outfile2 = fullfile(pn,[fn '-points' ext]);
+    
+    fid = fopen(outfile2,'w');
+    fprintf(fid, '%%%% From data file %s: %s\n', kinfile, date);
+    fprintf(fid, '%%%% Length %f\n', nanmedian(K.smm(end,:)));
+    fprintf(fid,'\n');
+    
+    fprintf(fid, '%%%% Midline coordinates (mm)\n');
+    ttl = {'FrameNum','Time(s)','PointNum','X(mm)','Y(mm)'};
+    fprintf(fid, '%s,', ttl{:});
+    fprintf(fid, '\n');
+    
+    [ptnum,frnum] = ndgrid(1:K.npts, K.fr);
+    t2 = repmat(K.t,[K.npts 1]);
+    Pts1 = [frnum(:) t2(:) ptnum(:) K.mxmm(:) K.mymm(:)];
+    tplt = repmat('%10.4f,',[1 size(Pts1,2)]);
+    tplt = [tplt(1:end-1) '\n'];
+    fprintf(fid, tplt, Pts1');
+    
+    fclose(fid);
+end

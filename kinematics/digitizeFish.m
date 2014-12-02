@@ -59,10 +59,11 @@ end;
 if (~isavi),
     [avifile,pathname] = uigetfile({'*.avi','AVI';'*.cine','Cine';...
         '*.mpg','MPG';'*.tif','TIFF';'*.im7','DaVis IM7'},'Choose movie file');
-    if (isnumeric(avifile) && (avifile == 0)),
-        return;
-    end;
-    DF.avifile = fullfile(pathname,avifile);
+    if (ischar(avifile))
+        DF.avifile = fullfile(pathname,avifile);
+    else
+        isavi = false;
+    end
 end;
 
 %check which step we're on
@@ -72,9 +73,11 @@ end;
 
 %use the even newer VideoReader functions so that we can handle modern codecs
 %but uncompressed files may cause a problem
-DF.mmfile = VideoReader2(DF.avifile);
-DF.nFrames = DF.mmfile.NumberOfFrames;
-DF.fr = 1:DF.nFrames;
+if isavi
+    DF.mmfile = VideoReader2(DF.avifile);
+    DF.nFrames = DF.mmfile.NumberOfFrames;
+    DF.fr = 1:DF.nFrames;
+end
 
 dfSaveData(DF);
 
