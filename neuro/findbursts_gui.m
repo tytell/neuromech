@@ -4,6 +4,7 @@ opt.interburstdur = [];
 opt.threshold = [];
 opt.minspikes = [];
 opt.goodchan = [];
+opt.show = 5;
 opt.quiet = false;
 
 if ((nargin >= 2) && isnumeric(data) && isnumeric(varargin{1}) && ...
@@ -118,7 +119,7 @@ off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
 data.burstoff = NaN(size(data.burstt));
 data.burstoff(:,data.goodchan) = catuneven(2,off1{:});
 
-if isfield(data,'phase') && (data.amp > 0)
+if isfield(data,'phase') && (~isfield(data,'amp') || (data.amp > 0))
     data.spikephase = NaN(size(data.spiket));
     data.burstphase = NaN(size(data.burstt));
     data.spikecyclet = NaN(size(data.spiket));
@@ -302,6 +303,9 @@ for i = c
             'minspikes',gdata.minspikes(i));
         d.burst(i) = burst1;
     else
+        d.burst(i).method = '';
+        d.burst(i).interburstdur = [];
+        d.burst(i).minspikes = [];
         d.burst(i).on = [];
         d.burst(i).off = [];
         d.burst(i).ctr = [];

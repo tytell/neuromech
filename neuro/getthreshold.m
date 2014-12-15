@@ -1,34 +1,13 @@
-function threshold = getthreshold(t,sig,varargin)
-% function threshold = getthreshold(t,sig,options...)
+function threshval = getthreshold(t,sig,varargin)
+% function threshval = getthreshold(t,sig,options...)
 
-threshold = [];
-nthresh = 1;
-channames = {};
-showdur = 10;
+opt.threshold = [];
+opt.symmetric = true;
+opt.channames = {};
+opt.showdur = 10;
+opt = parsevarargin(opt,varargin,3);
 
-p = 1;
-while (p <= length(varargin)),
-    switch lower(varargin{p}),
-        case 'nthresh',
-            nthresh = varargin{p+1};
-            p = p+2;
-            
-        case 'threshold',
-            threshold = varargin{p+1};
-            p = p+2;
-
-        case 'channelnames',
-            channames = varargin{p+1};
-            p = p+2;
-        
-        case 'showdur',
-            showdur = varargin{p+1};
-            p = p+2;
-            
-        otherwise,
-            error('Unrecognized option %s\n',varargin{p});
-    end;
-end;
+threshval = opt.threshold;
 
 %get the signal data structured right
 t = makecol(t);
@@ -40,26 +19,23 @@ nchan = size(sig,2);
 %bring the current figure to the front
 figure(gcf);
 
-if (~isempty(threshold)),
-    nthresh = size(threshold,1);
-end;
+if (size(threshval,1) == 1)
+    threshval = repmat(threshval,[2 1]);
+end
+if (size(threshval,2) == 1)
+    threshval = repmat(threshval,[1 nchan]);
+end
 
-if (nthresh == 1),
-    box = msgbox(['Click on axes to set threshold for each channel.' ...
-        ' Hit any key to end.'],...
-        'Threshold','help','non-modal');
-elseif (nthresh == 2),
-    box = msgbox(['Left (right) click on axes to set high (low) threshold for each channel.' ...
-        ' Hit any key to end.'],...
-        'Threshold','help','non-modal');
-end;
+box = msgbox(['Click on axes to set threshold for each channel.' ...
+    ' Hit any key to end.'],...
+    'Threshold','help','non-modal');
 
-if (isempty(threshold)),
-    threshold = nans(nthresh,nchan);
+if (isempty(threshval)),
+    threshval = NaN(2,nchan);
 end;
 
 ispos = all(sig(:) >= 0);
-isshow = t <= showdur;
+isshow = t <= opt.showdur;
 maxt = max(t(isshow));
 
 %run through each channel and define the threshold(s)
@@ -74,52 +50,45 @@ for i = 1:nchan,
     plot(t(isshow),sig(isshow,i),'HitTest','off');
 
     %set up the default values
-    thresh0 = threshold(:,i);
-    if ((nthresh == 1) && isnan(thresh0)),
-        thresh0 = max(abs(prctile(sig(:,i),[15 85])));
-    elseif (nthresh == 2),
-        thresh00 = [max(abs(prctile(sig(:,i),[5 95]))) max(abs(prctile(sig(:,i),[15 85])))];
-        undef = isnan(thresh0);
-        thresh0(undef) = thresh00(undef);
-    end;
+    thresh0 = threshval(:,i);
+    if (isnan(thresh0)),
+        if opt.symmetric
+            thresh0 = [-1 1]*max(abs(prctile(sig(:,i),[15 85])));
+        else
+            thresh0 = prctile(sig(:,i),[15 85]);
+        end
+    end
 
     %plot the threshold line(s)
     if (~ispos),
-        x = repmat([t(1); maxt], [1 2*length(thresh0)]);
-        y = repmat(thresh0', [4 1]);
-        y = reshape(y,[2 2*length(thresh0)]);
-        if (nthresh == 2),
-            y(:,[2 4]) = -y(:,[2 4]);
-        else
-            y(:,2) = -y(:,2);
-        end;
+        x = repmat([t(1); maxt], [1 length(thresh0)]);
+        y = repmat(thresh0, [2 1]);
     else
         x = repmat([t(1); maxt], [1 length(thresh0)]);
         y = repmat(thresh0', [2 1]);
         y = reshape(y,[2 length(thresh0)]);
     end;
     h = addplot(x,y,'r-');
-    set(h(3:end),'Color','g');
     
     set(h,'HitTest','off');
-    set(gca,'ButtonDownFcn',{@localSetThresh,h});
+    set(gca,'ButtonDownFcn',{@localSetThresh,h,opt.symmetric});
     set(gcf,'KeyPressFcn',@localEndThresh, 'UserData','');
-    if (~isempty(channames)),
-        title(sprintf('Channel %d (%s)',i,channames{i}));
+    if (~isempty(opt.channames)),
+        title(sprintf('Channel %d (%s)',i,opt.channames{i}));
     end;
 
     waitfor(gcf,'UserData');
 
-    if (nthresh == 1),
-        th = get(h(1),'YData');
-        thresh0 = th(1);
+    if (opt.symmetric),
+        th = get(h(2),'YData');
+        thresh0 = [-1;1]*th(1);
     else
         th = get(h(1),'YData');
         thresh0(1) = th(1);
-        th = get(h(3),'YData');
+        th = get(h(2),'YData');
         thresh0(2) = th(1);
     end;
-    threshold(:,i) = thresh0';
+    threshval(:,i) = thresh0';
     delete(h);
 end;
 if (ishandle(box)),
@@ -128,36 +97,34 @@ end;
 set(gca,'ButtonDownFcn','');
 set(gcf,'KeyPressFcn','');
 
+if opt.symmetric
+    threshval = threshval(2,:);
+end
+
 
 %------------------------------------------------------------------------
-function localSetThresh(obj,eventdata, hLine)
+function localSetThresh(obj,~, hLine,issym)
 
 pt = get(obj,'CurrentPoint');
 fig = get(obj,'Parent');
-sel = get(fig,'SelectionType');
 
-if (length(hLine) == 1),
-    i = 1;
-    ispos = true;
-elseif (length(hLine) == 2),
-    i = 1;
-    ispos = false;
-elseif (length(hLine) == 4),
-    switch sel,
-        case 'normal',
-            i = 1;
-        case 'alt',
-            i = 3;
-        otherwise,
-            i = 1;
-    end;
-    ispos = false;
-end;
+y1 = get(hLine(1),'YData');
+y2 = get(hLine(2),'YData');
 
-set(hLine(i),'YData',abs([pt(1,2) pt(1,2)]));
-if (~ispos),
-    set(hLine(i+1),'YData',-abs([pt(1,2) pt(1,2)]));
-end;
+if (issym)
+    yval = [-1;1] * abs(pt(1,2));
+else
+    if (abs(pt(1,2) - y1(1)) < abs(pt(1,2) - y2(1)))
+        yval(1) = pt(1,2);
+        yval(2) = y2(1);
+    else
+        yval(1) = y1(1);
+        yval(2) = pt(1,2);
+    end
+end
+
+set(hLine(1),'YData',yval([1 1]));
+set(hLine(2),'YData',yval([2 2]));
 
 %------------------------------------------------------------------------
 function localEndThresh(obj,eventdata)

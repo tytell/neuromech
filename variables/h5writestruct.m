@@ -35,7 +35,27 @@ end
         
 for i = 1:size(C,1)
     if isnumeric(C{i,1})
-        sz1 = size(C{i,1});
+        %check to make sure they're all the same size
+        nd = cellfun(@ndims,C(i,:));
+        nd = max(nd);
+        szall = zeros([nd szhi]);
+        for j = 1:nd
+            szall(j,:) = cellfun(@(x) size(x,j), C(i,:));
+        end
+        
+        sz1 = max(flatten(szall,2:length(szhi)+1),[],2);
+        for j = 1:prod(szhi)
+            if any(szall(:,j) ~= sz1)
+                C1 = C{i,j};
+                for k = 1:nd
+                    C1(end+1:sz1(k),:) = NaN;
+                    C1 = shiftdim(C1,1);
+                end
+                C{i,j} = C1;
+            end
+        end
+
+        sz1 = sz1';
         D = cat(length(sz1)+1,C{i,:});
         D = reshape(D,[sz1 szhi]);
         
