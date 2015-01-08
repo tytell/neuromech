@@ -59,12 +59,22 @@ for i = 1:size(C,1)
         D = cat(length(sz1)+1,C{i,:});
         D = reshape(D,[sz1 szhi]);
         
+        if ~isreal(D)
+            D = shiftdim(D,-1);
+            D(2,:) = imag(D(1,:));
+            D(1,:) = real(D(1,:));
+            sz1 = [2 sz1];
+            Disreal = 0;
+        else
+            Disreal = 1;
+        end
         nm1 = [opt.rootgroup names{i}];
         if ~ismember(names{i},existnames)
             h5create(filename,nm1, [sz1 Inf(size(szhi))], 'ChunkSize',...
                 [sz1 ones(size(szhi))], 'Datatype',class(D));
         end
         h5write(filename,nm1, D, ones(1,length(sz1)+length(szhi)), [sz1 szhi]);
+        h5writeatt(filename,nm1,'isreal',Disreal);
     else
         warning('h5writestruct:type','Skipping field %s because type is not numeric',names{i});
     end
