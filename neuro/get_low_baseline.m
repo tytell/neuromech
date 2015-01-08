@@ -31,11 +31,15 @@ sigpad = reshape(sigpad,sz);
 
 sigmn = nanmean(sigpad,1);
 sigmn = squeeze(sigmn);
+if ((size(sigmn,1) == 1) && (size(sigmn,2) > 1))
+    sigmn = sigmn';
+end
+
 sigmn = sigmn([1 1:end end],:);
 ctrind = cat(1,0,(1:nwind)'*lenwind - lenwind/2 - npre, size(sig,1)+1);
 ind = (1:size(sig))';
 
-siglo = interp1(ctrind,sigmn, ind, 'linear');
+siglo = interp1(ctrind,sigmn, ind, 'spline');
 
 
 
