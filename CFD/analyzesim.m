@@ -391,7 +391,9 @@ wavelen(:,good) = wavelen0(:,cyclematchpeak(good));
 
 amp = NaN(size(indact));
 for c = 1:size(indact,2)-2,
-    amp(:,c) = range(ampcont(:,(cyclenum2 == c) | (cyclenum2 == c+1)),2)/2;
+    if any((cyclenum2 == c) | (cyclenum2 == c+1))
+        amp(:,c) = range(ampcont(:,(cyclenum2 == c) | (cyclenum2 == c+1)),2)/2;
+    end
 end;
 
 disp('  Calculating work loops...');
