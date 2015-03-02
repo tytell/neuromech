@@ -226,7 +226,9 @@ if (~isindpeak),
     pksign0 = pksign(pt0,pk0);
     
     %search window
-    wind = median(diff(pk0));
+    d = diff(pk0);
+    d = d(d > 3);
+    wind = median(d);
     wind = round(wind * [-opt.backwnd opt.fwdwnd]);
     wind = wind(1):wind(2);
     
@@ -234,8 +236,7 @@ if (~isindpeak),
     for i = 1:length(pk0),
         d = pk0 - pk0(i);
         
-        tooclose = (d >= wind(1)) & (d <= wind(end)) & ...
-            (pksign0 == pksign0(i));
+        tooclose = (d >= wind(1)) & (d <= wind(end));
         if (sum(tooclose) > 1),
             %take the biggest one
             j = pk0(tooclose);

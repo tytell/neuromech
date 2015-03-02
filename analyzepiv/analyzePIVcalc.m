@@ -19,7 +19,8 @@ calcfcns = {@apCalcCirc 1 'circ'; ...
             @apCalcMeanMag 2 'magmean'; ...
             @apCalcMaxMag 2 'magmax'; ...
             @apCalcMeanUVW 2 'uvmean'; ...
-            @apCalcMeanAng 2 'angmean'};
+            @apCalcMeanAng 2 'angmean'; ...
+            @apCalcFlux 1 'flux'};
 
 set(data.RgnDataScroll,'Callback',@apSlideCalcScroll);
 
@@ -47,6 +48,8 @@ while (newrowctr - h/2 > ext(2) + gap),
     GUI.Fcns(4) = copyobj(data.DataCalcMaxMag0,data.Panel);
     GUI.Fcns(5) = copyobj(data.DataCalcUV0,data.Panel);
     GUI.Fcns(6) = copyobj(data.DataCalcAng0,data.Panel);
+    GUI.Fcns(7) = copyobj(data.DataCalcMomFlux0,data.Panel);
+    
     GUI.Properties = copyobj(data.RgnPropertiesButton0,data.Panel);
 
     % put the new row in the right position
@@ -1113,6 +1116,58 @@ else
 end
 
 ctr = [nanmean(xd(:)) nanmean(yd(:))];
+
+% -------------------------------------------------
+function [flux,err,units,N,ctr] = apCalcFlux(data,rgn,xd,yd,ud,vd,wd, ...
+                                   xv,yv,uv,vv,ww, vecunits)
+
+% get the scale factor between position units and velocity length unit
+[posscalefac,unitserror] = feval(data.generalFcns.apConvertUnits, ...
+                                 vecunits.pos,vecunits.vel{1});
+
+if (~unitserror),
+    vecunits.pos = vecunits.vel{1};
+end;
+
+xd = xd.*posscalefac;
+yd = yd.*posscalefac;
+
+s = [0 cumsum(sqrt(diff(xd).^2 + diff(yd).^2))];
+
+dxds = deriv(s,xd);
+dyds = deriv(s,yd);
+mag = sqrt(dxds.^2 + dyds.^2);
+
+%normal vector
+nx = -dyds./mag;
+ny = dxds./mag;
+
+%volume flux
+vol = rho * trapz(s,ud.*nx + vd.*ny);
+ke = rho * trapz(s,(ud.^2 + vd.^2)*(ud.nx + vd.ny));
+momx = rho * trapz(s,ud .* (ud.*nx + vd.*ny));
+momy = rho * trapz(s,vd .* (ud.*nx + vd.*ny));
+
+flux.volume = vol;
+flux.ke = ke;
+flux.momx = momx;
+flux.momy = momy;
+
+N = sum(isfinite(uv) & isfinite(vv));
+ctr = [nanmean(xd(:)) nanmean(yd(:))];
+
+units = {'','','',''};
+if (~isempty(vecunits.pos) && ~isempty(vecunits.vel)),
+    if (strcmp(vecunits.pos,vecunits.vel{1})),
+        units{1} = sprintf('kg/%s/%s)',vecunits.vel{2},vecunits.vel{1});
+        units{2} = sprintf('kg.%s^2/%s^3/%s',vecunits.vel{1},vecunits.vel{2},vecunits.vel{1});
+        units{3} = sprintf('kg.%s/%s^2/%s',vecunits.vel{1},vecunits.vel{2},vecunits.vel{1});
+        units{4} = units{3};
+    else
+        warning('Flux units problem');
+    end;
+end;
+err = [];
 
 % -------------------------------------------------
 function [x,y,u,v,w, mask] = apGetVecInside(data,xd,yd)

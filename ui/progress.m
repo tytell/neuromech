@@ -10,7 +10,7 @@ global prg_ticstart;
 global prg_numsteps;
 global prev_elap;
 
-if (i == 0)
+if ((i == 0) || (i == 1))
     prg_ticstart = tic;
     fprintf('%s\n', msg);
     prg_numsteps = n;

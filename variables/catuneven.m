@@ -11,13 +11,15 @@ function V = catuneven(dim, varargin)
 % See https://bitbucket.org/tytell/matlab_variables/overview
 % Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
 
+opt.keepempty = false;
+
 %nothing to cat?  Then return an empty matrix
 if (nargin == 1),
     V = [];
     return;
 end;
 
-vals = varargin;
+[opt,vals] = parsevarargin(opt,varargin,2,'leaveunknown');
 %get rid of empty matrices
 % good = ~cellfun(@isempty,vals);
 % vals = vals(good);
@@ -42,8 +44,13 @@ end;
 %save the sizes of everything
 sz = ones(nd, length(vals));
 for d = 1:nd,
-    sz(d,:) = cellfun('size', vals, d);
+    sz(d,:) = cellfun(@(x) size(x,d), vals);
 end;
+
+if opt.keepempty
+    emptyvals = all(sz == 0);
+    sz(:,emptyvals) = 1;
+end
 
 %and figure out the final output size
 totalsz = max(sz,[],2);
@@ -127,13 +134,26 @@ for a = 1:length(vals),
         
         vals{a} = vs1;
     else
-        if (isnumeric(vs))
-            vals{a} = zeros(0,0,class(vs));
-        elseif ischar(vs)
-            vals{a} = '';
-        elseif iscell(vs)
-            vals{a} = {};
-        end 
+        if ~opt.keepempty
+            if (isnumeric(vs))
+                vals{a} = zeros(0,0,'like',vs);
+            elseif ischar(vs)
+                vals{a} = '';
+            elseif iscell(vs)
+                vals{a} = {};
+            end 
+        else
+            if (isa(vs,'double'))
+                vals{a} = NaN(totalsz1);
+            elseif isnumeric(vs)
+                vals{a} = zeros(totalsz1,'like',vs);
+            elseif ischar(vs)
+                vals{a} = repmat('',totalsz1);
+            elseif iscell(vs)
+                vals{a} = cell(totalsz1);
+            end 
+        end
+
     end;
 end;
 

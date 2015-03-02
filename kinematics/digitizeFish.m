@@ -59,10 +59,11 @@ end;
 if (~isavi),
     [avifile,pathname] = uigetfile({'*.avi','AVI';'*.cine','Cine';...
         '*.mpg','MPG';'*.tif','TIFF';'*.im7','DaVis IM7'},'Choose movie file');
-    if (isnumeric(avifile) && (avifile == 0)),
-        return;
-    end;
-    DF.avifile = fullfile(pathname,avifile);
+    if (ischar(avifile))
+        DF.avifile = fullfile(pathname,avifile);
+    else
+        isavi = false;
+    end
 end;
 
 %check which step we're on
@@ -72,9 +73,11 @@ end;
 
 %use the even newer VideoReader functions so that we can handle modern codecs
 %but uncompressed files may cause a problem
-DF.mmfile = VideoReader2(DF.avifile);
-DF.nFrames = DF.mmfile.NumberOfFrames;
-DF.fr = 1:DF.nFrames;
+if isavi
+    DF.mmfile = VideoReader2(DF.avifile);
+    DF.nFrames = DF.mmfile.NumberOfFrames;
+    DF.fr = 1:DF.nFrames;
+end
 
 dfSaveData(DF);
 
@@ -601,7 +604,7 @@ if isfield(DF,'ex')
     
     if (isfield(DF,'scale'))
         DF.exmm = exs*DF.scale;
-        DF.eymm = exs*DF.scale;
+        DF.eymm = eys*DF.scale;
     end
 end
 
@@ -997,8 +1000,73 @@ if inputyn('Does the head go off the screen?','default',false)
 else
     headopt = {};
 end
-[mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr, ...
-    headopt{:});
+
+if isfield(DF,'ex') && ...
+        inputyn('Generate midline based on extra points?', 'default',false)
+    npts = input('Total number of midline points to generate? (default = 20) ');
+    if isempty(npts) || ~isnumeric(npts)
+        npts = 20;
+    end
+    
+    %reorder the points so that they go from head to tail
+    %first get the head to tail axis
+    htx = DF.txs - DF.hxs;
+    hty = DF.tys - DF.hys;
+    htmag = sqrt(htx.^2 + hty.^2);
+    htx = htx./htmag;
+    hty = hty./htmag;
+    
+    nextra = size(DF.exs,1);
+    
+    %then project the extra points on to the head to tail axis
+    htdist = (DF.exs - repmat(DF.hxs,[nextra 1])) .* repmat(htx,[nextra 1]) + ...
+        (DF.eys - repmat(DF.hys,[nextra 1])) .* repmat(hty,[nextra 1]);
+    
+    [~,ord] = sort(htdist);
+    good = all(isfinite(htdist));
+    k = first(good);
+    if all(all(ord(:,good) == repmat(ord(:,k),[1 sum(good)])))
+        ord = ord(:,k);
+        DF.ex = DF.ex(ord,:);
+        DF.ey = DF.ey(ord,:);
+        DF.exs = DF.exs(ord,:);
+        DF.eys = DF.eys(ord,:);
+        DF.exmm = DF.exmm(ord,:);
+        DF.eymm = DF.eymm(ord,:);
+    else
+        for i = 1:size(ord,2)
+            DF.ex(:,i) = DF.ex(ord(:,i),i);
+            DF.ey(:,i) = DF.ey(ord(:,i),i);
+            DF.exs(:,i) = DF.exs(ord(:,i),i);
+            DF.eys(:,i) = DF.eys(ord(:,i),i);
+            DF.exmm(:,i) = DF.exmm(ord(:,i),i);
+            DF.eymm(:,i) = DF.eymm(ord(:,i),i);
+        end
+    end
+    
+    DF.mx = [DF.hxs; DF.exs; DF.txs];
+    DF.my = [DF.hys; DF.eys; DF.tys];
+    
+    s = [zeros(1,size(DF.mx,2)); cumsum(sqrt(diff(DF.mx).^2 + diff(DF.my).^2))];
+    s0 = linspace(0,1, npts)';
+    
+    XY = cat(1,shiftdim(DF.mx,-1),shiftdim(DF.my,-1));
+    XYs = NaN(2,npts,size(DF.mx,2));
+    
+    k = find(all(isfinite(DF.mx)));
+    for ii = 1:length(k)
+        i = k(ii);
+        
+        sp = spaps(s(:,i), XY(:,:,i), DF.serr^2*range2(s(:,i)));
+        XYs1 = fnval(sp, s0 * s(end,i));
+        XYs(:,:,i) = XYs1;
+    end
+    mxs = squeeze(XYs(1,:,:));
+    mys = squeeze(XYs(2,:,:));
+else
+    [mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr, ...
+        headopt{:});
+end
 
 DF.mxs = mxs;
 DF.mys = mys;
@@ -1052,10 +1120,10 @@ else
         end
 
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dssmoothcurve',0.2);
+            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dtsmoothcurve',0.1);
     else
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dssmoothcurve',0.2);
+            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dtsmoothcurve',0.1);
     end;
 end
 

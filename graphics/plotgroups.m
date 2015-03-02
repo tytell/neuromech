@@ -33,33 +33,34 @@ function varargout = plotgroups(x,y,gp,mode,varargin)
 % color and marker shape.
 %
 % Options:
-%   'error' - Show error bars (can have values 'std','sem','all','none')
+%   'error' - Show error bars (can have values 'std'='stdev','sem','iqr','range','none')
+%   'errorstyle' - 'bar' is normal error bars. 'line' is a region around
+%     the line
 %   'means' - Take mean of points in the same group at the same x
+%   'meanfcn' - Function to calculate the "mean" (could be @mean or @median
+%      or something else)
 %   'xOffset' - Define the offset of points with the same x, but different
 %      group membership
 %   'Markers' - Defines the list of markers for mode 'm'
 %   'MarkerSize' - Defines the size of markers in points.
 %   'Fill' - Defines the fill, or the start fill for mode 'f'
 %   'Trace' - Connects points with the same group
-%   'stdLineWidth' and 'semLineWidth' - Defines the width of lines for
-%      'std' or 'sem' errors
+%   'errLineWidth' - Defines the width of lines for the error bars
 %   'sortGroups' - Normally tries to keep the groups in the order they are
 %      listed in the gp variable.  But if this is true, sort them
 %      alphabetically or numerically
 %   'legend' - Show a legend.  The normal legend function can't generally
 %      handle plotgroups output very well.
 
-% Mercurial revision hash: $Revision$ $Date$
-% See https://bitbucket.org/tytell/matlab_variables/overview
-% Copyright (c) 2011, Eric Tytell <tytell at jhu dot edu>
+% Copyright (c) 2014, Eric Tytell <eric.tytell at tufts dot edu>
 
 options.Error = 'sem';
+options.errorstyle = 'bar';        % or 'line'
 options.xOffset = 'auto';
 options.Markers = 'osd^v><ph';
 options.MarkerSize = 8;
 options.Fill = true;
-options.stdLineWidth = 0.5;
-options.semLineWidth = 0.5;
+options.errLineWidth = 0.5;
 options.Color = [];
 options.showTicks = [];
 options.Trace = 'off';
@@ -70,13 +71,10 @@ options.meanfcn = @mean;
 options.errfcn = [];
 options.sortGroups = false;
 options.legend = false;
-options.errorstyle = 'line';        % or 'bar'
 
 optsynonyms = { ...
-    {'xOffset',{'offx'}}, ...
+    {'xOffset',{'offx','xoff'}}, ...
     {'MarkerSize',{'ms'}}, ...
-    {'stdLineWidth',{'stdlw'}}, ...
-    {'semLineWidth',{'semlw'}}, ...
     {'showTicks',{'st'}}, ...
     {'sortGroups',{'sg'}}, ...
     {'Trace',{'Traces'}}, ...
@@ -420,6 +418,23 @@ for i = 1:ncomb,
 
     isMean = options.means;
     if (isMean),
+        if ~isempty(options.errfcn)
+            errfcn = options.errfcn;
+        else
+            switch lower(options.Error)
+                case {'std','stdev'}
+                    errfcn = @nanstd;
+                case 'sem'
+                    errfcn = @(x) (nanstd(x)./sqrt(sum(isfinite(x))));
+                case 'iqr'
+                    errfcn = @(x) (prctile(x,[25 75]) - options.meanfcn(x));
+                case 'range'
+                    errfcn = @(x) ([min(x) max(x)] - options.meanfcn(x));
+                otherwise
+                    errfcn = [];
+            end
+        end
+        
         [xind1,xord] = sort(xind(k));
 
         a2 = 1;
@@ -428,11 +443,7 @@ for i = 1:ncomb,
 
         xp = NaN([nxval 1]);
         yp = NaN([nxval 1]);
-        stdp = NaN([nxval 1]);
-        semp = NaN([nxval 1]);
-        if ~isempty(options.errfcn)
-            errp = NaN([nxval 1]);
-        end
+        errp = NaN([nxval 2]);
         for j = 1:nxval,
             while ((b2 <= n) && (xind1(b2) == j)),
                 b2 = b2+1;
@@ -442,17 +453,20 @@ for i = 1:ncomb,
             if (isempty(k2)),
                 xp(j) = NaN;
                 yp(j) = NaN;
-                stdp(j) = NaN;
-                semp(j) = NaN;
             else
                 xp(j) = x1(xord(a2));
 
                 y2 = y1(k2);
                 yp(j) = feval(options.meanfcn,y2);
-                stdp(j) = std(y2);
-                semp(j) = stdp(j)/sqrt(length(y2));
-                if ~isempty(options.errfcn)
-                    errp(j) = feval(options.errfcn,y2);
+                if ~isempty(errfcn)
+                    errp1 = feval(errfcn,y2);
+                    if (numel(errp1) == 1)
+                        errp(j,:) = [-errp1 errp1]/2;
+                    elseif (numel(errp1) == 2)
+                        errp(j,:) = errp1;
+                    else
+                        error('Problem with error function');
+                    end
                 end
             end;
             a2 = b2;
@@ -461,11 +475,7 @@ for i = 1:ncomb,
         good = isfinite(yp) & isfinite(xp);
         x1 = xp(good);
         y1 = yp(good);
-        std1 = stdp(good);
-        sem1 = semp(good);
-        if ~isempty(options.errfcn)
-            err1 = errp(good);
-        end
+        err1 = errp(good,:);
     end;
 
     col1 = options.Color(1,:);
@@ -500,53 +510,23 @@ for i = 1:ncomb,
     end;
 
     if (isMean),
-        if ~isempty(options.errfcn)
+        if isempty(x1)
+            %have to use line here to force the generation of a
+            %graphics handle even for a trace with no points
+            hErr(i) = line('XData',[],'YData',[],'Color',col1,...
+                'LineStyle','none');
+        elseif strcmpi(options.Trace,'on') && strcmpi(options.errorstyle,'line')
+            px = [x1; x1(end:-1:1)];
+            py = [y1; y1(end:-1:1)] + [err1(:,1)'; err1(end:-1:1,2)'];
+            h1 = fill(px,py,col1,'EdgeColor','none');
+            hErr(i) = h1;
+        elseif strcmpi(options.errorstyle,'bar')
             px = [x1 x1 NaN([length(x1) 1])]';
             py = [y1 y1 NaN([length(y1) 1])]' + ...
-                 [err1 -err1 NaN([length(y1) 1])]';
+                 [err1 NaN([length(y1) 1])]';
             hErr(i) = plot(px(:),py(:),'Color',col1, ...
-                'LineWidth',options.stdLineWidth);
-        elseif strcmpi(options.Error,'std')
-            hErr(i) = -1;
-            if (ismember(options.Trace,{'on'}) && strcmpi(options.errorstyle,'bar')),
-                px = [x1; x1(end:-1:1)];
-                py = [y1; y1(end:-1:1)] + [std1; -std1(end:-1:1)];
-                h1 = fill(px,py,col1,'EdgeColor','none');
-                hErr(i) = h1;
-            else
-                px = [x1 x1 NaN([length(x1) 1])]';
-                py = [y1 y1 NaN([length(y1) 1])]' + ...
-                     [std1 -std1 NaN([length(y1) 1])]';
-            end;
-            if (~isempty(px) && ~ishandle(hErr(i))),
-                hErr(i) = plot(px(:),py(:),'Color',col1,...
-                               'LineWidth',options.stdLineWidth);
-            elseif ~ishandle(hErr(i))
-                %have to use line here to force the generation of a
-                %graphics handle even for a trace with no points
-                hErr(i) = line('XData',[],'YData',[],'Color',col1,...
-                               'LineStyle','none');
-            end;
-        elseif strcmpi(options.Error,'sem')
-            if (ismember(options.Trace,{'on'})),
-                px = [x1; x1(end:-1:1)];
-                py = [y1; y1(end:-1:1)] + [sem1; -sem1(end:-1:1)];
-                h1 = fill(px,py,col1,'EdgeColor','none');
-                hErr(i) = h1;
-            else
-                px = [x1 x1 NaN([length(x1) 1])]';
-                py = [y1 y1 NaN([length(y1) 1])]' + ...
-                     [sem1 -sem1 NaN([length(y1) 1])]';
-            end;
-            if (~isempty(px) && ~ishandle(hErr(i))),
-                hErr(i) = plot(px(:),py(:),'Color',col1,...
-                               'LineWidth',options.semLineWidth);
-            elseif ~ishandle(hErr(i))
-                hErr(i) = line('XData',[],'YData',[],'Color',col1,...
-                               'LineStyle','none');
-            end;
-        end;
-
+                'LineWidth',options.errLineWidth);
+        end
     end;
 
     if (isempty(options.isMarker) || ~options.isMarker),

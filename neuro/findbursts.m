@@ -200,6 +200,7 @@ switch opt.method,
         if (opt.isoutstruct)
             burst.method = 'simple';
             burst.interburstdur = opt.interburstdur;
+            burst.minspikes = opt.minspikes;
             
             for ch = 1:nchan,
                 burst.on{ch} = t(ch,burststart{ch});
