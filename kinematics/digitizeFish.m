@@ -61,6 +61,7 @@ if (~isavi),
         '*.mpg','MPG';'*.tif','TIFF';'*.im7','DaVis IM7'},'Choose movie file');
     if (ischar(avifile))
         DF.avifile = fullfile(pathname,avifile);
+        isavi = true;
     else
         isavi = false;
     end
@@ -155,7 +156,11 @@ if (~isfield(DF,'scale')),
 	fprintf('Warning: No scale value saved.\n');
 end;
 
-fpsdefault = double(DF.mmfile.FrameRate);
+if isfield(DF,'mmfile')
+    fpsdefault = double(DF.mmfile.FrameRate);
+else
+    fpsdefault = 1;
+end
 fps = input(sprintf('Frames per second? (default %g) ', fpsdefault));
 if (isempty(fps)),
     fps = fpsdefault;
