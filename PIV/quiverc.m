@@ -486,7 +486,8 @@ if (~opts.NoHeads),
     end;
     
     if (opts.is3D),
-        zz = repmat(flatten(repmat(z,[hmult 1]))',[nh 1]);
+        tz1 = tailptz(nt,1:tmult:end);
+        zz = repmat(flatten(repmat(tz1,[hmult 1]))',[nh 1]);
         ww = repmat(flatten(repmat(w,[hmult 1]))',[nh 1]);
         aa = sqrt(uu.^2 + vv.^2);
         

@@ -1,5 +1,5 @@
-function h = orthoplot(x,y,z, I, vx,vy,vz, u,v,w)
-% function h = orthoplot(x,y,z, I, vx,vy,vz, u,v,w)
+function h = orthoplot(a,b,c, I, varargin)
+% function h = orthoplot(a,b,r, I, vx,vy,vz, u,v,w)
 %
 % Plots volumetric data with three orthogonal slices like in the Zeiss
 % LSM viewer program.  Allows the different slices to be moved with the
@@ -12,25 +12,73 @@ function h = orthoplot(x,y,z, I, vx,vy,vz, u,v,w)
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell
 
+opt.order = 'ijk';
+
+if ((nargin >= 10) && ...
+    isnumeric(varargin{1}) && isnumeric(varargin{2}) && isnumeric(varargin{3}) && ...
+    isnumeric(varargin{4}) && isnumeric(varargin{5}) && isnumeric(varargin{6}))
+    [vx,vy,vz, u,v,w] = deal(varargin{1:6});
+    varargin = varargin(11:end);
+    p = 11;
+else
+    p = 5;
+end
+
+opt = parsevarargin(opt,varargin, p);
+
 if (nargin == 1),
-    I = x;
-    x = 1:size(I,2);
-    y = 1:size(I,1);
-    z = 1:size(I,3);
-elseif (ndims(x) == 3),
-    if (any(flatten(diff(x,[],1)) ~= 0) || ...
-        any(flatten(diff(x,[],3)) ~= 0) || ...
-        any(flatten(diff(y,[],2)) ~= 0) || ...
-        any(flatten(diff(y,[],3)) ~= 0) || ...
-        any(flatten(diff(z,[],1)) ~= 0) || ...
-        any(flatten(diff(z,[],2)) ~= 0)),
+    I = a;
+    
+    switch opt.order
+        case 'xyz'
+            a = 1:size(I,2);
+            b = 1:size(I,1);
+            c = 1:size(I,3);
+        case 'ijk'
+            a = 1:size(I,1);
+            b = 1:size(I,2);
+            c = 1:size(I,3);
+            I = permute(I,[2 1 3]);
+    end
+elseif (ndims(a) == 3),
+    switch opt.order
+        case 'xyz'
+            % do nothing
+        case 'ijk'
+            if all(size(a) ~= 1)
+                a = permute(a,[2 1 3]);
+                b = permute(b,[2 1 3]);
+                c = permute(c,[2 1 3]);
+                I = permute(I,[2 1 3]);
+            end
+    end
+    if (any(flatten(diff(a,[],1)) ~= 0) || ...
+        any(flatten(diff(a,[],3)) ~= 0) || ...
+        any(flatten(diff(b,[],2)) ~= 0) || ...
+        any(flatten(diff(b,[],3)) ~= 0) || ...
+        any(flatten(diff(c,[],1)) ~= 0) || ...
+        any(flatten(diff(c,[],2)) ~= 0)),
         error('x,y and z must be vectors or plaid.');
     end;
     % and turn the matrices into vectors
-    x = x(1,:,1);
-    y = y(:,1,1);
-    z = flatten(z(1,1,:));
+    a = a(1,:,1);
+    b = b(:,1,1);
+    c = flatten(c(1,1,:));
 end;
+
+if (nargin >= 10) && strcmp(opt.order,'ijk')
+    vx1 = permute(vy,[2 1 3]);
+    vy1 = permute(vx,[2 1 3]);
+    vx = vx1;
+    vy = vy1;
+    vz = permute(vz,[2 1 3]);
+
+    u1 = permute(v,[2 1 3]);
+    v1 = permute(u,[2 1 3]);
+    u = u1;
+    v = v1;
+    w = permute(w,[2 1 3]);
+end
 
 if (ndims(I) ~= 3),
   error('Image data must be three dimensional.');
@@ -39,18 +87,18 @@ end;
 % define the x and y positions of each orthogonal view
 % since we're all in one axis, the xz and yz views have to be offset
 % down and right, respectively.
-xyx = x([1 end]);
-xyy = y([1 end]);
-xzx = x([1 end]);
-xzy = [0 range(z)] + y(end);
-yzx = [0 range(z)] + x(end);
-yzy = y([1 end]);
+xyx = a([1 end]);
+xyy = b([1 end]);
+xzx = a([1 end]);
+xzy = [0 range(c)] + b(end);
+yzx = [0 range(c)] + a(end);
+yzy = b([1 end]);
 
 clim = [min(I(:)) max(I(:))];
 
 % get the middle index from each coordinate array
 % TODO: in principle, we shouldn't assume even spacing, as we do here
-mid = ceil([length(x)/2 length(y)/2 length(z)/2]);
+mid = ceil([length(a)/2 length(b)/2 length(c)/2]);
 
 % plot the images
 himxy = imagesc(xyx,xyy, I(:,:,mid(3)));
@@ -72,16 +120,21 @@ if (nargin == 10),
         vy = vy(:,1,1);
         vz = squeeze(vz(1,1,:));
     end;
+        
     % and find the middle index, taking into account possible NaNs
-    [q,mx] = min(abs(vx-(x(end)+x(1))/2));
-    [q,my] = min(abs(vy-(y(end)+y(1))/2));
-    [q,mz] = min(abs(vz-(z(end)+z(1))/2));
+    [q,mx] = min(abs(vx-(a(end)+a(1))/2));
+    [q,my] = min(abs(vy-(b(end)+b(1))/2));
+    [q,mz] = min(abs(vz-(c(end)+c(1))/2));
 
-    mid = [mx my mz];
+    mid = {mx my mz};
 
+    if all(vx == vx(1)) || all(vy == vy(1)) || all(vz == vz(1))
+        mid = {1:length(vx), 1:length(vy), 1:length(vz)};
+    end
+    
     % offset for the xz and yz axes
-    xzOffset = max(y) - min(z);
-    yzOffset = max(x) - min(z);
+    xzOffset = max(b) - min(c);
+    yzOffset = max(a) - min(c);
 
     % calculate a 3D scaling value
     mag = sqrt(u.^2 + v.^2 + w.^2);
@@ -90,18 +143,21 @@ if (nargin == 10),
     else
         d = min(size(I))/2;
     end;
+    if (d == 0)
+        d = min([range(a) range(b) range(c)]);
+    end
     vscale = d/prctile(mag(:),95);
 
     % and draw the vectors
     hvecxy = quiverc(vx,vy, ...
-                     u(:,:,mid(3)),v(:,:,mid(3)),'y',...
+                     u(:,:,mid{3}),v(:,:,mid{3}),'y',...
                      'AbsScale',vscale);
     hvecxz = quiverc(vx,vz+xzOffset, ...
-                     squeeze(u(mid(2),:,:)),...
-                     squeeze(w(mid(2),:,:)),'r','AbsScale',vscale);
+                     squeeze(u(mid{2},:,:)),...
+                     squeeze(w(mid{2},:,:)),'r','AbsScale',vscale);
     hvecyz = quiverc(vz+yzOffset,vy,...
-                     squeeze(w(:,mid(1),:)),...
-                     squeeze(v(:,mid(1),:)),'g','AbsScale',vscale);
+                     squeeze(w(:,mid{1},:)),...
+                     squeeze(v(:,mid{1},:)),'g','AbsScale',vscale);
 
     % set up the Vec structure
     data.Vec.x = vx;
