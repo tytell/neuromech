@@ -595,13 +595,17 @@ if isfield(DF,'ex')
     
     for i = 1:size(DF.ex,1)
         good = isfinite(DF.ex(i,:));
-        span = first(good):last(good);
-        esp = spaps(DF.fr(good), [DF.ex(i,good); DF.ey(i,good)], MSE(1)^2, 3, ...
-            ones(1,sum(good))/sum(good));
-        
-        exys = fnval(esp, DF.fr(span));
-        exs(i,span) = exys(1,:);
-        eys(i,span) = exys(2,:);
+        if all(~good)
+            warning('No points clicked for point %d (%s). Skipping.',i,DF.exptnames{i});
+        else
+            span = first(good):last(good);
+            esp = spaps(DF.fr(good), [DF.ex(i,good); DF.ey(i,good)], MSE(1)^2, 3, ...
+                ones(1,sum(good))/sum(good));
+            
+            exys = fnval(esp, DF.fr(span));
+            exs(i,span) = exys(1,:);
+            eys(i,span) = exys(2,:);
+        end
     end
     
     DF.exs = exs;
