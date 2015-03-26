@@ -10,7 +10,7 @@ global prg_ticstart;
 global prg_numsteps;
 global prev_elap;
 
-if ((i == 0) || (i == 1))
+if (i == 0) || ((i == 1) && (nargin >= 3))
     prg_ticstart = tic;
     fprintf('%s\n', msg);
     prg_numsteps = n;
@@ -27,7 +27,7 @@ elseif (i <= prg_numsteps)
             show = elap - prev_elap > opt.time;
     end
     
-    if (show)
+    if (show || (i <= 1))
         remain = (elap/i) * (prg_numsteps-i);
         fprintf('%d/%d steps (%d%%). %s elapsed; %s remaining\n', ...
             i,prg_numsteps, round((i/prg_numsteps)*100), ...
