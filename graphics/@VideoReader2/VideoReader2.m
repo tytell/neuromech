@@ -205,9 +205,6 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                         obj.imxinfo.scale = obj.imxinfo.scale / 100;
                 end                                  
             elseif (strcmpi(ext,'.cine') && isphantom)
-                if ~obj.isphantom
-                    error('Phantom CINE SDK files are not installed');
-                end
                 LoadPhantomLibraries();
                 RegisterPhantom(true); %Register the Phantom dll's ignoring connected cameras. 
                 [HRES, cineHandle] = PhNewCineFromFile(fileName);
