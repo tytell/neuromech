@@ -5,14 +5,20 @@ function varargout = addplot(varargin)
 %   hold on;
 %   plot(...)
 %   hold off;
+% In R2014b and higher, defaults to the older standard of starting the
+% color order over again, each time addplot is called.  If you want the
+% colors to continuing cycling, use
+%   addplot(..., 'restartorder',false);
 %
 % Mercurial revision hash: $Revision$ $Date$
 % Copyright (c) 2010, Eric Tytell <tytell at jhu dot edu>
 
+opt.restartorder = true;
+[opt,args] = parsevarargin(opt,varargin,'leaveunknown','exact');
 
-if ((numel(varargin{1}) == 1) && ishandle(varargin{1}) && ...
-    strcmp(get(varargin{1},'Type'),'axes')),
-    ax = varargin{1};
+if ((numel(args{1}) == 1) && ishandle(args{1}) && ...
+    strcmp(get(args{1},'Type'),'axes')),
+    ax = args{1};
 else
     ax = gca;
 end;
@@ -26,8 +32,13 @@ switch get(ax,'NextPlot'),
   isHeld = 1;
 end;
 
+if ~verLessThan('matlab','8.4') && opt.restartorder
+    % deal with the fact that 
+    set(ax,'ColorOrderIndex',1);
+end
+    
 hold(ax, 'on');
-h = plot(varargin{:});
+h = plot(args{:});
 
 if (~isHeld),
   hold(ax, 'off');
