@@ -114,9 +114,9 @@ for i = 1:data.Calc.maxVisibleRows,
         % some region types can't do all of the functions
         switch (data.Regions(rgn,data.curFrame).type),
          case {'line','poly'},
-          enab = {'on', 'off', 'on', 'on', 'on', 'on'};
+          enab = {'on', 'off', 'on', 'on', 'on', 'on','on'};
          otherwise,
-          enab = {'on', 'on', 'on', 'on', 'on', 'on'};
+          enab = {'on', 'on', 'on', 'on', 'on', 'on','on'};
         end;
 
         for j = 1:length(data.calcFcns),
