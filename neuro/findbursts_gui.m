@@ -18,7 +18,7 @@ else
     p = 1;
     isdata = true;
 end
-opt = parsevarargin(opt, args, p+1);
+opt = parsevarargin(opt, args, p+1, 'typecheck',false);
 
 if (~opt.quiet)
     fig = openfig(mfilename, 'new');

@@ -44,69 +44,26 @@ opt.isoutcell = false;
 opt.mergemultiples = true;
 opt.interburstdur = [];
 opt.interburstaction = 'merge';
+opt.isWeighted = false;
+opt.weight = 'off';
+opt.smoothband = [0.5 10];
 
 opt.method = 'runmean';
 
-%check for options
-p = 1;
-while (p <= length(varargin)),
-    switch lower(varargin{p}),
-      case 'runmean',
-        opt.method = varargin{p};
-        opt.rundur = varargin{p+1};
-        p = p+2;
-        
-      case {'poisson','surprise','timing','integral','peaks','simpletiming','simple'},
-        opt.method = varargin{p};
-        p = p+1;
-        
-      case {'interburstdur','burstdur','interburstaction'},
-        opt.(lower(varargin{p})) = varargin{p+1};
-        p = p+2;
-        
-      case {'burstfreq','dutycycle','cutoff','minspikes','cycledur'},
-        opt.(lower(varargin{p})) = varargin{p+1};
-        p = p+2;
-        
-      case 'threshold',
-        opt.threshold = varargin{p+1};
-        p = p+2;
+opt = parsevarargin(opt,varargin, ...
+    'multival',{'method',{'runmean','timing','integral','simpletiming',...
+                          'simple','peaks','poisson','smooth'}}, ...
+    'synonyms',{{'isoutstruct',{'outstruct'}}, ...
+                {'isoutcell',{'outcell'}}});
 
-      case 'mergebursts',
-        opt.mergegap = varargin{p+1};
-        p = p+2;
-        
-      case 'correctmissedbursts',
-        opt.correctmissedbursts = true;
-        p = p+1;
-        
-        case {'outstruct','outcell'},
-            opt.(['is' lower(varargin{p})]) = true;
-            p = p+1;
-            
-      case 'weight',
-        switch lower(varargin{p+1}),
-          case 'on',
-            opt.isWeighted = true;
-          case 'off',
-            opt.isWeighted = false;
-          otherwise,
-            error('Unrecognized option for weight %s.',varargin{p+1});
-        end;
-        p = p+2;
-    
-      case {'smooth','binsize','maxflat','robustonoff'},
-        opt.(lower(varargin{p})) = varargin{p+1};
-        p = p+2;
-        
-      case {'mergemultiples','israte'},
-        opt.(lower(varargin{p})) = true;
-        p = p+1;
-        
-      otherwise,
-        error('Unrecognized option %s.',varargin{p});
-    end;
-end;
+switch lower(opt.weight)
+    case 'on'
+        opt.isWeighted = true;
+    case 'off'
+        opt.isWeighted = false;
+    otherwise
+        error('Unrecognized weight option');
+end
 
 if (nargout ~= 2)
     opt.isoutstruct = false;
@@ -136,6 +93,9 @@ else
 end;
 
 switch opt.method,
+    case 'smooth'
+        burst = findbursts_smooth(t,spikeh,opt);
+        
     case 'runmean',
         [burstctr burstdev burstskew spikectr tctr] = findbursts_runmean(t,spikeh,opt);
         
