@@ -10,6 +10,11 @@ if (size(sig,1) < size(sig,2))
     warning('Signal should be arranged in columns. Results may be weird')
 end
 
+if lenwind > size(sig,1)
+    siglo = repmat(nanmean(sig),[size(sig,1) 1]);
+    return;
+end
+
 %pad signal to get the length evenly divisible by lenwind
 nextra = ceil(size(sig,1)/lenwind)*lenwind - size(sig,1);
 
