@@ -3,8 +3,22 @@ function save_struct_as_table(outname, S)
 C = struct2cell(S);
 colnames = fieldnames(S);
 
+ncols = size(C,1);
+
+C = flatten(C,2:ndims(C));
+for i = 1:numel(C)
+    C{i} = C{i}(:);
+end
+if size(C,2) > 1
+    C2 = cell(ncols,1);
+    for i = 1:ncols
+        C2{i} = cat(1,C{i,:});
+    end
+    C = C2;
+end
+
 nrows = cellfun(@numel, C);
-ncols = length(C);
+nrows = sum(nrows,2);
 
 nd = cellfun(@ndims, C);
 sz = zeros(max(nd),length(C));
