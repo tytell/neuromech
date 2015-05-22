@@ -122,6 +122,12 @@ switch opt.method,
             burststart1 = find((dt(ch,1:end-1) > opt.interburstdur) & (dt(ch,2:end) <= opt.interburstdur)) + 1;
             burstend1 = find((dt(ch,1:end-1) <= opt.interburstdur) & (dt(ch,2:end) > opt.interburstdur)) + 1;
 
+            if dt(ch,1) <= opt.interburstdur
+                burststart1 = [1 burststart1];
+            end
+            if dt(ch,end) <= opt.interburstdur
+                burstend1 = [burstend1 length(dt)];
+            end
             if ((length(burststart1) > 1) && (length(burstend1) > 1))
                 if (burststart1(1) > burstend1(1))
                     burstend1 = burstend1(2:end);
