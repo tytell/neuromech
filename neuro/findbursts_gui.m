@@ -4,6 +4,7 @@ opt.interburstdur = [];
 opt.threshold = [];
 opt.minspikes = [];
 opt.goodchan = [];
+opt.override = struct([]);
 opt.show = 5;
 opt.quiet = false;
 
@@ -31,27 +32,25 @@ end
 
 nchan = size(data.sig,2);
 gdata.chan = 1;
-if (isempty(opt.threshold))
-    gdata.thresh = [-1; 1] * 2*nanstd(data.sig);
-elseif (size(opt.threshold,1) == 2) && (size(opt.threshold,2) == nchan)
+if (size(opt.threshold,1) == 2) && (size(opt.threshold,2) == nchan)
     gdata.thresh = opt.threshold;
 elseif length(opt.threshold) == nchan
     gdata.thresh = [-1; 1]*abs(opt.threshold(:)');
 else
-    error('Unrecognized threshold');
+    gdata.thresh = [-1; 1] * 2*nanstd(data.sig);
 end
-if (isempty(opt.interburstdur))
+if (isempty(opt.interburstdur) || (length(opt.interburstdur) ~= nchan))
     gdata.interburst = 0.3*ones(1,nchan);
 else
     gdata.interburst = opt.interburstdur;
 end
-if (isempty(opt.minspikes))
+if (isempty(opt.minspikes) || (length(opt.minspikes) ~= nchan))
     gdata.minspikes = 2*ones(1,nchan);
 else
     gdata.minspikes = opt.minspikes;
 end
 
-if (isempty(opt.goodchan))
+if (isempty(opt.goodchan) || (length(opt.goodchan) ~= nchan))
     data.goodchan = true(1,nchan);
 else
     data.goodchan = opt.goodchan > 0;
@@ -74,6 +73,20 @@ gdata.data.spikeamp = cell(1,nchan);
 
 gdata = update_spikes(gdata, true);
 
+if ~isempty(opt.override)
+    good = true;
+    for c = 1:nchan
+        if length(opt.override(c).on) < length(gdata.data.burst(c).on)
+            good = false;
+            break;
+        end
+    end
+    if ~good
+        warning('Burst override parameter is different from the number of bursts detected. Ignoring...');
+    else
+        gdata.burstoverride = opt.override;
+    end
+end
 if (~opt.quiet)
     setUICallbacks(gdata);
     
@@ -109,8 +122,15 @@ for i = 1:nchan
     data.burst(i).nspike = data.burst(i).nspike(good);
     data.burst(i).isover = data.burst(i).isover(good);
 end
+if any(cat(2,data.burst.isover))
+    data.override = gdata.burstoverride;
+else
+    data.override = struct([]);
+end
 
 data.spikethreshold = gdata.thresh;
+data.interburstdur = gdata.interburst;
+data.minspikes = gdata.minspikes;
 
 for i = 1:length(data.spiket)
     if isempty(data.spiket{i})
@@ -383,6 +403,9 @@ for i = c
     if (length(d.spiket{i}) > 10)
         [burst1,spike1] = findbursts(d.spiket{i}, 'simple', 'interburstdur',gdata.interburst(i), ...
             'minspikes',gdata.minspikes(i));
+        if isempty(burst1.ctr) && ~isempty(burst1.on)
+            burst1.ctr = NaN;
+        end
         d.burst(i) = burst1;
                 
         gdata.burstoverride(i) = struct('on',NaN(1,length(burst1.on)), ...
