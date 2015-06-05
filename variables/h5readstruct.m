@@ -31,10 +31,27 @@ end
 names = {info.Datasets.Name};
 szhi = szhi(:)';
 
+if all(szhi == 1)
+    szhi = 1;
+end
+
 C = cell([length(names) szhi]);
 for i = 1:length(names)
     nm1 = [opt.rootgroup names{i}];
     D = h5read(filename,nm1);
+    
+    Dinfo = h5info(filename,nm1);
+    if ~isempty(Dinfo.Attributes) && ismember('isreal',{Dinfo.Attributes.Name})
+        Disreal = h5readatt(filename,nm1,'isreal') > 0;
+    else
+        Disreal = true;
+    end
+    
+    if ~Disreal
+        sz1 = size(D);
+        D = complex(D(1,:),D(2,:));
+        D = reshape(D,sz1(2:end));
+    end
     
     if (numel(szhi) == 1) && (szhi == 1)
         C{i} = D;

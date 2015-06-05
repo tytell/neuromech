@@ -34,6 +34,7 @@ if (U2 < U.U2crit(i(j),1)),
 elseif (U2 > max(U.U2crit(i(j),:))),
     P = 0;
 else
-    logP = interp1(U.U2crit(i(j),:),loga,U2);
+    good = isfinite(U.U2crit(i(j),:));
+    logP = interp1(U.U2crit(i(j),good),loga(good),U2);
     P = exp(logP);
 end;

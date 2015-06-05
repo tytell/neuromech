@@ -11,15 +11,18 @@ end;
 
 switch get(ax,'NextPlot'),
  case 'replace',
-  isHeld = 0;
+  isHeld = false;
  case 'replacechildren',
-  isHeld = 0;
+  isHeld = false;
  otherwise
-  isHeld = 1;
+  isHeld = true;
 end;
 
 hold(ax, 'on');
 hh = quiverc(varargin{:});
+if ~isHeld
+    hold(ax,'off');
+end
 
 if (nargout == 1),
 	varargout{1} = hh;

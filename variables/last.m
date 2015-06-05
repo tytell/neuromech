@@ -150,7 +150,7 @@ end;
 
 if ismat
     f = reshape(f,sznew);
-else
+elseif ~isempty(ind)
     ind = reshape(ind,sznew);
 end
 if (nargout == 2),

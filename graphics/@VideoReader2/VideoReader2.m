@@ -205,9 +205,6 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
                         obj.imxinfo.scale = obj.imxinfo.scale / 100;
                 end                                  
             elseif (strcmpi(ext,'.cine') && isphantom)
-                if ~obj.isphantom
-                    error('Phantom CINE SDK files are not installed');
-                end
                 LoadPhantomLibraries();
                 RegisterPhantom(true); %Register the Phantom dll's ignoring connected cameras. 
                 [HRES, cineHandle] = PhNewCineFromFile(fileName);
@@ -286,7 +283,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         % Operations
         %------------------------------------------------------------------        
         function varargout = read(obj, varargin)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 v = read(obj.vid,varargin{:});
                 varargout = {v};
                 if (nargout > 1)
@@ -388,14 +385,14 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         % Overrides of hgsetset
         %------------------------------------------------------------------        
         function getdisp(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 obj.vid.getdisp();
             else
                 getdisp@hgsetget(obj);
             end
         end
         function setdisp(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 obj.vid.setdisp();
             else
                 setdisp@hgsetget(obj);
@@ -406,7 +403,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         % Overrides of builtins
         %------------------------------------------------------------------ 
         function disp(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 obj.vid.display();
             elseif ~isempty(obj.cine)
                 fprintf('Phantom CINE file ''%s''\n', obj.Name);
@@ -443,7 +440,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         
         % Properties that are dependent on underlying object.
         function value = get.Duration(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.Duration;
             elseif ~isempty(obj.imxinfo)
                 value = obj.imxinfo.endtime - obj.imxinfo.starttime;
@@ -457,7 +454,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.Name(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = get(obj.vid,'Name');
             else
                 value = obj.Name;
@@ -465,7 +462,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.Path(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = get(obj.vid,'Path');
             else
                 value = obj.Path;
@@ -473,7 +470,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.BitsPerPixel(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.BitsPerPixel;
             elseif ~isempty(obj.cine)
                 value = NaN;
@@ -487,7 +484,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.FrameRate(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.FrameRate;
             elseif ~isempty(obj.cine)
                 value = obj.cine.fps;
@@ -501,7 +498,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.Height(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.Height;
             elseif ~isempty(obj.cine)
                 value = obj.cine.height;
@@ -515,7 +512,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.NumberOfFrames(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.NumberOfFrames;
             elseif ~isempty(obj.cine)
                 value = obj.cine.nframes;
@@ -529,7 +526,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.VideoFormat(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.VideoFormat;
             elseif ~isempty(obj.cine)
                 value = 'CINE';
@@ -543,7 +540,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.Width(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.Width;
             elseif ~isempty(obj.cine)
                 value = obj.cine.width;
@@ -557,7 +554,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.AudioCompression(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.AudioCompression;
             else
                 warning('VideoReader2:NoSuchProperty',...
@@ -567,7 +564,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.NumberOfAudioChannels(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.NumberOfAudioChannels;
             else
                 warning('VideoReader2:NoSuchProperty',...
@@ -577,7 +574,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         end
         
         function value = get.VideoCompression(obj)
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 value = obj.vid.VideoCompression;
             elseif ~isempty(obj.tifinfo)
                 value = obj.tifinfo(1).Compression;
@@ -597,7 +594,7 @@ classdef (CaseInsensitiveProperties=true, TruncatedProperties=true) ...
         %------------------------------------------------------------------
         function delete(obj)
             % Delete VideoReader object.
-            if ~isempty(obj.vid)
+            if ~isempty(obj.vid) && isvalid(obj.vid)
                 delete(obj.vid);
             elseif ~isempty(obj.cine)
                 UnregisterPhantom();

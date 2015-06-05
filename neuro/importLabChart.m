@@ -1,7 +1,17 @@
 function varargout = importLabChart(filename, outname, varargin)
 
 opt.channelnames = 'auto';
+opt.outformat = 'old';
 opt = parsevarargin(opt, varargin);
+
+switch opt.outformat
+    case 'old'
+        isoldformat = true;
+    case 'new'
+        isoldformat = false;
+    otherwise
+        error('Unrecognized output format');
+end
 
 F = load(filename);
 
@@ -99,12 +109,20 @@ elseif iscell(opt.channelnames)
     channelnames = opt.channelnames;
 end
 
-S = cell2struct(data,channelnames,2);
+if isoldformat
+    S = cell2struct(data,channelnames,2);
+else
+    S.channels = cell2struct(data,channelnames,2);
+end
 
 if ismultirate
     for i = 1:nchan
-        tname1 = genvarname([channelnames{i} 't']);
-        S.(tname1) = t{i};
+        if isoldformat
+            tname1 = genvarname([channelnames{i} 't']);
+            S.(tname1) = t{i};
+        else
+            S.t.(channelnames{i}) = t{i};
+        end
     end
 else
     S.t = t{1};

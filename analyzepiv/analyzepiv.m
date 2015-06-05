@@ -116,7 +116,12 @@ end;
 
 piv.smoothval = 0;
 
+windowstyle = get(groot,'defaultFigureWindowStyle');
+set(groot,'defaultFigureWindowStyle','normal');
 fig = openfig(mfilename, 'new');
+set(fig,'WindowStyle','normal');
+set(groot,'defaultFigureWindowStyle',windowstyle);
+
 data = guihandles(fig);
 
 data.Panel = fig;
@@ -254,7 +259,19 @@ file = fullfile(path,file);
 
 if (isrgns),
     Regions = data.Regions;
-
+    %remove handle fields
+    if ~isempty(Regions)
+        fn = fieldnames(Regions);
+        for i = 1:length(fn)
+            for j = 1:length(Regions)
+                if (numel(Regions(j).(fn{i})) == 1) && ...
+                        (Regions(j).(fn{i}) ~= 1) && ishandle(Regions(j).(fn{i}))
+                    Regions(j).(fn{i}) = -1;
+                end
+            end
+        end
+    end
+    
     % check if the file exists - if it does, append the Regions struct
     if (exist(file,'file')),
         app = {'-append'};
@@ -967,9 +984,12 @@ data.calcGuiFcns = calcgui;
 data.calcFcns = calc;
 
 if (data.nFrames > 1),
+    sliderstep = [1/(data.nFrames-1) 0.1];
+    sliderstep(2) = max(sliderstep);
+    
     set(data.FrameSlider,'Callback',{@apSetFrame,'slide'}, ...
                       'Min',1,'Max',data.nFrames,'Value',1, ...
-                      'SliderStep',[1/(data.nFrames-1) 0.1]);
+                      'SliderStep',sliderstep);
     set(data.FrameEdit,'Callback',{@apSetFrame,'edit'}, ...
                       'String','1');
     set(data.FrameSkipEdit,'Callback',@apSetFrameSkip, ...

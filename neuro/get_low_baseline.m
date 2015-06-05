@@ -10,6 +10,11 @@ if (size(sig,1) < size(sig,2))
     warning('Signal should be arranged in columns. Results may be weird')
 end
 
+if lenwind > size(sig,1)
+    siglo = repmat(nanmean(sig),[size(sig,1) 1]);
+    return;
+end
+
 %pad signal to get the length evenly divisible by lenwind
 nextra = ceil(size(sig,1)/lenwind)*lenwind - size(sig,1);
 
@@ -31,11 +36,15 @@ sigpad = reshape(sigpad,sz);
 
 sigmn = nanmean(sigpad,1);
 sigmn = squeeze(sigmn);
+if ((size(sigmn,1) == 1) && (size(sigmn,2) > 1))
+    sigmn = sigmn';
+end
+
 sigmn = sigmn([1 1:end end],:);
 ctrind = cat(1,0,(1:nwind)'*lenwind - lenwind/2 - npre, size(sig,1)+1);
 ind = (1:size(sig))';
 
-siglo = interp1(ctrind,sigmn, ind, 'linear');
+siglo = interp1(ctrind,sigmn, ind, 'spline');
 
 
 

@@ -83,7 +83,7 @@ if (exist('Regions')),
         Regions(i,data.curFrame).handle = ...
             line('XData',Regions(i,data.curFrame).x,...
                  'YData',Regions(i,data.curFrame).y,...
-                 'EraseMode','normal','Color','k',...
+                 'Color','k',...
                  'ButtonDownFcn', {@apClickRgn, data.Panel},...
                  'Tag',tp); 
 
@@ -141,7 +141,7 @@ if (get(obj,'Value')),
 
     axes(data.Axes);
     data.dragHandle = line('XData',[],'YData',[],...
-                           'EraseMode','xor','Color','k',...
+                           'Color','k',...
                            'Tag',tp); 
 % ,'UIContextMenu',data.RgnMenu);
     data.rgnTool = obj;
@@ -179,7 +179,7 @@ pt = get(data.Axes,'CurrentPoint');
 data.dragStart = pt(1,1:2);
 
 data.dragHandle = feval(drawFcn, data.dragHandle,data.dragStart,...
-                        pt(1,1:2),'xor',0);
+                        pt(1,1:2),'b',0);
 data.OldMotionFcn = get(data.Figure,'WindowButtonMotionFcn');
 set(data.Figure,'WindowButtonMotionFcn',...
                 {@apDrawRgnDrag,drawFcn,data.Panel}, ...
@@ -196,7 +196,7 @@ data = guidata(panel);
 pt = get(data.Axes,'CurrentPoint');
 c = get(obj,'SelectionType');
 data.dragHandle = feval(drawFcn, data.dragHandle,data.dragStart,...
-                        pt(1,1:2),'xor',strcmp(c,'alt'));
+                        pt(1,1:2),'b',strcmp(c,'alt'));
 
 guidata(panel,data);
 
@@ -230,16 +230,8 @@ guidata(panel,data);
 % -------------------------------------------------
 function h = apDrawRgnLine(h, pos1,pos2, col, constrain)
 
-switch col,
- case 'xor',
-  erasemode = 'xor';
-  col = 'k';
- otherwise,
-  erasemode = 'normal';
-end;
-
 set(h,'XData',[pos1(1) pos2(1)], 'YData',[pos1(2) pos2(2)], ...
-      'EraseMode',erasemode,'Color',col);
+      'Color',col);
 
 % -------------------------------------------------
 function h = apDrawRgnSquare(h, pos1,pos2, col, constrain)
@@ -256,15 +248,7 @@ end;
 x = x([1 2 2 1 1]);
 y = y([1 1 2 2 1]);
 
-switch col,
- case 'xor',
-  erasemode = 'xor';
-  col = 'k';
- otherwise,
-  erasemode = 'normal';
-end;
-
-set(h,'XData',x, 'YData',y, 'EraseMode',erasemode, 'Color',col);
+set(h,'XData',x, 'YData',y, 'Color',col);
 
 
 % -------------------------------------------------
@@ -296,15 +280,7 @@ y = y0*ax2 + pos1(2);
 x(end) = x(1);
 y(end) = y(1);
 
-switch col,
- case 'xor',
-  erasemode = 'xor';
-  col = 'k';
- otherwise,
-  erasemode = 'normal';
-end;
-
-set(h,'XData',x, 'YData',y, 'EraseMode',erasemode, 'Color',col);
+set(h,'XData',x, 'YData',y, 'Color',col);
 
 % -------------------------------------------------
 function apDrawPolyRgn(obj, eventdata)
@@ -317,7 +293,7 @@ if (get(obj,'Value')),
 
     axes(data.Axes);
     data.dragHandle = line('XData',[],'YData',[],...
-                           'EraseMode','xor','Color','k',...
+                           'Color','k',...
                            'Tag','Pg');
     data.rgnType = 'poly';
 
@@ -466,8 +442,7 @@ dx = c(1,1) - data.dragStart(1);
 dy = c(1,2) - data.dragStart(2);
 
 try
-    set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy, ...
-                      'EraseMode','xor');
+    set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy);
 catch err
     set(data.Figure,'WindowButtonMotionFcn','',...
                     'WindowButtonUpFcn', '');
@@ -488,8 +463,7 @@ c = get(data.Axes, 'CurrentPoint');
 dx = c(1,1) - data.dragStart(1);
 dy = c(1,2) - data.dragStart(2);
 
-set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy,...
-                  'EraseMode','normal');
+set(data.dragHandle,'XData',data.dragX0+dx, 'YData',data.dragY0+dy);
 set(data.Figure,'WindowButtonMotionFcn',data.OldMotionFcn,...
                 'WindowButtonUpFcn', '');
 
@@ -636,14 +610,14 @@ function data = apSetCurRgn(data, rgn)
 
 rgns = data.Regions(:,data.curFrame);
 
-if (isnan(rgn)),
-    data.curRgn = NaN;
+if (~ishandle(rgn)),
+    data.curRgn = -1;
     delete(data.rgnSzHandle);
     delete(data.rgnRotHandle);
     return;
 end;
 
-if ((rgn >= 1) & (rgn <= length(rgns)) & ...
+if ((rgn >= 1) && (rgn <= length(rgns)) && ...
     (mod(rgn,1) == 0)),
     ind = rgn;
     updatefromhandle = 0;
@@ -694,7 +668,6 @@ else
                             'MarkerFaceColor','k',...
                             'MarkerEdgeColor','none',...
                             'LineStyle','none',...
-                            'EraseMode','xor',...
                             'ButtonDownFcn',{@apResizeRgn,data.Panel});
 end;
 
