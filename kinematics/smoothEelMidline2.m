@@ -8,7 +8,7 @@ function [mxs,mys] = smoothEelMidline2(t,mx,my,eellen, serr,terr, varargin)
 % Copyright (c) 2010, Eric Tytell
 
 opt.discardbadspacing = true;
-opt.offscreen = 'head';
+opt.offscreen = 'none';
 opt = parsevarargin(opt, varargin, 7);
 
 nfr = size(mx,2);
@@ -23,9 +23,9 @@ len = s(end,:);
 len1 = len;
 len1(~isfinite(len)) = 0;
 mnlen = cumsum(len1) ./ cumsum(isfinite(len));
-isshort = abs(len - mnlen) >= 0.5*ds0;
+isshort = mnlen - len >= 0.5*ds0;
 
-if any(isshort)
+if ~strcmp(opt.offscreen,'none') && any(isshort)
     offscreenind = first(isshort);
 else
     offscreenind = size(s,2);
@@ -50,9 +50,11 @@ if (opt.discardbadspacing && any(~goodspacing))
     warning('%d (%d%%) sequences discarded because of tracking errors', ...
         nbad, round(nbad/sum(good)*100));
     good = good & goodspacing;
+else
+    nbad = Inf;
 end
 
-if all(goodspacing)
+if nbad/sum(good) < 0.2
     s = nanmedian2(s,2);
 
     k = find(good);
@@ -67,6 +69,8 @@ else
             s = s - repmat(s(end,:),[npt 1]) + actlen;
             isheadoff = true;
         case 'tail'
+            isheadoff = false;
+        case 'none'
             isheadoff = false;
         otherwise
             error('Unrecognized offscreen option');

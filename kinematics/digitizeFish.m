@@ -77,7 +77,12 @@ end;
 if isavi
     DF.mmfile = VideoReader2(DF.avifile);
     DF.nFrames = DF.mmfile.NumberOfFrames;
-    DF.fr = 1:DF.nFrames;
+    
+    if isfield(DF,'t')
+        DF.fr = 1:length(DF.t)
+    else
+        DF.fr = 1:DF.nFrames;
+    end
 end
 
 dfSaveData(DF);
@@ -991,6 +996,15 @@ DF.my = my;
 % ****************************
 function DF = dfSmoothMid(DF)
 
+plot(DF.t, DF.mx(end,:));
+fprintf('Choose good frames.  Click first good time and last.\n');
+[tgood,~] = ginputb(2);
+if length(tgood) == 2
+    DF.goodframes = (DF.t >= tgood(1)) & (DF.t <= tgood(2));
+else
+    DF.goodframes = true(size(DF.t));
+end
+
 serr1 = input('Spatial smoothing value (0.05): ');
 if (isempty(serr1))
     DF.serr = 0.05;
@@ -1062,7 +1076,7 @@ if isfield(DF,'ex') && ...
     XY = cat(1,shiftdim(DF.mx,-1),shiftdim(DF.my,-1));
     XYs = NaN(2,npts,size(DF.mx,2));
     
-    k = find(all(isfinite(DF.mx)));
+    k = find(all(isfinite(DF.mx)) & DF.goodframes);
     for ii = 1:length(k)
         i = k(ii);
         
@@ -1073,7 +1087,12 @@ if isfield(DF,'ex') && ...
     mxs = squeeze(XYs(1,:,:));
     mys = squeeze(XYs(2,:,:));
 else
-    [mxs,mys] = smoothEelMidline2(DF.fr, DF.mx,DF.my, DF.fishlenpix, DF.serr,DF.terr, ...
+    mxs = NaN(size(DF.mx));
+    mys = NaN(size(DF.my));
+    
+    [mxs(:,DF.goodframes),mys(:,DF.goodframes)] = ...
+        smoothEelMidline2(DF.fr(DF.goodframes), DF.mx(:,DF.goodframes),DF.my(:,DF.goodframes), ...
+        DF.fishlenpix, DF.serr,DF.terr, ...
         headopt{:});
 end
 
@@ -1094,8 +1113,17 @@ else
     smooth = 0;
 end;
 
+dtsmooth = input('Temporal smoothing interval (0.1sec): ');
+if (isempty(dtsmooth))
+    dtsmooth = 0.1;
+end
+dssmooth = input('Spatial smoothing parameter (default=none): ');
+if (isempty(dssmooth))
+    dssmooth = 0;
+end
+
 if ((~isfield(DF,'mxs') && ~isfield(DF,'mys')) || ...
-        ~inputyn('Analyze entire midline (Y), or just the tailbeat (n)?','default',false))
+        ~inputyn('Analyze entire midline (Y), or just the tailbeat (n)?','default',true))
     if ~isfield(DF,'fishlenmm')
         DF.fishlenmm = input('Fish length in mm? ');
         DF.fishlenpix = DF.fishlenmm/DF.scale;
@@ -1129,12 +1157,25 @@ else
         end
 
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,'dtsmoothcurve',0.1);
+            analyzeKinematics(smm,DF.t,DF.mxmm,DF.mymm,...
+            'dtsmoothcurve',dtsmooth,'dssmoothcurve',dssmooth);
     else
         [indpeak,confpeak, per,amp,midx,midy,exc,wavevel,wavelen,waver,waven] = ...
-            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,'dtsmoothcurve',0.1);
+            analyzeKinematics(s,DF.t,DF.mxs,DF.mys,...
+            'dtsmoothcurve',dtsmooth,'dssmoothcurve',dssmooth);
+        smm = s;
     end;
 end
+
+tpeak = NaN(size(indpeak));
+good = isfinite(indpeak);
+tpeak(good) = DF.t(indpeak(good));
+
+clf;
+plot(smm, tpeak(:,1:2:end),'k-', smm,tpeak(:,2:2:end),'r--');
+xlabel('Body position');
+ylabel('Time (s)');
+title('Position of peaks');
 
 DF.s = s;
 DF.smm = smm;
