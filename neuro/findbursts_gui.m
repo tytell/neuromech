@@ -149,6 +149,8 @@ data.spikeamp(:,data.goodchan) = spikeamp1;
 for i = 1:length(data.burst)
     if isempty(data.burst(i).ctr)
         data.burst(i).ctr = NaN;
+        data.burst(i).on = NaN;
+        data.burst(i).off = NaN;
     end
     if isempty(data.burst(i).nspike)
         data.burst(i).nspike = NaN;

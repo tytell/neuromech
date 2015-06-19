@@ -996,7 +996,9 @@ DF.my = my;
 % ****************************
 function DF = dfSmoothMid(DF)
 
-plot(DF.t, DF.mx(end,:));
+plot(DF.t, DF.my(end,:));
+xlabel('Time (s)');
+ylabel('Tail position');
 fprintf('Choose good frames.  Click first good time and last.\n');
 [tgood,~] = ginputb(2);
 if length(tgood) == 2
