@@ -37,6 +37,10 @@ opt.randomize = true;
 opt.keepfreq = 1;
 opt.tol = 0.01;
 opt.showclosefreqs = true;
+opt.nclosefreqs = 10;
+opt.makesignal = true;
+opt.sampfreq = 10000;
+opt.pertamp = 0.05;
 
 opt = parsevarargin(opt,varargin, 5);
 
@@ -123,37 +127,95 @@ for a = 1:length(freq)
     freq{a} = freq{a} * basefreq;
 end
 
-if opt.showclosefreqs
-    for a = 1:length(freq)
-        freq1 = freq{a};
-        fprintf('** ');
-        fprintf('%f ', freq1);
-        fprintf('\n');
-        
-        m = abs(repmat(freq1(:),[1 length(freq1)]) - repmat(freq1(:)',[length(freq1) 1])) / basefreq * Nsec;
-        p = repmat(freq1(:),[1 length(freq1)]) + repmat(freq1(:)',[length(freq1) 1]) / basefreq * Nsec;
-        
-        %set the diagonal to Inf
-        isdiag = eye(length(freq1)) == 1;
-        m(isdiag) = Inf;
+for a = 1:length(freq)
+    freq1 = freq{a};
+    fprintf('** ');
+    fprintf('%f ', freq1);
+    fprintf('\n');
 
-        m = mod(m + 0.5, 1) - 0.5;
-        p = mod(p + 0.5, 1) - 0.5;
+    if length(freq1) == 1
+        continue;
+    end
+
+    if opt.showclosefreqs
+        freq1 = freq1 / basefreq;
         
-        [~,mord] = sort(abs(m(:)));
-        [closei,closej] = ind2sub(size(m),mord);
+        m = abs(repmat(freq1(:),[1 length(freq1)]) - repmat(freq1(:)',[length(freq1) 1])) * Nsec;
+        p = (repmat(freq1(:),[1 length(freq1)]) + repmat(freq1(:)',[length(freq1) 1])) * Nsec;
         
-        fprintf('10 closest differences\n');
-        for i = 1:10
-            fprintf('  %f, %f: %f\n', freq1(closei(i)), freq1(closej(i)), m(mord(i)));
+        %get rid of the lower triangular part of the matrix
+        for i = 1:length(freq1)
+            for j = 1:length(freq1)
+                if i <= j
+                    m(i,j) = Inf;
+                    p(i,j) = Inf;
+                end
+            end
         end
         
-        [~,pord] = sort(abs(p(:)));
+        m = abs(m - round(m));
+        p = abs(p - round(p));
+        
+        [~,mord] = sort(m(:));
+        [closei,closej] = ind2sub(size(m),mord);
+        
+        nclose = min(length(freq1),opt.nclosefreqs);
+        fprintf('%d closest differences\n', nclose)
+        for i = 1:nclose
+            fprintf('  %f, %f: %f\n', freq1(closei(i))*basefreq, freq1(closej(i))*basefreq, m(mord(i)));
+        end
+        
+        [~,pord] = sort(p(:));
         [closei,closej] = ind2sub(size(p),pord);
         
-        fprintf('10 closest sums\n');
-        for i = 1:10
-            fprintf('  %f, %f: %f\n', freq1(closei(i)), freq1(closej(i)), p(pord(i)));
+        fprintf('%d closest sums\n',nclose);
+        for i = 1:nclose
+            fprintf('  %f, %f: %f\n', freq1(closei(i))*basefreq, freq1(closej(i))*basefreq, p(pord(i)));
         end
     end
 end
+
+if opt.makesignal
+    dt = 1/opt.sampfreq;
+    
+    t = (0:dt:ncycles/basefreq)';
+
+    N = length(t);
+    
+    for a = 1:length(freq)
+        sig1 = sin(2*pi*basefreq*t);
+        
+        freq1 = freq{a};
+        ph = rand(length(freq1),1) * 2*pi;
+        
+        for i = 1:length(freq1)
+            pert1 = opt.pertamp * sin(2*pi*freq1(i)*t + ph(i));
+            sig1 = sig1 + pert1;
+        end
+        
+        y = fft(sig1);
+        Py = y .* conj(y) / N;
+
+        f = 1/dt * (0:ceil(N/2))'/N;
+        Py = Py(1:length(f),:);
+        
+        subplot(length(freq),1,a);
+        plot(f,10*log10(Py));
+        
+        hb = vertplot(basefreq, 'r-');
+        hp = vertplot(freq1,'k--');
+        
+        [~,k] = min(abs(f-basefreq));
+        
+        axis([0 1.2*freqrng(2) -20 10*log10(Py(k))]);
+        xlabel('Frequency');
+        ylabel('Power (dB)');
+        
+        if (a == length(freq))
+            legend([hb hp(1)], 'Base','Perturbations');
+        end
+    end
+end
+
+    
+    
