@@ -11,6 +11,7 @@ global prg_ticstart;
 global prg_totalsteps;
 global prg_numsteps;
 global prev_elap;
+global prg_opt;
 
 if ~opt.quiet
     if (length(i) > 1)
@@ -33,16 +34,22 @@ if ~opt.quiet
         fprintf('%s\n', msg);
         prg_totalsteps = prod(n);
         prev_elap = 0;
+        prg_opt = opt;
     elseif (i <= prg_totalsteps)
         elap = toc(prg_ticstart);
-        switch opt.show
+        switch prg_opt.show
             case 'all'
                 show = true;
             case 'percent'
-                pctsteps = opt.percent*prg_totalsteps;
+                pctsteps = prg_opt.percent*prg_totalsteps;
                 show = floor((i-1)/pctsteps) < floor(i/pctsteps);
             case 'time'
-                show = elap - prev_elap > opt.time;
+                if (elap - prev_elap > prg_opt.time)
+                    show = true;
+                    prev_elap = elap;
+                else
+                    show = false;
+                end
         end
         
         if (show || (i <= 1))
