@@ -4,6 +4,7 @@ function h = plotpolybounds(x,y,varargin)
 % figure.  Alpha is optional; by default it's 0.05.
 
 opt.showstats = true;
+opt.color = 'k';
 
 if ((nargin >= 3) && isnumeric(varargin{1}) && (numel(varargin{1}) == 1)),
     alpha = varargin{1};
@@ -13,7 +14,37 @@ else
     p = 1;
 end;
 
-opt = parsevarargin(opt,varargin(p:end),p);
+opt = parsevarargin(opt,varargin(p:end),p, 'typecheck',false);
+
+if ischar(opt.color)
+    switch opt.color
+        case 'k'
+            col = [0 0 0];
+        case 'y'
+            col = [1 1 0];
+        case 'm'
+            col = [1 0 1];
+        case 'c'
+            col = [0 1 1];
+        case 'r'
+            col = [1 0 0];
+        case 'g'
+            col = [0 1 0];
+        case 'b'
+            col = [0 0 1];
+        case 'w'
+            col = [1 1 1];
+    end
+elseif isnumeric(opt.color) && length(opt.color) == 3
+    col = opt.color;
+else
+    error('Unrecognized color spec');
+end
+
+hsvcol = rgb2hsv(col);
+hsvcol([2 3]) = [0.6 1.5] .* hsvcol([2 3]);
+hsvcol(hsvcol > 1) = 1;
+lightcol = hsv2rgb(hsvcol);
 
 % Number of point to calculate for the confidence interval
 n = 20;
@@ -39,14 +70,15 @@ xx = linspace(min(x),max(x),n);
 
 % plot the lines
 hold on;
-h(1) = plot(xx,yy,'k-','LineWidth',2);
-h(2) = plot([xx xx(end:-1:1)],[yy+dy yy(end:-1:1)-dy],'-','Color',[0.8 0.8 0.8]);
+h(1) = plot(xx,yy,'-','LineWidth',2,'Color',opt.color);
+h(2) = plot([xx xx(end:-1:1)],[yy+dy yy(end:-1:1)-dy],'-','Color',lightcol);
 hold off;
 
 if (opt.showstats),
     % Show P and r2 values
     text(0.2,0.8,sprintf('P = %.3f',stats(3)),'Units','normalized');
     text(0.2,0.7,sprintf('r2 = %.3f',stats(1)),'Units','normalized');
+    text(0.2,0.6,sprintf('y = (%.3g+-%.3g)x + (%.3g+-%.3g)',b(1),sem(1),b(2),sem(2)),'Units','normalized');
 end;
 
-text(0.2,0.6,sprintf('y = (%.3g+-%.3g)x + (%.3g+-%.3g)',b(1),sem(1),b(2),sem(2)),'Units','normalized');
+
