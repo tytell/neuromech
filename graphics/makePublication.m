@@ -99,9 +99,7 @@ if (opt.copyfig)
     set(figcopy,'Units',units,'Position',pos);
     
     children = get(fig,'Children');
-    for i = length(children):-1:1,
-        copyobj(children(i),figcopy);
-    end;
+    copyobj(children, figcopy);
     
     cmap = get(fig,'Colormap');
     set(figcopy,'Colormap',cmap);
