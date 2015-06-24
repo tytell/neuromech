@@ -1,26 +1,36 @@
-function varargout = plotfftpower(varargin)
+function varargout = plotfftpower(t,sig, varargin)
 %PLOTFFTPOWER  Plots an FFT power spectrum
 %
 % [f,Py] = plotfftpower(t,sig)
 %  or      plotfftpower(sig,sampfreq)
 %  or      plotfftpower(sig)        (assumes sampling freq = 1Hz)
+%
 
-if ((nargin >= 2) && isnumeric(varargin{1}) && isnumeric(varargin{2})),
-    if (length(varargin{2}) == 1),
-        dt = 1/varargin{2};
-        sig = varargin{1};
+opt.scale = 'linear';       % or 'dB'
+
+if ((nargin >= 2) && isnumeric(t) && isnumeric(sig)),
+    if (length(sig) == 1),
+        dt = 1/sig;
+        sig = t;
         t = [];
     else
-        t = varargin{1};
-        sig = varargin{2};
-
         dt = t(2)-t(1);
     end;
-elseif (nargin == 1),
-    sig = varargin{1};
+elseif (nargin == 1) || ((nargin >= 1) && ischar(sig)),
+    varargin = [sig varargin];
+    sig = t;
     dt = 1;
     t = [];
 end;
+
+if ~isempty(varargin) && matchlinespec(varargin{1})
+    ls = varargin{1};
+    varargin = varargin(2:end);
+else
+    ls = '-';
+end
+
+opt = parsevarargin(opt,varargin, 3);
 
 if (size(sig,1) < size(sig,2)),
     warning(['Signal appears to be along rows, not columns.  Probably ' ...
@@ -44,6 +54,13 @@ Py = y .* conj(y) / N;
 
 f = 1/dt * (0:ceil(N/2))'/N;
 Py = Py(1:length(f),:);
+
+switch lower(opt.scale)
+    case 'linear'
+        % do nothing
+    case 'db'
+        Py = 10*log10(Py);
+end
 
 plot(f, Py);
 xlabel('Frequency');
