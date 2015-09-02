@@ -7,6 +7,7 @@ opt.goodchan = [];
 opt.override = struct([]);
 opt.show = 5;
 opt.quiet = false;
+opt.eventtimes = [];
 
 if ((nargin >= 2) && isnumeric(data) && isnumeric(varargin{1}) && ...
         any(size(varargin{1}) == length(data)))
@@ -70,6 +71,7 @@ gdata.hselburst = [-1 -1 -1 -1 -1];
 gdata.burstoverride = repmat(struct('on',[],'off',[],'remove',[]),[1 nchan]);
 gdata.data.spiket = cell(1,nchan);
 gdata.data.spikeamp = cell(1,nchan);
+gdata.eventtimes = opt.eventtimes;
 
 gdata = update_spikes(gdata, true);
 
@@ -286,6 +288,13 @@ if (any(ismember(type, {'all','spikes'})))
     if goodchan
         gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}-med, 'ro', ...
             'MarkerFaceColor','r','MarkerSize',4, 'HitTest','off');
+    end
+    
+    if ~isempty(gdata.eventtimes)
+        yl = get(ax,'YLim');
+        addplot(ax, repmat(gdata.eventtimes(:)',[2 1]), ...
+            repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+            'HitTest','off');
     end
 end
 
@@ -966,6 +975,19 @@ end
 axis(gdata.hdiag(1), 'tight');
 axis(gdata.hdiag(2), 'tight');
 
+if ~isempty(gdata.eventtimes)
+    yl = get(gdata.hdiag(1),'YLim');
+    addplot(gdata.hdiag(1), repmat(gdata.eventtimes(:)',[2 1]), ...
+        repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+        'HitTest','off');
+    
+    yl = get(gdata.hdiag(2),'YLim');
+    addplot(gdata.hdiag(2), repmat(gdata.eventtimes(:)',[2 1]), ...
+        repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+        'HitTest','off');
+end
+
+
 %*************************************************************************
 function on_click_burst_diag(obj,event, fig)
 
@@ -980,13 +1002,21 @@ if numel(chan) == 1
         gdata = guidata(fig);
     end
 
-    ctr = c(1,1);
+    ctrx = c(1,1);
+    ctry = c(1,2);
     xl = get(gdata.axes, 'XLim');
-    d = diff(xl)/2;
-    set(gdata.axes, 'XLim', ctr + [-d d]);
+    dx = diff(xl)/2;
+    set(gdata.axes, 'XLim', ctrx + [-dx dx]);
     
     xdata = get(obj, 'XData');
-    [~,ind] = min(abs(ctr - xdata));
+    ydata = get(obj, 'YData');
+
+    xl2 = get(ax, 'XLim');
+    dx2 = diff(xl2);
+    yl2 = get(ax, 'YLim');
+    dy2 = diff(yl2);
+    
+    [~,ind] = min(((ctrx - xdata)/dx2).^2 + ((ctry - ydata)/dy2).^2);
     gdata = update_burst_sel(gdata, ind);
 end
 
