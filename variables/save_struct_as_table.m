@@ -1,4 +1,7 @@
-function save_struct_as_table(outname, S)
+function save_struct_as_table(outname, S, varargin)
+
+opt.append = false;
+opt = parsevarargin(opt,varargin, 3);
 
 C = struct2cell(S);
 colnames = fieldnames(S);
@@ -51,10 +54,14 @@ for i = 1:ncols
 end
 
 tplt = strjoin(tplt,',');
-coltplt = strjoin(coltplt,',');
-
-fid = fopen(outname, 'w');
-fprintf(fid, [coltplt '\n'], colnames{:});
+if ~opt.append
+    coltplt = strjoin(coltplt,',');
+    
+    fid = fopen(outname, 'w');
+    fprintf(fid, [coltplt '\n'], colnames{:});
+else
+    fid = fopen(outname, 'a');
+end
 
 D = D';
 fprintf(fid, [tplt '\n'], D{:});
