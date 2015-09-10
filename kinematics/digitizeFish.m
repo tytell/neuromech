@@ -413,6 +413,7 @@ if (~isfield(DF,'ex') || isempty(DF.ex))
     DF.ey = NaN(0,DF.nFrames);
     DF.exptnames = cell(0,1);
     pt = 1;
+    isnew = true;
 else
     fprintf('You have %d extra points:\n', size(DF.ex,1));
     for i = 1:size(DF.ex,1)
@@ -421,8 +422,10 @@ else
     pt = input('Choose point to modify, or hit return to add another point. ');
     if (isempty(pt) || ~isnumeric(pt) || (pt < 1) || (pt > size(DF.ex,1)))
         pt = size(DF.ex,1)+1;
+        isnew = true;
     else
         defname = DF.exptnames{pt};
+        isnew = false;
     end
 end
 
@@ -450,7 +453,11 @@ scrsz = get(0,'ScreenSize');
 fig = figure;
 %fig = figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)], 'WindowStyle','normal');
 clf;
-[ex,ey] = manualTrackPoint(fn, skip);
+if isnew
+    [ex,ey] = manualTrackPoint(fn, skip);
+else
+    [ex,ey] = manualTrackPoint(fn, skip, DF.ex(pt,:),DF.ey(pt,:));
+end
 close(fig);
 
 if ((fnum == 2) && isfield(DF,'tform')),

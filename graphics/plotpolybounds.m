@@ -76,9 +76,14 @@ hold off;
 
 if (opt.showstats),
     % Show P and r2 values
-    text(0.2,0.8,sprintf('P = %.3f',stats(3)),'Units','normalized');
-    text(0.2,0.7,sprintf('r2 = %.3f',stats(1)),'Units','normalized');
-    text(0.2,0.6,sprintf('y = (%.3g+-%.3g)x + (%.3g+-%.3g)',b(1),sem(1),b(2),sem(2)),'Units','normalized');
+    ptxt = sprintf('P = %.3f',stats(3));
+    text(0.2,0.8,ptxt,'Units','normalized');
+    rtxt = sprintf('r2 = %.3f',stats(1));
+    text(0.2,0.7,rtxt,'Units','normalized');
+    eqtxt = sprintf('y = (%.3g+-%.3g)x + (%.3g+-%.3g)',b(1),sem(1),b(2),sem(2));
+    text(0.2,0.6,eqtxt,'Units','normalized');
+    
+    fprintf('%s\n%s\n%s\n',ptxt,rtxt,eqtxt);
 end;
 
 
