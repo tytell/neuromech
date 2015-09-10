@@ -35,7 +35,9 @@ for i = 1:length(files),
                 insightdata1.(tok{j}{1}) = vals{1}{1};
             else
                 insightdata1.(tok{j}{1}) = cellfun(@(x) x{1}, vals, 'UniformOutput',false);
-            end                
+            end        
+            
+           
         end
 
         if (~isfield(insightdata1,'I') || ~isfield(insightdata1,'J'))
