@@ -172,7 +172,7 @@ if (isempty(fps)),
 end;
 DF.fps = fps;
 
-DF.t = DF.fr/DF.fps;
+DF.t = double(DF.fr)/DF.fps;
 
 % ****************************
 function DF = dfCalibrateVal(DF)
