@@ -469,7 +469,7 @@ if any(good)
     delete(gdata.hselburst(good));
     gdata.hselburst(1:end) = -1;
 end
-if ~isempty(s)
+if ~isempty(s) && (s <= length(gdata.hbursts(s)))
     xd = get(gdata.hbursts(s),'XData');
     yd = get(gdata.hbursts(s),'YData');
     gdata.hselburst(1) = line('Parent',gdata.axes,'XData',xd,'YData',yd, ...
