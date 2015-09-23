@@ -110,19 +110,21 @@ end
 data = gdata.data;
 data.burst = get_burst_override(gdata,1:nchan);
 for i = 1:nchan
-    [c,ord] = sort(data.burst(i).ctr);
-    data.burst(i).on = data.burst(i).on(ord);
-    data.burst(i).off = data.burst(i).off(ord);
-    data.burst(i).ctr = data.burst(i).ctr(ord);
-    data.burst(i).nspike = data.burst(i).nspike(ord);
-    data.burst(i).isover = data.burst(i).isover(ord);
-    
-    good = ~isnan(data.burst(i).ctr);
-    data.burst(i).on = data.burst(i).on(good);
-    data.burst(i).off = data.burst(i).off(good);
-    data.burst(i).ctr = data.burst(i).ctr(good);
-    data.burst(i).nspike = data.burst(i).nspike(good);
-    data.burst(i).isover = data.burst(i).isover(good);
+    if ~isempty(data.burst(i).nspike)
+        [c,ord] = sort(data.burst(i).ctr);
+        data.burst(i).on = data.burst(i).on(ord);
+        data.burst(i).off = data.burst(i).off(ord);
+        data.burst(i).ctr = data.burst(i).ctr(ord);
+        data.burst(i).nspike = data.burst(i).nspike(ord);
+        data.burst(i).isover = data.burst(i).isover(ord);
+
+        good = ~isnan(data.burst(i).ctr);
+        data.burst(i).on = data.burst(i).on(good);
+        data.burst(i).off = data.burst(i).off(good);
+        data.burst(i).ctr = data.burst(i).ctr(good);
+        data.burst(i).nspike = data.burst(i).nspike(good);
+        data.burst(i).isover = data.burst(i).isover(good);
+    end
 end
 if any(cat(2,data.burst.isover))
     data.override = gdata.burstoverride;
@@ -457,12 +459,17 @@ if ischar(s)
 end
 gdata.selburstind = s;
 
+if isempty(gdata.hbursts) || any(~ishandle(gdata.hbursts))
+    % this can happen if they clicked on skip channel
+    s = [];
+end
+
 good = ishandle(gdata.hselburst);
 if any(good)
     delete(gdata.hselburst(good));
     gdata.hselburst(1:end) = -1;
 end
-if ~isempty(s)
+if ~isempty(s) && (s <= length(gdata.hbursts(s)))
     xd = get(gdata.hbursts(s),'XData');
     yd = get(gdata.hbursts(s),'YData');
     gdata.hselburst(1) = line('Parent',gdata.axes,'XData',xd,'YData',yd, ...
@@ -1035,6 +1042,13 @@ else
     i = gdata.chan;
     gdata.data.spiket{i} = [];
     gdata.data.spikeamp{i} = [];
+    
+    gdata = update_burst_sel(gdata, 'none');
+    delete(gdata.hburstrate(i));
+    delete(gdata.hburstdur(i));
+    gdata.hburstrate(i) = -1;
+    gdata.hburstdur(i) = -1;
+    
     gdata = update_bursts(gdata, false);
 end  
 
