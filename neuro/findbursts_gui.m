@@ -110,18 +110,22 @@ end
 data = gdata.data;
 data.burst = get_burst_override(gdata,1:nchan);
 for i = 1:nchan
-    [c,ord] = sort(data.burst(i).ctr);
-    data.burst(i).on = data.burst(i).on(ord);
-    data.burst(i).off = data.burst(i).off(ord);
-    data.burst(i).ctr = data.burst(i).ctr(ord);
-    data.burst(i).nspike = data.burst(i).nspike(ord);
-    data.burst(i).isover = data.burst(i).isover(ord);
+    if any(~isnan(data.burst(i).ctr))
+        [c,ord] = sort(data.burst(i).ctr);
+        data.burst(i).on = data.burst(i).on(ord);
+        data.burst(i).off = data.burst(i).off(ord);
+        data.burst(i).ctr = data.burst(i).ctr(ord);
+        data.burst(i).nspike = data.burst(i).nspike(ord);
+        data.burst(i).isover = data.burst(i).isover(ord);
+    end
     
     good = ~isnan(data.burst(i).ctr);
     data.burst(i).on = data.burst(i).on(good);
     data.burst(i).off = data.burst(i).off(good);
     data.burst(i).ctr = data.burst(i).ctr(good);
-    data.burst(i).nspike = data.burst(i).nspike(good);
+    if ~isempty(data.burst(i).nspike)
+        data.burst(i).nspike = data.burst(i).nspike(good);
+    end
     data.burst(i).isover = data.burst(i).isover(good);
 end
 if any(cat(2,data.burst.isover))
