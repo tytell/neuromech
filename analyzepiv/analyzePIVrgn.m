@@ -611,9 +611,13 @@ function data = apSetCurRgn(data, rgn)
 rgns = data.Regions(:,data.curFrame);
 
 if (~ishandle(rgn)),
-    data.curRgn = -1;
-    delete(data.rgnSzHandle);
-    delete(data.rgnRotHandle);
+    data.curRgn = NaN;
+    if ishandle(data.rgnSzHandle)
+        delete(data.rgnSzHandle);
+    end
+    if ishandle(data.rgnRotHandle)
+        delete(data.rgnRotHandle);
+    end
     return;
 end;
 
@@ -874,7 +878,7 @@ if (~isempty(data.Regions)),
         if (data.Regions(i,to).status == 0),
             set(hand(i),'Visible','off');
             set(label(i),'Visible','off');
-        else,
+        else
             if (data.Regions(i,to).status == 1),
                 col = [0.5 0.5 0.5];
                 ls = '--';
