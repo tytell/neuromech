@@ -38,19 +38,19 @@ end;
 
 if (~isfinite(nsteps)),
     ctrsteps = round(ctr*256);
-    nsteps = floor((256-ctrsteps)/2);
+    nsteps2 = floor((256-ctrsteps)/2);
 else
-    nsteps = nsteps+1;
-    ctrsteps = ctr;
+    ctrsteps = round(ctr*nsteps);
+    nsteps2 = floor((nsteps+1-ctrsteps)/2);
 end;
 
-pt = linspace(0,1,nsteps)';
+pt = linspace(0,1,nsteps2)';
 
-cmap(1:nsteps,:) = repmat(cmap0(2,:)-cmap0(1,:),[nsteps 1]) .* ...
-    repmat(pt,[1 3]) + repmat(cmap0(1,:),[nsteps 1]);
+cmap(1:nsteps2,:) = repmat(cmap0(2,:)-cmap0(1,:),[nsteps2 1]) .* ...
+    repmat(pt,[1 3]) + repmat(cmap0(1,:),[nsteps2 1]);
 cmap(end+(0:ctrsteps-1),:) = repmat(cmap0(2,:),[ctrsteps 1]);
-cmap(end+(0:nsteps-1),:) = repmat(cmap0(3,:)-cmap0(2,:),[nsteps 1]) .* ...
-    repmat(pt,[1 3]) + repmat(cmap0(2,:),[nsteps 1]);
+cmap(end+(0:nsteps2-1),:) = repmat(cmap0(3,:)-cmap0(2,:),[nsteps2 1]) .* ...
+    repmat(pt,[1 3]) + repmat(cmap0(2,:),[nsteps2 1]);
 
 if (nargout == 0),
     colormap(cmap);

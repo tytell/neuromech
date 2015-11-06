@@ -78,7 +78,7 @@ end;
 
 %check to see if we have a row vector, and, if so, operate across the
 %columns (or the first non-singleton dimension)
-if (isempty(dim) && (size(cond,1) == 1))
+if (isempty(dim) && (size(cond,1) == 1) && (numel(cond) > 1))
     sz = size(cond);
     dim = find(sz > 1, 1, 'first');
 else
