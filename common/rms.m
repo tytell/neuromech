@@ -16,6 +16,14 @@ if (nargin == 1),
     end;
 end;
 
+if isempty(a)
+    r = NaN;
+    return;
+elseif numel(a) == 1
+    r = NaN;
+    return;
+end
+
 %rearrange a so that the dimension of interest is first, and everything
 %else is flattened
 sz = size(a);
