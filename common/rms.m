@@ -9,12 +9,20 @@ function r = rms(a, dim)
 if (nargin == 1),
     %for a vector, operate along dimension 1 or 2, depending on which one
     %has the data
-    if (ndims(a) == 2),
+    if ((ndims(a) == 2) && (numel(a) > 1)),
         dim = first(size(a) ~= 1);
     else
         dim = 1;
     end;
 end;
+
+if isempty(a)
+    r = NaN;
+    return;
+elseif numel(a) == 1
+    r = NaN;
+    return;
+end
 
 %rearrange a so that the dimension of interest is first, and everything
 %else is flattened
