@@ -7,6 +7,10 @@ if (nargin < 3),
     end;
 end;
 
+if ctr > 1
+    error('ctr parameter is a fraction < 1');
+end
+
 if (isnumeric(cmap0) && (size(cmap0,1) ~= 3)),
     error('cmap can only have three entries.');
 end;
