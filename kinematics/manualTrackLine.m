@@ -1,88 +1,66 @@
-function [x,y] = manualTrackLine(varargin)
+function [x,y] = manualTrackLine(filename,varargin)
 
-frameskip = 1;
-npts = [];
-oldx = [];
-oldy = [];
-trackmode = 'pointfirst';
-aviname = '';
-ntimetrace = [];
-ntimetracefr = 1;
-ntimetracept = 10;
+opt.frameskip = 1;
+opt.npts = [];
+opt.oldpts = {};
+opt.trackmode = 'pointfirst';
 
-p = 1;
-while (p <= length(varargin)),
-    if (~ischar(varargin{p})),
-        error('Unrecognized parameter #%d',p);
-    end;
-    
-    switch lower(varargin{p}),
-        case 'skip',
-            frameskip = varargin{p+1};
-            p = p+2;
-            
-        case 'npts',
-            npts = varargin{p+1};
-            p = p+2;
-            
-        case 'oldpts',
-            oldx = varargin{p+1};
-            oldy = varargin{p+2};
-            p = p+3;
-            
-        case {'framefirst','pointfirst'},
-            trackmode = varargin{p};
-            p = p+1;
+opt.timetrace = true;
+opt.ntimetrace = 5;
 
-        case 'notimetrace',
-            ntimetrace = 0;
-            p = p+1;
-            
-        case 'ntrace',
-            ntimetrace = varargin{p+1};
-            p = p+2;
-            
-        otherwise,
-            if (exist(varargin{p},'file'))
-                aviname = varargin{p};
-                p = p+1;
-            else
-                error('Unrecognized option %s',varargin{p});
-            end;
-    end;
-end;
+opt = parsevarargin(opt,varargin,2);
 
-if (isempty(aviname)),
+if ~opt.timetrace
+    opt.ntimetrace = 0;
+end
+
+if ~isempty(opt.oldpts)
+    oldx = opt.oldpts{1};
+    oldy = opt.oldpts{2};
+else
+    oldx = [];
+    oldy = [];
+end
+
+if (isempty(filename)),
     [fn,pn] = uigetfile('*.avi','Open movie file');
-    aviname = fullfile(pn,fn);
+    filename = fullfile(pn,fn);
 end;
 
-reader = mmreader(aviname);
-
-nfr = reader.NumberOfFrames;
+if iscell(filename)
+    reader = [];
+    filenames = filename;
+    nfr = length(filenames);
+else
+    reader = VideoReader2(filename);
+    filenames = [];
+    nfr = reader.NumberOfFrames;
+end
 
 curfr = 1;
 curpt = 1;
 
 clf;
 
-I = read(reader,curfr);
+if ~isempty(filenames)
+    I = imread(filenames{curfr});
+else
+    I = read(reader,curfr);
+end
 hImage = imshow(I,'InitialMagnification','fit');
 
 data.hPrev(1) = line('XData',[], 'YData',[], 'Marker','x', ...
     'Color','r', 'MarkerSize',12, 'ButtonDownFcn', {@mtlLineButtonDown,1});
 data.hPrev(2) = line('XData',[], 'YData',[], 'Marker','o', ...
     'Color','r', 'ButtonDownFcn', {@mtlLineButtonDown,2});
-if (isempty(ntimetrace)),
-    switch trackmode,
+if (opt.ntimetrace > 0)
+    switch opt.trackmode,
         case 'framefirst',
-            ntimetrace = ntimetracefr;
-            for j = 1:ntimetrace,
+            for j = 1:opt.ntimetrace,
                 data.hPrev(j+2) = line('XData',[],'YData',[], 'Marker','.', ...
                     'Color','y', 'ButtonDownFcn', {@mtlLineButtonDown,j+2});
             end;
         case 'pointfirst',
-            ntimetrace = ntimetracept;
             data.hPrev(3) = line('XData',[], 'YData',[], 'Marker','.', ...
                 'Color','y', 'ButtonDownFcn', {@mtlLineButtonDown,3});
     end;
@@ -94,13 +72,14 @@ data.Figure = gcf;
 data.Axes = gca;
 data.hImage = hImage;
 data.reader = reader;
-data.aviname = aviname;
-data.frameskip = frameskip;
-data.trackmode = trackmode;
-data.ntimetrace = ntimetrace;
+data.filename = filename;
+data.filenames = filenames;
+data.frameskip = opt.frameskip;
+data.trackmode = opt.trackmode;
+data.ntimetrace = opt.ntimetrace;
 data.nfr = nfr;
 data.curfr = curfr;
-if (~isempty(oldx)),
+if (~isempty(opt.oldpts)),
     data.rawx = oldx(1:curpt-1, curfr);
     data.rawy = oldy(1:curpt-1, curfr);
 else
@@ -110,10 +89,10 @@ end;
 data.curpt = curpt;
 data.closing = false;
 
-switch trackmode,
+switch opt.trackmode,
     case 'framefirst',
-        data.rawx = nans(1,nfr);
-        data.rawy = nans(1,nfr);
+        data.rawx = NaN(1,nfr);
+        data.rawy = NaN(1,nfr);
         
         if (~isempty(oldx)),
             if (size(oldx,2) > nfr),
@@ -128,8 +107,8 @@ switch trackmode,
         end;
         
     case 'pointfirst',
-        data.rawx = nans(1,nfr);
-        data.rawy = nans(1,nfr);
+        data.rawx = NaN(1,nfr);
+        data.rawy = NaN(1,nfr);
         
         if (~isempty(oldx)),
             if (size(oldx,2) <= nfr),
@@ -177,7 +156,11 @@ end;
 for i = 1:length(what),
     switch what{i},
         case 'image',
-            I = read(data.reader, data.curfr);
+            if ~isempty(data.filenames)
+                I = imread(data.filenames{data.curfr});
+            else
+                I = read(data.reader, data.curfr);
+            end
             set(data.hImage, 'CData', I);
             
         case 'points',
