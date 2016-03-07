@@ -4,18 +4,20 @@ opt.fps = 5;
 opt.planes = 'xyz';
 opt.outsize = 640;
 opt.range = [1 Inf; 1 Inf; 1 Inf];
+opt.datasetname = '/Image';
 
 opt = parsevarargin(opt,varargin, 2);
 
-info = h5info(h5file,'/Image');
+info = h5info(h5file,opt.datasetname);
 sz = info.Dataspace.Size;
 fprintf('Total size: %d y, %d x, %d z\n', sz);
 
-attrnames = {info.Attributes.Name};
-if ismember('Scale',attrnames)
-    scale = h5readatt(h5file,'/Image','Scale');
-else
-    scale = 1;
+scale = 1;
+if ~isempty(info.Attributes)
+    attrnames = {info.Attributes.Name};
+    if ismember('Scale',attrnames)
+        scale = h5readatt(h5file,opt.datasetname,'Scale');
+    end
 end
 
 x = ((1:sz(2)) - (sz(2)+1)/2) * scale;
@@ -67,9 +69,9 @@ else
     dz = 0;
 end
 
-Ixy = h5read(h5file,'/Image',[1 1 indz],[sz(1) sz(2) 1]);
-Ixz = h5read(h5file,'/Image',[indy 1 1],[1 sz(2) sz(3)]);
-Iyz = h5read(h5file,'/Image',[1 indx 1],[sz(1) 1 sz(3)]);
+Ixy = h5read(h5file,opt.datasetname,[1 1 indz],[sz(1) sz(2) 1]);
+Ixz = h5read(h5file,opt.datasetname,[indy 1 1],[1 sz(2) sz(3)]);
+Iyz = h5read(h5file,opt.datasetname,[1 indx 1],[sz(1) 1 sz(3)]);
 
 % plot the images
 hax = axes('Position',[0.02 0.02 0.96 0.96]);
@@ -176,7 +178,7 @@ if ~isempty(indy)
     pos = data.Y(1) + (indy - 1)/(data.sz(1)-1) * diff(data.Y);
     set(data.hLines(1,1),'YData',[pos pos]);
     
-    Ixz = h5read(data.h5file,'/Image',[indy 1 1],[1 data.sz(2) data.sz(3)]);
+    Ixz = h5read(data.h5file,opt.datasetname,[indy 1 1],[1 data.sz(2) data.sz(3)]);
     set(data.hImages(2), 'CData', squeeze(Ixz)');
 
     if (isfield(data,'Vec') && ...
@@ -198,7 +200,7 @@ if ~isempty(indx)
     pos = data.X(1) + (indx - 1)/(data.sz(2)-1) * diff(data.X);
     set(data.hLines(2,1),'XData',[pos pos]);
     
-    Iyz = h5read(data.h5file,'/Image',[1 indx 1],[data.sz(1) 1 data.sz(3)]);
+    Iyz = h5read(data.h5file,opt.datasetname,[1 indx 1],[data.sz(1) 1 data.sz(3)]);
     set(data.hImages(3), 'CData', squeeze(Iyz));
     if (isfield(data,'Vec') && ...
             (pos >= data.Vec.x(1)) && (pos <= data.Vec.x(end))),
@@ -224,7 +226,7 @@ if ~isempty(indz)
     set(data.hLines(3,2),'XData',[pos2 pos2]);
     
     % and get the new plane
-    Ixy = h5read(data.h5file,'/Image',[1 1 indz],[data.sz(1) data.sz(2) 1]);
+    Ixy = h5read(data.h5file,opt.datasetname,[1 1 indz],[data.sz(1) data.sz(2) 1]);
     set(data.hImages(1), 'CData', Ixy);
     
     if (isfield(data,'Vec') && ...

@@ -71,6 +71,7 @@ options.meanfcn = @mean;
 options.errfcn = [];
 options.sortGroups = false;
 options.legend = false;
+options.regression = false;
 
 optsynonyms = { ...
     {'xOffset',{'offx','xoff'}}, ...
@@ -549,6 +550,12 @@ for i = 1:ncomb,
 
         if (~isempty(x1)),
             hpt(i) = plot(x1,y1,marker1,markeropts{:});
+            
+            if options.regression
+                p = polyfit(x1,y1,1);
+                xrng = linspace(min(x1),max(x1),10);
+                hreg(i) = plot(xrng,polyval(p,xrng), '-','Color',col1);
+            end
         else
             hpt(i) = line('XData',x1,'YData',y1,'Marker','none', ...
                           'LineStyle','none');

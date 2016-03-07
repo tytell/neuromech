@@ -6,22 +6,9 @@ opt.goodwavepts = 3:17;
 opt.handleduplicates = 'off';
 opt.dssmoothcurve = 0;
 opt.nsmoothcurve = 0;
+opt.checkindpeak = false;
 
-p = 1;
-while (p <= length(varargin)),
-    switch lower(varargin{p}),
-      case {'redo','savemidlines'},
-        opt.(lower(varargin{p})) = true;
-        p = p+1;
-
-      case {'goodwavepts','handleduplicates','dssmoothcurve','nsmoothcurve'},
-        opt.(lower(varargin{p})) = varargin{p+1};
-        p = p+2;
-        
-      otherwise,
-        error('Unrecognized option %s',varargin{p});
-    end;
-end;
+opt = parsevarargin(opt,varargin, 3);
 
 if (isempty(infiles)),
     [fn,pn] = uigetfile('*.mat','Select input files','MultiSelect','on');
@@ -113,6 +100,17 @@ for f = 1:nfiles,
     bybeat(f).curvepeak = pkcurve(:);
     bybeat(f).goodfiles = true;
     
+    if opt.checkindpeak && ~isempty(F.indpeak)
+        tpeak = NaN(size(F.indpeak));
+        good = isfinite(F.indpeak);
+        tpeak(good) = F.t(F.indpeak(good));
+        
+        plot(F.smm, tpeak);
+        if inputyn('Skip file?','default',false)
+            goodfiles(f) = false;
+        end
+    end
+    
     [comx,comy] = ctrofmasspos(F.mxmm,F.mymm,F.width*F.fishlenmm);
 
     comvx = deriv(F.t,comx,2);
@@ -140,6 +138,11 @@ for f = 1:nfiles,
         byframe(f).curve = curve ./ F.fishlenmm;
     end;
 end;
+
+if any(~goodfiles)
+    fprintf('Bad files:\n');
+    fprintf('  %f\n', infiles{~goodfiles});
+end
 
 %re-enable warnings
 warning(warnstate);
@@ -229,6 +232,7 @@ if (opt.savemidlines),
 end;
 
 kin.files = infiles;
+kin.goodfiles = goodfiles;
 
 if (~isempty(outfile)),
     save(outfile,'-struct','kin');

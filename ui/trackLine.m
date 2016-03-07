@@ -49,13 +49,13 @@ set(handles.Figure, 'Name', ...
                   'DoubleBuffer','on');
 
 if (~isempty(xfr)),
-    if (iscell(xfr) & (length(xfr) == handles.imTotal) & ...
+    if (iscell(xfr) && (length(xfr) == handles.imTotal) && ...
         ~iscell(xfr{1})),
         for i = 1:length(xfr),
             xfr{i} = {xfr{i}};
             yfr{i} = {yfr{i}};
         end;
-    elseif (isnumeric(xfr) & (size(xfr,2) == handles.imTotal)),
+    elseif (isnumeric(xfr) && (size(xfr,2) == handles.imTotal)),
         xnum = xfr;
         ynum = yfr;
         xfr = cell(1,handles.imTotal);
@@ -86,7 +86,7 @@ handles.LineHandles = [];
 handles.curLineHandle = -1;
 
 handles.im = loadImage(handles);
-handles = Update(handles,10);
+handles = Update(handles,'image');
 
 % Update handles structure
 guidata(handles.Figure, handles);
@@ -137,7 +137,7 @@ else
     i1 = fr;
 end;
 
-if ((handles.imNum < 1) | (handles.imNum > handles.imTotal)),
+if ((handles.imNum < 1) || (handles.imNum > handles.imTotal)),
     beep;
     handles.imNum = i0;
 else
@@ -159,7 +159,7 @@ else
     end;
 
     handles.im = loadImage(handles);
-    handles = Update(handles, 10);
+    handles = Update(handles, 'image');
 end;    
 
 
@@ -176,17 +176,16 @@ end;
 % --------------------------------------------------------------------
 function handles = Update(handles, what)
 
-if (what >= 10),
-  if (strcmp(handles.imType,'cellstr') & ...
-      isfield(handles,'imHandle') & ishandle(handles.imHandle)),
-    delete(handles.imHandle);
-  end;
+if ischar(what)
+    what = {what};
+end
 
-  if (isfield(handles,'imHandle') & ishandle(handles.imHandle)),
+if ismember('image',what)
+  if (isfield(handles,'imHandle') && ishandle(handles.imHandle)),
     set(handles.imHandle, 'CData', handles.im);
   else
     hold on;
-    handles.imHandle = imshow(handles.im,'n');
+    handles.imHandle = imshow(handles.im,'InitialMagnification','fit');
     set(handles.imHandle, 'ButtonDownFcn', @ImButtonDown_Callback,...
                       'UIContextMenu',handles.ImageMenu);
     hold off;
@@ -207,10 +206,13 @@ if (what >= 10),
   k = find(cc == handles.imHandle);
   cc = cc([1:k-1 k+1:end k]);
   set(handles.Axes, 'Children', cc);
+  
+  what = [what, 'curline','lines'];
 end;
-if (what >= 1),
+
+if ismember('curline',what)
     if (~isempty(handles.Xcur)),
-        if (~isfield(handles,'curLineHandle') | ...
+        if (~isfield(handles,'curLineHandle') || ...
             ~ishandle(handles.curLineHandle)),
             handles.curLineHandle = addplot(handles.Xcur,handles.Ycur, ...
                                             'ro-');
@@ -221,8 +223,10 @@ if (what >= 1),
                               'YData',handles.Ycur);
         end;
     end;
+    what = [what, 'lines'];
 end;
-if (what >= 2),
+
+if ismember('lines',what)
     if (~isempty(handles.X)),
         delete(handles.LineHandles);
 
@@ -285,7 +289,7 @@ switch (tp),
 end;
 
 guidata(hObject, handles);
-Update(handles, 1);
+Update(handles, 'curline');
 
 % --------------------------------------------------------------------
 function LnButtonDown_Callback(hObject, eventdata)
@@ -313,7 +317,7 @@ switch (tp),
   % change line selection
   if (handles.curLineHandle ~= hObject),
       k = find(handles.LineHandles == hObject);
-      if (isempty(k) | (length(k) > 1)),
+      if (isempty(k) || (length(k) > 1)),
           error('Weirdness!');
       end;
 
@@ -438,7 +442,7 @@ handles.Xcur = [handles.Xcur(1:pt(1)) ptx handles.Xcur(pt(2):end)];
 handles.Ycur = [handles.Ycur(1:pt(1)) pty handles.Ycur(pt(2):end)];
 
 guidata(hObject, handles);
-Update(handles, 1);
+Update(handles, 'curline');
 
 % --------------------------------------------------------------------
 function DeletePoint_Callback(hObject, eventdata)
@@ -458,7 +462,7 @@ if (~isempty(pt)),
     handles.Ycur = handles.Ycur([1:pt-1 pt+1:end]);
 
     guidata(hObject, handles);
-    Update(handles, 1);
+    Update(handles, 'curline');
 else
     beep;
 end;
@@ -477,7 +481,7 @@ handles.Xcur = [];
 handles.Ycur = [];
 
 guidata(hObject, handles);
-Update(handles, 2);
+Update(handles, 'lines');
 
 % --------------------------------------------------------------------
 function DeleteLine_Callback(hObject, eventdata)
@@ -494,7 +498,7 @@ handles.Y = handles.Y(1:end-1);
 
 % we might have deleted the current object
 guidata(handles.Figure, handles);
-Update(handles, 2);
+Update(handles, 'lines');
 
 
 

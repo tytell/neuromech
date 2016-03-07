@@ -26,9 +26,21 @@ if ~isfield(F,'datastart')
     t = {F.ticktimes_block1'};
     ismultirate = false;
     
-    commenttxt = mat2cell(F.comtext_block1,ones(size(F.comtext_block1,1),1),size(F.comtext_block1,2));
-    commentt = F.comtick_block1;
+    commenttxt1 = mat2cell(F.comtext_block1,ones(size(F.comtext_block1,1),1),size(F.comtext_block1,2));
+    commentind1 = F.comtick_block1;
+    commentt1 = t{1}(F.comtick_block1);
+    commentchan1 = F.comchan_block1;
     
+    commentt = cell(nchan,1);
+    commentind = cell(nchan,1);
+    commenttxt = cell(nchan,1);
+    for i = 1:nchan
+        ischan = commentchan1 == i;
+        commentt{i} = commentt1(ischan);
+        commentind{i} = commentind1(ischan);
+        commenttxt{i} = commenttxt1(ischan);
+    end
+
     titles = F.titles_block1;
     goodchan = 1:nchan;
 else
@@ -142,6 +154,7 @@ if (isfield(F,'tickrate'))
     S.samplerate = F.samplerate;
 end
 S.commentt = commentt;
+S.commentind = commentind;
 S.commenttxt = commenttxt;
 
 if ~isempty(outname)
