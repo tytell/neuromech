@@ -1,4 +1,11 @@
-function [Xfr,Yfr] = trackLine(files,xfr,yfr)
+function [Xfr,Yfr] = trackLine(files,xfr,yfr, varargin)
+
+opt.savecallback = [];
+opt = parsevarargin(opt,varargin,4, 'typecheck',false);
+
+if ~isempty(opt.savecallback) && ~isa(opt.savecallback, 'function_handle')
+    error('savecallback must be a function handle');
+end
 
 if (nargin == 1),
   xfr = [];
@@ -30,6 +37,8 @@ elseif (ischar(files)),
 else
     error('Unknown type of image sequence.');
 end;
+
+handles.savecallback = opt.savecallback;
 
 handles.Figure = figure;
 handles.Axes = axes('Parent',handles.Figure);
@@ -127,6 +136,10 @@ handles.LineMenu = lnMenu;
 % --------------------------------------------------------------------
 function handles = changeImage(handles, delta, fr)
 
+if ~isempty(handles.Xcur)
+    saveData(handles);
+end
+
 if (isfinite(delta)),
     i0 = handles.imNum;
     handles.imNum = handles.imNum + delta;
@@ -162,6 +175,20 @@ else
     handles = Update(handles, 'image');
 end;    
 
+
+% --------------------------------------------------------------------
+function saveData(handles)
+
+if isa(handles.savecallback, 'function_handle')
+    switch handles.imType
+        case 'cellstr'
+            imname = handles.imNames{handles.imNum};
+        case 'avi'
+            imname = handles.imNames;
+    end
+    feval(handles.savecallback, handles.Xcur, handles.Ycur, ...
+        imname, handles.imNum);
+end
 
 % --------------------------------------------------------------------
 function im = loadImage(imdata)
@@ -394,30 +421,34 @@ handles = guidata(hObject);
 c = get(handles.Figure, 'CurrentCharacter');
 
 switch lower(c),
- case char(28),                         % left arrow
-  handles = changeImage(handles, -handles.imFrameSkip);
- case {char(29),char(13)}               % right arrow, enter
-  handles = changeImage(handles, +handles.imFrameSkip);
- case 'n',                              % new line
-  NewLine_Callback(hObject, eventdata);
-  handles = guidata(hObject);
- case 'g',                              % go to
-  fr = inputdlg('Frame?','Go to frame');
-  fr = str2num(fr{1});
-  handles = changeImage(handles, NaN, fr);
- case 'c',                              % clear frame
-  delete(handles.LineHandles);
-  delete(handles.curLineHandle);
-  handles.Xcur = [];
-  handles.Ycur = [];
-  handles.X = {};
-  handles.Y = {};
-  handles.Xfr{handles.imNum} = [];
-  handles.Yfr{handles.imNum} = [];
- case 'z',                              % zoom
-  zoom toggle;
- case 'q',                              % quit
-  uiresume;
+    case char(28),                         % left arrow
+        handles = changeImage(handles, -handles.imFrameSkip);
+    case {char(29),char(13)}               % right arrow, enter
+        handles = changeImage(handles, +handles.imFrameSkip);
+    case 'n',                              % new line
+        NewLine_Callback(hObject, eventdata);
+        handles = guidata(hObject);
+    case 'g',                              % go to
+        fr = inputdlg('Frame?','Go to frame');
+        fr = str2num(fr{1});
+        handles = changeImage(handles, NaN, fr);
+    case 'c',                              % clear frame
+        delete(handles.LineHandles);
+        delete(handles.curLineHandle);
+        handles.Xcur = [];
+        handles.Ycur = [];
+        handles.X = {};
+        handles.Y = {};
+        handles.Xfr{handles.imNum} = [];
+        handles.Yfr{handles.imNum} = [];
+    case 'z',                              % zoom
+        zoom toggle;
+    case 's',
+        saveData(handles);
+        
+    case 'q',                              % quit
+        saveData(handles);
+        uiresume;
 end;
 
 guidata(hObject, handles);
