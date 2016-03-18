@@ -477,72 +477,84 @@ function apResizeRgn(obj, eventdata, panel)
 
 data = guidata(panel);
 
-pt = get(data.Axes,'CurrentPoint');
-szptx = get(obj,'XData');
-szpty = get(obj,'YData');
+if strcmp(get(data.Figure,'SelectionType'), 'normal')
+    pt = get(data.Axes,'CurrentPoint');
+    szptx = get(obj,'XData');
+    szpty = get(obj,'YData');
 
-[q,ptnum0] = min((pt(1,1)-szptx).^2 + (pt(1,2)-szpty).^2);
+    [q,ptnum0] = min((pt(1,1)-szptx).^2 + (pt(1,2)-szpty).^2);
 
-ptnum = mod((ptnum0-1)+4,8)+1;           % get the opposite point
-data.dragStart = [szptx(ptnum) szpty(ptnum)];
-data.dragDir = sign([szptx(ptnum)-szptx(ptnum0) ...
-                    szpty(ptnum)-szpty(ptnum0)]);
+    ptnum = mod((ptnum0-1)+4,8)+1;           % get the opposite point
+    data.dragStart = [szptx(ptnum) szpty(ptnum)];
+    data.dragDir = sign([szptx(ptnum)-szptx(ptnum0) ...
+                        szpty(ptnum)-szpty(ptnum0)]);
 
-data.dragX0 = get(data.Regions(data.curRgn,data.curFrame).handle, ...
-                  'XData');
-data.dragY0 = get(data.Regions(data.curRgn,data.curFrame).handle, ...
-                  'YData');
+    data.dragX0 = get(data.Regions(data.curRgn,data.curFrame).handle, ...
+                      'XData');
+    data.dragY0 = get(data.Regions(data.curRgn,data.curFrame).handle, ...
+                      'YData');
 
-data.OldMotionFcn = get(data.Figure,'WindowButtonMotionFcn');
-set(data.Figure,'WindowButtonMotionFcn',...
-                {@apResizeRgnMove,panel}, ...
-                'WindowButtonUpFcn', ...
-                {@apResizeRgnButtUp,panel});
+    data.OldMotionFcn = get(data.Figure,'WindowButtonMotionFcn');
+    set(data.Figure,'WindowButtonMotionFcn',...
+                    {@apResizeRgnMove,panel}, ...
+                    'WindowButtonUpFcn', ...
+                    {@apResizeRgnButtUp,panel});
 
-guidata(panel,data);
+    guidata(panel,data);
+end
 
 % -------------------------------------------------
 function apResizeRgnMove(obj, eventdata, panel)
 
 data = guidata(panel);
 
-pt = get(data.Axes,'CurrentPoint');
+try
+    pt = get(data.Axes,'CurrentPoint');
 
-sz = data.dragStart - pt(1,1:2);
+    sz = data.dragStart - pt(1,1:2);
 
-szptx = get(data.rgnSzHandle,'XData');
-szpty = get(data.rgnSzHandle,'YData');
+    szptx = get(data.rgnSzHandle,'XData');
+    szpty = get(data.rgnSzHandle,'YData');
 
-sz = sz./[range(data.dragX0) range(data.dragY0)].*data.dragDir;
-sz(sz == 0) = 1;
+    sz = sz./[range(data.dragX0) range(data.dragY0)].*data.dragDir;
+    sz(sz == 0) = 1;
 
-xd = (data.dragX0 - data.dragStart(1))*sz(1) + data.dragStart(1);
-yd = (data.dragY0 - data.dragStart(2))*sz(2) + data.dragStart(2);
+    xd = (data.dragX0 - data.dragStart(1))*sz(1) + data.dragStart(1);
+    yd = (data.dragY0 - data.dragStart(2))*sz(2) + data.dragStart(2);
 
-set(data.Regions(data.curRgn,data.curFrame).handle,...
-    'XData',xd,'YData',yd);
+    set(data.Regions(data.curRgn,data.curFrame).handle,...
+        'XData',xd,'YData',yd);
 
-xd = [min(xd) (min(xd)+max(xd))/2 max(xd)];
-yd = [min(yd) (min(yd)+max(yd))/2 max(yd)];
-szptx = xd([1 1 1 2 3 3 3 2]);
-szpty = yd([1 2 3 3 3 2 1 1]);
-set(data.rgnSzHandle,'XData',szptx,'YData',szpty);
+    xd = [min(xd) (min(xd)+max(xd))/2 max(xd)];
+    yd = [min(yd) (min(yd)+max(yd))/2 max(yd)];
+    szptx = xd([1 1 1 2 3 3 3 2]);
+    szpty = yd([1 2 3 3 3 2 1 1]);
+    set(data.rgnSzHandle,'XData',szptx,'YData',szpty);
+    
+    guidata(panel,data);
+catch err
+    fprintf('Caught an error: \n');
+    disp(err);
+    
+    apResizeRgnButtUp(obj, eventdata, panel);
+end
 
-guidata(panel,data);
+
 
 % -------------------------------------------------
 function apResizeRgnButtUp(obj, eventdata, panel)
 
 data = guidata(panel);
+if strcmp(get(data.Figure,'SelectionType'), 'normal')
+    set(data.Figure,'WindowButtonMotionFcn', data.OldMotionFcn, ...
+                    'WindowButtonUpFcn', '');
 
-set(data.Figure,'WindowButtonMotionFcn', data.OldMotionFcn, ...
-                'WindowButtonUpFcn', '');
+    hand = data.Regions(data.curRgn,data.curFrame).handle;
+    data = apSetCurRgn(data, hand);
+    data = analyzePIVupdate(data, 'regions',{'recalc','rgn',data.curRgn});
 
-hand = data.Regions(data.curRgn,data.curFrame).handle;
-data = apSetCurRgn(data, hand);
-data = analyzePIVupdate(data, 'regions',{'recalc','rgn',data.curRgn});
-
-guidata(panel,data);
+    guidata(panel,data);
+end
 
 
 % -------------------------------------------------
@@ -618,6 +630,17 @@ if (~ishandle(rgn)),
     if ishandle(data.rgnRotHandle)
         delete(data.rgnRotHandle);
     end
+    
+    % check for weird things happening when the resize handles
+    % stick around
+    szh = findobj(data.Axes,'Tag','resizehandle');
+    szr = findobj(data.Axes,'Tag','rotatehandle');
+    
+    if ~isempty(szh) || ~isempty(szr)
+        warning('Weird thing just happened. Trying to correct');
+        
+        delete([szh(:); szr(:)]);
+    end
     return;
 end;
 
@@ -672,7 +695,8 @@ else
                             'MarkerFaceColor','k',...
                             'MarkerEdgeColor','none',...
                             'LineStyle','none',...
-                            'ButtonDownFcn',{@apResizeRgn,data.Panel});
+                            'ButtonDownFcn',{@apResizeRgn,data.Panel},...
+                            'Tag','resizehandle');
 end;
 
 % figure out an absolute point displacement for the rotate point
@@ -697,7 +721,8 @@ else
                              'MarkerFaceColor','g',...
                              'MarkerEdgeColor','none',...
                              'LineStyle','none',...
-                             'ButtonDownFcn',{@apRotateRgn,data.Panel});
+                             'ButtonDownFcn',{@apRotateRgn,data.Panel},...
+                             'Tag','rotatehandle');
 end;
 
 % -------------------------------------------------

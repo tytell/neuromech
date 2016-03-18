@@ -102,13 +102,17 @@ end;
 % set the stacking so that the background is the deepest, the vectors are
 % above the background, and everything else is above the vectors
 children = get(data.Axes,'Children');
-indvec(1) = find(children == data.hVectors(1));
-if (length(data.hVectors) == 2),
-    indvec(2) = find(children == data.hVectors(2));
-end;
-indbg = find(children == data.hBackground);
-indother = setdiff(1:length(children),[indbg indvec]);
-set(data.Axes,'Children',children([indother indvec indbg]));
+indvec1 = find(children == data.hVectors(1));
+if ~isempty(indvec1)
+    indvec(1) = indvec1;
+
+    if (length(data.hVectors) == 2),
+        indvec(2) = find(children == data.hVectors(2));
+    end;
+    indbg = find(children == data.hBackground);
+    indother = setdiff(1:length(children),[indbg indvec]);
+    set(data.Axes,'Children',children([indother indvec indbg]));
+end
 
 if (strmatch('rescale',options(charOpts))),
     set(data.ScaleEdit,'String',num2str(data.vectorOpts.Scale));
@@ -118,7 +122,7 @@ end;
 % -------------------------------------------------
 function data = apUpdateRgnVectors(data, rgns, recalc)
 
-if ((nargin == 1) | isempty(rgns)),
+if ((nargin == 1) || isempty(rgns)),
     rgns = 1:size(data.Regions,1);
 end;
 
