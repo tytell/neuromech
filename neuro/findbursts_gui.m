@@ -1044,8 +1044,10 @@ else
     gdata.data.spikeamp{i} = [];
     
     gdata = update_burst_sel(gdata, 'none');
-    delete(gdata.hburstrate(i));
-    delete(gdata.hburstdur(i));
+    if ishandle(gdata.hburstrate(i))
+        delete(gdata.hburstrate(i));
+        delete(gdata.hburstdur(i));
+    end
     gdata.hburstrate(i) = -1;
     gdata.hburstdur(i) = -1;
     

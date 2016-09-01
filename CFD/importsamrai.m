@@ -68,12 +68,27 @@ else
     varnames = cell(size(opt.vars));
     nvar = length(opt.vars);
     for i = 1:nvar,
-        k = strmatch(opt.vars{i},shortvarnames,'exact');
+        k = find(strcmp(opt.vars{i},shortvarnames));
         
         if (length(k) == 1),
             varnames{i} = varnames0(k).Data;
         elseif (isempty(k)),
-            error('Could not find variable %s',opt.vars{i});
+            % U_0 is the same as U_x in newer versions
+            if strcmp(opt.vars{i},'U_0')
+                k = find(strcmp('U_x', shortvarnames));
+                if (length(k) == 1)
+                    varnames{i} = varnames0(k).Data;
+                end
+            elseif strcmp(opt.vars{i},'U_1')
+                k = find(strcmp('U_y', shortvarnames));
+                if (length(k) == 1)
+                    varnames{i} = varnames0(k).Data;
+                end
+            end
+            
+            if isempty(k)
+                error('Could not find variable %s',opt.vars{i});
+            end
         end;
     end;
 end;
