@@ -1,4 +1,8 @@
-function save_data_and_script(scriptname,filename)
+function save_data_and_script(scriptname,filename,varargin)
+
+opt.exclude = {};
+opt.include = {};
+opt = parsevarargin(opt, varargin, 3);
 
 if nargin == 0
     scriptname = '';
@@ -59,7 +63,13 @@ end
 [pn,fn] = fileparts(filename);
 scriptsavename = fullfile(pn,[fn '.m']);
 
-S = getvar('-all','-tostruct');
+if ~isempty(opt.include)
+    S = getvar(opt.include{:},'-tostruct');
+elseif ~isempty(opt.exclude)
+    S = getvar('-all','-except',opt.exclude{:}, '-tostruct');
+else
+    S = getvar('-all','-tostruct');
+end
 save(filename,'-struct','S','-v7.3');
 
 copyfile(scriptname,scriptsavename);
