@@ -62,6 +62,8 @@ if (~isempty(varargin{1})),
     else
         I = read(mmfile,cur);
     end;
+    I = im2double(I);
+
     if isadjust
         I = imadjust(I,stretchlim(I),[]);
     end
@@ -105,8 +107,11 @@ if (isempty(mmfile))
 else
     I = read(mmfile,cur+off);
 end;
+
+I = im2double(I);
+
 if isadjust
-    I = adapthisteq(I,'range','original','cliplimit',0.05);
+    I = imadjust(I,stretchlim(I),[]);
 end
 set(hImage, 'CData', I);
 set(gcf,'Name',sprintf('Frame %d/%d',cur+off,N));

@@ -7,45 +7,39 @@ function [burstt,ord] = alignbursts(burstt0, varargin)
 %   burstper = nans(size(burstt));
 %   burstper(ord) = cat(2,burstper0{:});
 
-maxdiff = Inf;
-channelorder = [];
-nperavg = 4;
-aligncycles = false;
+opt.maxdiff = Inf;
+opt.channelorder = [];
+opt.nperavg = 4;
+opt.aligncycles = false;
 
-i = 1;
-while (i <= length(varargin)),
-    switch lower(varargin{i}),
-        case 'maxdiff',
-            maxdiff = varargin{i+1};
-            i = i+2;
-        case 'channelorder',
-            channelorder = varargin{i+1};
-            i = i+2;
-        case 'aligncycles',
-            aligncycles = true;
-            i = i+1;
-            
-        otherwise,
-            error('Unrecognized option %s\n', varargin{i});
+opt = parsevarargin(opt,varargin, 2);
+
+
+if iscell(burstt0)
+    nchan = length(burstt0);
+    
+    chan = cell(size(burstt0));
+    for i = 1:nchan,
+        chan{i} = i*ones(size(burstt0{i}));
     end;
-end;
 
-nchan = length(burstt0);
-
-chan = cell(size(burstt0));
-for i = 1:nchan,
-    chan{i} = i*ones(size(burstt0{i}));
-end;
-
-burstt1 = cat(2,burstt0{:});
-chan = cat(2,chan{:});
+    burstt1 = cat(2,burstt0{:});
+    chan = cat(2,chan{:});
+else
+    nchan = size(burstt0,2);
+    
+    chan = repmat(1:nchan,[size(burstt0,1) 1]);
+    
+    burstt1 = burstt0(:)';
+    chan = chan(:)';
+end
 
 %sort the burst times to match up corresponding bursts, and leave NaNs
 %for skipped bursts
 [burstt1,ord] = sort(burstt1);
 chan = chan(ord);
 
-if (isempty(channelorder)),
+if (isempty(opt.channelorder)),
     ischan = false(nchan,1);
     channelorder = zeros(nchan,1);
     j = 1;
@@ -60,7 +54,9 @@ if (isempty(channelorder)),
     end;
     lastchan = find(~ischan);
     channelorder(j:end) = lastchan;
-end;
+else
+    channelorder = opt.channelorder;
+end
 
 %now go through the sorted channel orders and look for any instances in
 %which the channels repeat in the wrong order - that means we got a double 
@@ -82,7 +78,7 @@ end;
 %sort the channels so that each column contains bursts that match up
 %according to the procedure above
 nbursts = max(cols);
-burstt = nans(nchan,nbursts);
+burstt = NaN(nchan,nbursts);
 ord2 = sub2ind(size(burstt),chan,cols);
 burstt(ord2) = burstt1;
 
@@ -92,13 +88,13 @@ burstt(ord2) = burstt1;
 [q,revord] = sort(ord);
 ord = ord2(revord);
 
-if (aligncycles),
+if (opt.aligncycles),
     good = false(size(burstt));
-    good(:,1:nperavg) = true;
+    good(:,1:opt.nperavg) = true;
 
-    i = nperavg+1;
+    i = opt.nperavg+1;
     while (i <= nbursts),
-        meanburst = nanmean(burstt(:,i-nperavg:i));
+        meanburst = nanmean(burstt(:,i-opt.nperavg:i));
         per = diff(meanburst);
         meanper = nanmean(per);
 

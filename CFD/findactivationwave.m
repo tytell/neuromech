@@ -41,8 +41,10 @@ if (nargout == 4),
     varargout = {indactl,indactoffl, indactr,indactoffr};
 else
    %put the two matrices together, assuming they alternate
-   indact = NaN(npt,size(indactl,2)+size(indactr,2));
-   indactoff = NaN(npt,size(indactl,2)+size(indactr,2));
+   nact = max(size(indactl,2),size(indactr,2))*2 + 1;
+   
+   indact = NaN(npt,nact);
+   indactoff = NaN(npt,nact);
 
    %which side comes first?
    if (max(indactl(:,1)) < max(indactr(:,1))),
@@ -52,13 +54,18 @@ else
        l1 = 2;
        r1 = 1;
    end;
-   indact(:,l1:2:end) = indactl;
-   indact(:,r1:2:end) = indactr;
-   indactoff(:,l1:2:end) = indactoffl;
-   indactoff(:,r1:2:end) = indactoffr;
-
+   indact(:,(0:size(indactl,2)-1)*2+l1) = indactl;
+   indact(:,(0:size(indactr,2)-1)*2+r1) = indactr;
+   indactoff(:,(0:size(indactl,2)-1)*2+l1) = indactoffl;
+   indactoff(:,(0:size(indactr,2)-1)*2+r1) = indactoffr;
+   
    isleft = false(1,size(indact,2));
-   isleft(l1:2:end) = true;
+   isleft((0:size(indactl,2)-1)*2+l1) = true;
+   
+   goodact = any(isfinite(indact));
+   indact = indact(:,goodact);
+   indactoff = indactoff(:,goodact);
+   isleft = isleft(:,goodact);
    
    switch nargout,
      case 3,

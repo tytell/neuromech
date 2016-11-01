@@ -1,4 +1,11 @@
-function [Xfr,Yfr] = trackLine(files,xfr,yfr)
+function [Xfr,Yfr] = trackLine(files,xfr,yfr, varargin)
+
+opt.savecallback = [];
+opt = parsevarargin(opt,varargin,4, 'typecheck',false);
+
+if ~isempty(opt.savecallback) && ~isa(opt.savecallback, 'function_handle')
+    error('savecallback must be a function handle');
+end
 
 if (nargin == 1),
   xfr = [];
@@ -17,19 +24,22 @@ if (iscellstr(files)),
 
     handles.imFrameSkip = 1;
 elseif (ischar(files)),
-  info = aviinfo(files);
+  info = VideoReader(files);
   handles.imType = 'avi';
   handles.imNames = files;
   handles.imNum = 1;
-  handles.imTotal = info.NumFrames;
+  handles.imTotal = info.Duration*info.FrameRate;
   handles.imWidth = info.Width;
   handles.imHeight = info.Height;
+  handles.FrameRate = info.FrameRate;
   
   skip = inputdlg('Frame skip?','trackLine',1,{'1'});
   handles.imFrameSkip = str2num(skip{1});
 else
     error('Unknown type of image sequence.');
 end;
+
+handles.savecallback = opt.savecallback;
 
 handles.Figure = figure;
 handles.Axes = axes('Parent',handles.Figure);
@@ -49,13 +59,13 @@ set(handles.Figure, 'Name', ...
                   'DoubleBuffer','on');
 
 if (~isempty(xfr)),
-    if (iscell(xfr) & (length(xfr) == handles.imTotal) & ...
+    if (iscell(xfr) && (length(xfr) == handles.imTotal) && ...
         ~iscell(xfr{1})),
         for i = 1:length(xfr),
             xfr{i} = {xfr{i}};
             yfr{i} = {yfr{i}};
         end;
-    elseif (isnumeric(xfr) & (size(xfr,2) == handles.imTotal)),
+    elseif (isnumeric(xfr) && (size(xfr,2) == handles.imTotal)),
         xnum = xfr;
         ynum = yfr;
         xfr = cell(1,handles.imTotal);
@@ -86,7 +96,7 @@ handles.LineHandles = [];
 handles.curLineHandle = -1;
 
 handles.im = loadImage(handles);
-handles = Update(handles,10);
+handles = Update(handles,'image');
 
 % Update handles structure
 guidata(handles.Figure, handles);
@@ -127,6 +137,10 @@ handles.LineMenu = lnMenu;
 % --------------------------------------------------------------------
 function handles = changeImage(handles, delta, fr)
 
+if ~isempty(handles.Xcur)
+    saveData(handles);
+end
+
 if (isfinite(delta)),
     i0 = handles.imNum;
     handles.imNum = handles.imNum + delta;
@@ -137,7 +151,7 @@ else
     i1 = fr;
 end;
 
-if ((handles.imNum < 1) | (handles.imNum > handles.imTotal)),
+if ((handles.imNum < 1) || (handles.imNum > handles.imTotal)),
     beep;
     handles.imNum = i0;
 else
@@ -159,9 +173,23 @@ else
     end;
 
     handles.im = loadImage(handles);
-    handles = Update(handles, 10);
+    handles = Update(handles, 'image');
 end;    
 
+
+% --------------------------------------------------------------------
+function saveData(handles)
+
+if isa(handles.savecallback, 'function_handle')
+    switch handles.imType
+        case 'cellstr'
+            imname = handles.imNames{handles.imNum};
+        case 'avi'
+            imname = handles.imNames;
+    end
+    feval(handles.savecallback, handles.Xcur, handles.Ycur, ...
+        imname, handles.imNum);
+end
 
 % --------------------------------------------------------------------
 function im = loadImage(imdata)
@@ -170,23 +198,24 @@ switch (imdata.imType),
  case 'cellstr',
   im = imread(imdata.imNames{imdata.imNum});
  case 'avi',
-  im = frame2im(aviread(imdata.imNames,imdata.imNum));
+  vid = VideoReader(imdata.imNames);
+  vid.CurrentTime = imdata.imNum/imdata.FrameRate;
+  im = readFrame(vid);
 end;
 
 % --------------------------------------------------------------------
 function handles = Update(handles, what)
 
-if (what >= 10),
-  if (strcmp(handles.imType,'cellstr') & ...
-      isfield(handles,'imHandle') & ishandle(handles.imHandle)),
-    delete(handles.imHandle);
-  end;
+if ischar(what)
+    what = {what};
+end
 
-  if (isfield(handles,'imHandle') & ishandle(handles.imHandle)),
+if ismember('image',what)
+  if (isfield(handles,'imHandle') && ishandle(handles.imHandle)),
     set(handles.imHandle, 'CData', handles.im);
   else
     hold on;
-    handles.imHandle = imshow(handles.im,'n');
+    handles.imHandle = imshow(handles.im,'InitialMagnification','fit');
     set(handles.imHandle, 'ButtonDownFcn', @ImButtonDown_Callback,...
                       'UIContextMenu',handles.ImageMenu);
     hold off;
@@ -207,10 +236,13 @@ if (what >= 10),
   k = find(cc == handles.imHandle);
   cc = cc([1:k-1 k+1:end k]);
   set(handles.Axes, 'Children', cc);
+  
+  what = [what, 'curline','lines'];
 end;
-if (what >= 1),
+
+if ismember('curline',what)
     if (~isempty(handles.Xcur)),
-        if (~isfield(handles,'curLineHandle') | ...
+        if (~isfield(handles,'curLineHandle') || ...
             ~ishandle(handles.curLineHandle)),
             handles.curLineHandle = addplot(handles.Xcur,handles.Ycur, ...
                                             'ro-');
@@ -221,8 +253,10 @@ if (what >= 1),
                               'YData',handles.Ycur);
         end;
     end;
+    what = [what, 'lines'];
 end;
-if (what >= 2),
+
+if ismember('lines',what)
     if (~isempty(handles.X)),
         delete(handles.LineHandles);
 
@@ -285,7 +319,7 @@ switch (tp),
 end;
 
 guidata(hObject, handles);
-Update(handles, 1);
+Update(handles, 'curline');
 
 % --------------------------------------------------------------------
 function LnButtonDown_Callback(hObject, eventdata)
@@ -313,7 +347,7 @@ switch (tp),
   % change line selection
   if (handles.curLineHandle ~= hObject),
       k = find(handles.LineHandles == hObject);
-      if (isempty(k) | (length(k) > 1)),
+      if (isempty(k) || (length(k) > 1)),
           error('Weirdness!');
       end;
 
@@ -390,30 +424,34 @@ handles = guidata(hObject);
 c = get(handles.Figure, 'CurrentCharacter');
 
 switch lower(c),
- case char(28),                         % left arrow
-  handles = changeImage(handles, -handles.imFrameSkip);
- case {char(29),char(13)}               % right arrow, enter
-  handles = changeImage(handles, +handles.imFrameSkip);
- case 'n',                              % new line
-  NewLine_Callback(hObject, eventdata);
-  handles = guidata(hObject);
- case 'g',                              % go to
-  fr = inputdlg('Frame?','Go to frame');
-  fr = str2num(fr{1});
-  handles = changeImage(handles, NaN, fr);
- case 'c',                              % clear frame
-  delete(handles.LineHandles);
-  delete(handles.curLineHandle);
-  handles.Xcur = [];
-  handles.Ycur = [];
-  handles.X = {};
-  handles.Y = {};
-  handles.Xfr{handles.imNum} = [];
-  handles.Yfr{handles.imNum} = [];
- case 'z',                              % zoom
-  zoom toggle;
- case 'q',                              % quit
-  uiresume;
+    case char(28),                         % left arrow
+        handles = changeImage(handles, -handles.imFrameSkip);
+    case {char(29),char(13)}               % right arrow, enter
+        handles = changeImage(handles, +handles.imFrameSkip);
+    case 'n',                              % new line
+        NewLine_Callback(hObject, eventdata);
+        handles = guidata(hObject);
+    case 'g',                              % go to
+        fr = inputdlg('Frame?','Go to frame');
+        fr = str2num(fr{1});
+        handles = changeImage(handles, NaN, fr);
+    case 'c',                              % clear frame
+        delete(handles.LineHandles);
+        delete(handles.curLineHandle);
+        handles.Xcur = [];
+        handles.Ycur = [];
+        handles.X = {};
+        handles.Y = {};
+        handles.Xfr{handles.imNum} = [];
+        handles.Yfr{handles.imNum} = [];
+    case 'z',                              % zoom
+        zoom toggle;
+    case 's',
+        saveData(handles);
+        
+    case 'q',                              % quit
+        saveData(handles);
+        uiresume;
 end;
 
 guidata(hObject, handles);
@@ -438,7 +476,7 @@ handles.Xcur = [handles.Xcur(1:pt(1)) ptx handles.Xcur(pt(2):end)];
 handles.Ycur = [handles.Ycur(1:pt(1)) pty handles.Ycur(pt(2):end)];
 
 guidata(hObject, handles);
-Update(handles, 1);
+Update(handles, 'curline');
 
 % --------------------------------------------------------------------
 function DeletePoint_Callback(hObject, eventdata)
@@ -458,7 +496,7 @@ if (~isempty(pt)),
     handles.Ycur = handles.Ycur([1:pt-1 pt+1:end]);
 
     guidata(hObject, handles);
-    Update(handles, 1);
+    Update(handles, 'curline');
 else
     beep;
 end;
@@ -477,7 +515,7 @@ handles.Xcur = [];
 handles.Ycur = [];
 
 guidata(hObject, handles);
-Update(handles, 2);
+Update(handles, 'lines');
 
 % --------------------------------------------------------------------
 function DeleteLine_Callback(hObject, eventdata)
@@ -494,7 +532,7 @@ handles.Y = handles.Y(1:end-1);
 
 % we might have deleted the current object
 guidata(handles.Figure, handles);
-Update(handles, 2);
+Update(handles, 'lines');
 
 
 

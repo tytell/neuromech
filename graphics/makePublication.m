@@ -51,6 +51,9 @@ journaldefaults = {
     'Elsevier 1 column', {'Helvetica','10','','9','3.307','0.02'};
     'Elsevier 1.5 column', {'Helvetica','10','','9','5.079','0.02'};
     'Elsevier 2 column', {'Helvetica','10','','9','6.85','0.02'};
+    'Phys Rev 1 column', {'Times New Roman','10','','9','3.34','0.02'};
+    'Phys Rev 1.5 column', {'Times New Roman','10','','9','5.02','0.02'};
+    'Phys Rev 2 column', {'Times New Roman','10','','9','6.7','0.02'};    
     'Poster large', {'Helvetica','36','','21','11','0'}; ...
     'Custom',{'','','','','',''}};
 

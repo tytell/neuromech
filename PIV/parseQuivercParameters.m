@@ -159,7 +159,12 @@ end;
 [opts,param] = matchQuivercOption(opts,param,'CorrectAspectRatio','car');
 [opts,param] = matchQuivercOption(opts,param,'Polar','pol');
 
-[opts,param] = matchQuivercOption(opts,param,'Axes','ax',-1);
+if exist('gobjects', 'file') == 2
+    axdef = gobjects(0);
+else
+    axdef = [];
+end
+[opts,param] = matchQuivercOption(opts,param,'Axes','ax',axdef);
 
 if (~opts.isColMatrix),
     [opts,param,m] = matchQuivercOption(opts,param,'Color','','');

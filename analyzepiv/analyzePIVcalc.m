@@ -844,14 +844,19 @@ yd = yd.*posscalefac;
 
 s = [0 cumsum(sqrt(diff(xd).^2 + diff(yd).^2))];
 
-dxds = deriv(s,xd);
-dyds = deriv(s,yd);
-mag = sqrt(dxds.^2 + dyds.^2);
-dxds = dxds./mag;
-dyds = dyds./mag;
+if length(xd) >= 3
+    dxds = deriv(s,xd);
+    dyds = deriv(s,yd);
+    mag = sqrt(dxds.^2 + dyds.^2);
+    dxds = dxds./mag;
+    dyds = dyds./mag;
 
-circ = trapz(s, ud.*dxds + vd.*dyds);
-N = length(s);
+    circ = trapz(s, ud.*dxds + vd.*dyds);
+    N = length(s);
+else
+    circ = NaN;
+    N = length(xd);
+end
 
 % convert ctr back to the original position units
 ctr = [nanmean(xd(:)) nanmean(yd(:))]/posscalefac;

@@ -313,6 +313,17 @@ if (~isindpeak),
     % Make sure we tracked each peak for more than one time
     k = sum(isfinite(indpeak)) > 1;
     indpeak = indpeak(:,k);
+
+
+    %check for repeated waves
+    goodwave = true(1,size(indpeak,2));
+    for i = 1:size(indpeak,2)-1
+        if indpeak(end,i+1) <= indpeak(end,i)+1
+            [~,choose] = min(sum(isfinite(indpeak(:,i:i+1))));
+            goodwave(:,i+choose-1) = false;
+        end
+    end
+    indpeak = indpeak(:,goodwave);
 end    
 
 npk = size(indpeak,2);
@@ -408,7 +419,8 @@ for i = 1:size(indpeak,2)-1,
     % Eliminate negative time differences, or ones that are greater
     % than dp
     dist((dist < -dp/2) | (dist > dp/2)) = NaN;
-
+    dist(end,:) = NaN;
+    
     % Get the minimum time difference.  These peaks are the ones that are
     % on the body at almost the same time
     [~,ind] = min(abs(dist));

@@ -544,7 +544,7 @@ disp('  Saving data...');
 if (~isempty(opt.outfile)),
     save(opt.outfile, '-struct','out');
 else
-    putvar(filenameopt{:}, '-fromstruct','out');
+    putvar(filenameopt{:}, '-fromstruct','out', '-all');
 end;
 
     

@@ -129,6 +129,10 @@ else
     except = {};
 end;
 
+if fromstruct && ischar(indata)
+    indata = evalin('base',indata);
+end
+    
 %process all variables, if necessary
 if (isall),
     if (fromstruct)

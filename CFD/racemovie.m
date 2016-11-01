@@ -80,7 +80,9 @@ ox = permute(ox,[1 3 2]);
 oy = permute(oy,[1 3 2]);
 
 if (~isempty(opt.outputfile)),
-    aviobj = avifile(opt.outputfile,'fps',opt.fps);
+    aviobj = VideoWriter(opt.outputfile);
+    aviobj.FrameRate = opt.fps;
+    open(aviobj);
 end;
 
 nr = size(ox,2);
@@ -111,7 +113,7 @@ for i = 1:nfr,
         sz = floor(sz(1:2)/4)*4;
         F.cdata = F.cdata(1:sz(1),1:sz(2),:);
         
-        aviobj = addframe(aviobj,F);
+        writeVideo(aviobj,F);
     end;
         
     if (opt.delay > 0),
@@ -120,5 +122,5 @@ for i = 1:nfr,
 end;
 
 if (~isempty(opt.outputfile)),
-    aviobj = close(aviobj);
+    close(aviobj);
 end;

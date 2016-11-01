@@ -7,6 +7,7 @@ opt.goodchan = [];
 opt.override = struct([]);
 opt.show = 5;
 opt.quiet = false;
+opt.eventtimes = [];
 
 if ((nargin >= 2) && isnumeric(data) && isnumeric(varargin{1}) && ...
         any(size(varargin{1}) == length(data)))
@@ -34,26 +35,32 @@ nchan = size(data.sig,2);
 gdata.chan = 1;
 if (size(opt.threshold,1) == 2) && (size(opt.threshold,2) == nchan)
     gdata.thresh = opt.threshold;
+elseif (size(data.spikethreshold,1) == 2) && (size(data.spikethreshold,2) == nchan)
+    gdata.thresh = data.spikethreshold;
 elseif length(opt.threshold) == nchan
     gdata.thresh = [-1; 1]*abs(opt.threshold(:)');
 else
     gdata.thresh = [-1; 1] * 2*nanstd(data.sig);
 end
-if (isempty(opt.interburstdur) || (length(opt.interburstdur) ~= nchan))
-    gdata.interburst = 0.3*ones(1,nchan);
-else
+if (~isempty(opt.interburstdur) && (length(opt.interburstdur) == nchan))
     gdata.interburst = opt.interburstdur;
-end
-if (isempty(opt.minspikes) || (length(opt.minspikes) ~= nchan))
-    gdata.minspikes = 2*ones(1,nchan);
+elseif (~isempty(data.interburstdur) && (length(data.interburstdur) == nchan))
+    gdata.interburst = data.interburstdur;
 else
+    gdata.interburst = 0.3*ones(1,nchan);
+end
+if (~isempty(opt.minspikes) && (length(opt.minspikes) == nchan))
     gdata.minspikes = opt.minspikes;
+elseif (~isempty(data.minspikes) && (length(data.minspikes) == nchan))
+    gdata.minspikes = data.minspikes;
+else
+    gdata.minspikes = 2*ones(1,nchan);
 end
 
-if (isempty(opt.goodchan) || (length(opt.goodchan) ~= nchan))
-    data.goodchan = true(1,nchan);
-else
+if (~isempty(opt.goodchan) && (length(opt.goodchan) == nchan))
     data.goodchan = opt.goodchan > 0;
+else
+    data.goodchan = true(1,nchan);
 end
 
 if (isfield(data,'burst'))
@@ -70,6 +77,7 @@ gdata.hselburst = [-1 -1 -1 -1 -1];
 gdata.burstoverride = repmat(struct('on',[],'off',[],'remove',[]),[1 nchan]);
 gdata.data.spiket = cell(1,nchan);
 gdata.data.spikeamp = cell(1,nchan);
+gdata.eventtimes = opt.eventtimes;
 
 gdata = update_spikes(gdata, true);
 
@@ -108,19 +116,21 @@ end
 data = gdata.data;
 data.burst = get_burst_override(gdata,1:nchan);
 for i = 1:nchan
-    [c,ord] = sort(data.burst(i).ctr);
-    data.burst(i).on = data.burst(i).on(ord);
-    data.burst(i).off = data.burst(i).off(ord);
-    data.burst(i).ctr = data.burst(i).ctr(ord);
-    data.burst(i).nspike = data.burst(i).nspike(ord);
-    data.burst(i).isover = data.burst(i).isover(ord);
-    
-    good = ~isnan(data.burst(i).ctr);
-    data.burst(i).on = data.burst(i).on(good);
-    data.burst(i).off = data.burst(i).off(good);
-    data.burst(i).ctr = data.burst(i).ctr(good);
-    data.burst(i).nspike = data.burst(i).nspike(good);
-    data.burst(i).isover = data.burst(i).isover(good);
+    if ~isempty(data.burst(i).nspike)
+        [c,ord] = sort(data.burst(i).ctr);
+        data.burst(i).on = data.burst(i).on(ord);
+        data.burst(i).off = data.burst(i).off(ord);
+        data.burst(i).ctr = data.burst(i).ctr(ord);
+        data.burst(i).nspike = data.burst(i).nspike(ord);
+        data.burst(i).isover = data.burst(i).isover(ord);
+
+        good = ~isnan(data.burst(i).ctr);
+        data.burst(i).on = data.burst(i).on(good);
+        data.burst(i).off = data.burst(i).off(good);
+        data.burst(i).ctr = data.burst(i).ctr(good);
+        data.burst(i).nspike = data.burst(i).nspike(good);
+        data.burst(i).isover = data.burst(i).isover(good);
+    end
 end
 if any(cat(2,data.burst.isover))
     data.override = gdata.burstoverride;
@@ -171,6 +181,14 @@ off1 = {data.burst(data.goodchan).off};
 off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
 data.burstoff = NaN(size(data.burstt));
 data.burstoff(:,data.goodchan) = catuneven(2,off1{:});
+
+freq1 = cellfun(@(x) x', gdata.burstfreq, 'UniformOutput',false);
+data.burstfreq = NaN(size(data.burstt));
+data.burstfreq(:,data.goodchan) = catuneven(2,freq1{:});
+
+dur1 = cellfun(@(x) x', gdata.burstdur, 'UniformOutput',false);
+data.burstdur = NaN(size(data.burstt));
+data.burstdur(:,data.goodchan) = catuneven(2,dur1{:});
 
 if isfield(data,'phase') && (~isfield(data,'amp') || (data.amp > 0))
     data.spikephase = NaN(size(data.spiket));
@@ -237,9 +255,10 @@ if (~opt.quiet)
     goodtxt = sprintf('%d ',gdata.data.goodchan);
     
     if isdata
-        fprintf(['%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s],' ...
-            '''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
-            inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1), goodtxt(1:end-1));
+        fprintf('data.spikethreshold = [%s];\n', thtxt(1:end-1));
+        fprintf('data.interburstdur = [%s];\n', ibdtxt(1:end-1));
+        fprintf('data.minspikes = [%s];\n', mstxt(1:end-1));
+        fprintf('data.goodchan = [%s];\n', goodtxt(1:end-1));
     else
         fprintf(['data = findbursts_gui(%s,%s, ''threshold'', [%s], ' ...
             '''interburstdur'', [%s], ''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
@@ -286,6 +305,13 @@ if (any(ismember(type, {'all','spikes'})))
     if goodchan
         gdata.hspikes = addplot(ax, d.spiket{c},d.spikeamp{c}-med, 'ro', ...
             'MarkerFaceColor','r','MarkerSize',4, 'HitTest','off');
+    end
+    
+    if ~isempty(gdata.eventtimes)
+        yl = get(ax,'YLim');
+        addplot(ax, repmat(gdata.eventtimes(:)',[2 1]), ...
+            repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+            'HitTest','off');
     end
 end
 
@@ -448,12 +474,17 @@ if ischar(s)
 end
 gdata.selburstind = s;
 
+if isempty(gdata.hbursts) || any(~ishandle(gdata.hbursts))
+    % this can happen if they clicked on skip channel
+    s = [];
+end
+
 good = ishandle(gdata.hselburst);
 if any(good)
     delete(gdata.hselburst(good));
     gdata.hselburst(1:end) = -1;
 end
-if ~isempty(s)
+if ~isempty(s) && (s <= length(gdata.hbursts(s)))
     xd = get(gdata.hbursts(s),'XData');
     yd = get(gdata.hbursts(s),'YData');
     gdata.hselburst(1) = line('Parent',gdata.axes,'XData',xd,'YData',yd, ...
@@ -927,8 +958,8 @@ for i = 1:length(b)
     burstfreq1(ord(2:end-1)) = 2./(ctr1(3:end) - ctr1(1:end-2));
     
     j = chan(i);
-    gdata.data.burstfreq{j} = burstfreq1;
-    gdata.data.burstdur{j} = b(i).off - b(i).on;
+    gdata.burstfreq{j} = burstfreq1;
+    gdata.burstdur{j} = b(i).off - b(i).on;
 end
 
 for i = 1:length(chan)
@@ -950,21 +981,34 @@ for i = 1:length(chan)
     end
 
     set(gdata.hburstrate(j), 'XData',b(i).ctr, ...
-        'YData',gdata.data.burstfreq{j}, 'Marker',m, 'Color',c, ...
+        'YData',gdata.burstfreq{j}, 'Marker',m, 'Color',c, ...
         'MarkerFaceColor',fc, 'MarkerSize',sz);
     set(gdata.hburstdur(j), 'XData',b(i).ctr, ...
-        'YData',gdata.data.burstdur{j}, 'Marker',m, 'Color',c, ...
+        'YData',gdata.burstdur{j}, 'Marker',m, 'Color',c, ...
         'MarkerFaceColor',fc, 'MarkerSize',sz);
     
     if ~isempty(s) && ishandle(gdata.hselburst(4)) && ishandle(gdata.hselburst(5))
         set(gdata.hselburst(4), 'XData', b(i).ctr(s), ...
-            'YData',gdata.data.burstfreq{j}(s));
+            'YData',gdata.burstfreq{j}(s));
         set(gdata.hselburst(5), 'XData', b(i).ctr(s), ...
-            'YData',gdata.data.burstdur{j}(s));
+            'YData',gdata.burstdur{j}(s));
     end    
 end
 axis(gdata.hdiag(1), 'tight');
 axis(gdata.hdiag(2), 'tight');
+
+if ~isempty(gdata.eventtimes)
+    yl = get(gdata.hdiag(1),'YLim');
+    addplot(gdata.hdiag(1), repmat(gdata.eventtimes(:)',[2 1]), ...
+        repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+        'HitTest','off');
+    
+    yl = get(gdata.hdiag(2),'YLim');
+    addplot(gdata.hdiag(2), repmat(gdata.eventtimes(:)',[2 1]), ...
+        repmat(yl(:),[1 length(gdata.eventtimes)]), 'y--', ...
+        'HitTest','off');
+end
+
 
 %*************************************************************************
 function on_click_burst_diag(obj,event, fig)
@@ -980,13 +1024,21 @@ if numel(chan) == 1
         gdata = guidata(fig);
     end
 
-    ctr = c(1,1);
+    ctrx = c(1,1);
+    ctry = c(1,2);
     xl = get(gdata.axes, 'XLim');
-    d = diff(xl)/2;
-    set(gdata.axes, 'XLim', ctr + [-d d]);
+    dx = diff(xl)/2;
+    set(gdata.axes, 'XLim', ctrx + [-dx dx]);
     
     xdata = get(obj, 'XData');
-    [~,ind] = min(abs(ctr - xdata));
+    ydata = get(obj, 'YData');
+
+    xl2 = get(ax, 'XLim');
+    dx2 = diff(xl2);
+    yl2 = get(ax, 'YLim');
+    dy2 = diff(yl2);
+    
+    [~,ind] = min(((ctrx - xdata)/dx2).^2 + ((ctry - ydata)/dy2).^2);
     gdata = update_burst_sel(gdata, ind);
 end
 
@@ -1005,6 +1057,15 @@ else
     i = gdata.chan;
     gdata.data.spiket{i} = [];
     gdata.data.spikeamp{i} = [];
+    
+    gdata = update_burst_sel(gdata, 'none');
+    if ishandle(gdata.hburstrate(i))
+        delete(gdata.hburstrate(i));
+        delete(gdata.hburstdur(i));
+    end
+    gdata.hburstrate(i) = -1;
+    gdata.hburstdur(i) = -1;
+    
     gdata = update_bursts(gdata, false);
 end  
 
