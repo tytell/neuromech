@@ -53,9 +53,12 @@ if exist(filename,'file')
     end
     filenames = getfilenames(fullfile(pn,[basename '*' suf '.mat']));
     
-    numstr = regexp(filenames{end},[basename '(\d+)' suf '.mat'],'once','tokens');
-    numstr = numstr{1};
-    num = str2double(numstr) + 1;
+    numstr = regexp(filenames,[basename '(\d+)' suf '.mat'],'once','tokens');
+    ismatch = ~cellfun(@isempty, numstr);
+    numstr = numstr(ismatch);
+    filenums = cellfun(@str2double, numstr);
+    
+    num = max(filenums) + 1;
     
     filename = sprintf('%s%0*d%s.mat', basename, length(numstr), num, suf);
 end
