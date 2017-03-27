@@ -99,6 +99,8 @@ imgfilenames = imgfilenames(ord);
 fileskip = input('File skip (default = 1)? ','s');
 if isempty(fileskip)
     fileskip = 1;
+else
+    fileskip = str2double(fileskip);
 end
 
 vecfilenames = vecfilenames(1:fileskip:end);
