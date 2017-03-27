@@ -52,6 +52,7 @@ if (isempty(opt)),
     opt = length(varargin)+1;
 end;
 
+H = [];
 if (opt > 7),
     [xp,yp,H,xr,yr,ur,vr] = deal(varargin{1:7});
     isextra = true;
@@ -69,9 +70,12 @@ else
     x = repmat(x,[1 1 size(u,3)]) + u/2;
     y = repmat(y,[1 1 size(v,3)]) + v/2;
     szx = szu;
+    
+    warning('Assuming that positions and velocities are both is pixels. Is this correct?');
 end;
 
 fillnans = false;
+isextra = false;
 
 while (opt <= length(varargin)),
     switch lower(varargin{opt}),
@@ -79,7 +83,7 @@ while (opt <= length(varargin)),
             [xr,yr,ur,vr] = deal(varargin{opt+(1:4)});
             isextra = true;
             opt = opt + 5;
-            
+           
         case 'fillnans',
             fillnans = true;
             opt = opt + 1;
@@ -108,6 +112,20 @@ vp = zeros(size(xp,1),size(xp,2),nfr);
 % check to find out if we're approximately plaid
 dx = diff(x,[],2);
 dy = diff(y,[],1);
+
+if all(dy(isfinite(dy)) < 0)
+    isflipped = true;
+    
+    x = flipud(x);
+    y = flipud(y);
+    u = flipud(u);
+    v = flipud(v);
+else
+    isflipped = false;
+end
+
+dy = diff(y,[],1);
+
 if (all(size(x)>1) && all(dx(isfinite(dx)) > 0) && all(dy(isfinite(dy)) > 0))
     % calculate average distances between points
     dx = mean(dx(isfinite(dx)));
@@ -127,10 +145,10 @@ if (all(size(x)>1) && all(dx(isfinite(dx)) > 0) && all(dy(isfinite(dy)) > 0))
     rwind = ceil(sqrt(3)*H/delta);
     
     % pad the x,y,u, and v matrices with rwind NaNs
-    xpad = repmat(NaN,[szx(1)+2*rwind szx(2)+2*rwind szx(3:end)]);
-    ypad = repmat(NaN,[szx(1)+2*rwind szx(2)+2*rwind szx(3:end)]);
-    upad = repmat(NaN,[szu(1)+2*rwind szu(2)+2*rwind szu(3:end)]);
-    vpad = repmat(NaN,[szu(1)+2*rwind szu(2)+2*rwind szu(3:end)]);
+    xpad = NaN([szx(1)+2*rwind szx(2)+2*rwind szx(3:end)]);
+    ypad = NaN([szx(1)+2*rwind szx(2)+2*rwind szx(3:end)]);
+    upad = NaN([szu(1)+2*rwind szu(2)+2*rwind szu(3:end)]);
+    vpad = NaN([szu(1)+2*rwind szu(2)+2*rwind szu(3:end)]);
     
     i = rwind + (1:szx(1));
     j = rwind + (1:szx(2));
@@ -248,11 +266,19 @@ if (all(size(x)>1) && all(dx(isfinite(dx)) > 0) && all(dy(isfinite(dy)) > 0))
             vv = [vv; vvr];
         end;
 
+        
         % and use it to make the new u and v matrices
-        up1 = repmat(NaN, [size(xp,1) size(xp,2)]);
+        up1 = NaN([size(xp,1) size(xp,2)]);
         up1(nonan) = nansum(uu)./nansum(alpha);
-        vp1 = repmat(NaN, [size(xp,1) size(xp,2)]);
+        vp1 = NaN([size(xp,1) size(xp,2)]);
         vp1(nonan) = nansum(vv)./nansum(alpha);
+        
+        if ~fillnans && (size(xp,1) == size(x,1)) && ...
+                (size(xp,2) == size(x,2))
+            good = ~isnan(u(:,:,i));
+            up1(~good) = NaN;
+            vp1(~good) = NaN;
+        end
         
         up(:,:,i) = up1;
         vp(:,:,i) = vp1;
@@ -262,6 +288,8 @@ if (all(size(x)>1) && all(dx(isfinite(dx)) > 0) && all(dy(isfinite(dy)) > 0))
         end;
     end;
 else
+    warning('Assuming randomly distributed vectors. Is this what you want?');
+    
     if (size(u,3) > 1),
         error('Cannot handle 3D non-plaid matrices');
     end;
@@ -293,18 +321,25 @@ else
     % Gaussian
     alpha = exp(-dist.^2/H.^2);
 
-    up = repmat(NaN, size(xp));
-    vp = repmat(NaN, size(yp));
+    up = NaN(size(xp));
+    vp = NaN(size(yp));
     
     % new u and v values
     up(k) = sum(alpha .* repmat(u(:),[1 np]))./sum(alpha);
     vp(k) = sum(alpha .* repmat(v(:),[1 np]))./sum(alpha);
 end;
 
-DU.dudx = repmat(NaN,size(up));
-DU.dudy = repmat(NaN,size(up));
-DU.dvdx = repmat(NaN,size(up));
-DU.dvdy = repmat(NaN,size(up));
+if isflipped
+    xp = flipud(xp);
+    yp = flipud(yp);
+    up = flipud(up);
+    vp = flipud(vp);
+end
+
+DU.dudx = NaN(size(up));
+DU.dudy = NaN(size(up));
+DU.dvdx = NaN(size(up));
+DU.dvdy = NaN(size(up));
 
 % if the output is plaid, we can recalculate the derivative structure
 if ((size(up,1) > 2) && (size(up,2) > 2)),

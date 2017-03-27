@@ -1,4 +1,8 @@
-function save_data_and_script(scriptname,filename)
+function save_data_and_script(scriptname,filename,varargin)
+
+opt.exclude = {};
+opt.include = {};
+opt = parsevarargin(opt, varargin, 3);
 
 if nargin == 0
     scriptname = '';
@@ -49,9 +53,12 @@ if exist(filename,'file')
     end
     filenames = getfilenames(fullfile(pn,[basename '*' suf '.mat']));
     
-    numstr = regexp(filenames{end},[basename '(\d+)' suf '.mat'],'once','tokens');
-    numstr = numstr{1};
-    num = str2double(numstr) + 1;
+    numstr = regexp(filenames,[basename '(\d+)' suf '.mat'],'once','tokens');
+    ismatch = ~cellfun(@isempty, numstr);
+    numstr = numstr(ismatch);
+    filenums = cellfun(@str2double, numstr);
+    
+    num = max(filenums) + 1;
     
     filename = sprintf('%s%0*d%s.mat', basename, length(numstr), num, suf);
 end
@@ -59,7 +66,13 @@ end
 [pn,fn] = fileparts(filename);
 scriptsavename = fullfile(pn,[fn '.m']);
 
-S = getvar('-all','-tostruct');
+if ~isempty(opt.include)
+    S = getvar(opt.include{:},'-tostruct');
+elseif ~isempty(opt.exclude)
+    S = getvar('-all','-except',opt.exclude{:}, '-tostruct');
+else
+    S = getvar('-all','-tostruct');
+end
 save(filename,'-struct','S','-v7.3');
 
 copyfile(scriptname,scriptsavename);

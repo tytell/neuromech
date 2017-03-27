@@ -96,7 +96,7 @@ end
 vecfilenames = vecfilenames(ord);
 imgfilenames = imgfilenames(ord);
 
-fileskip = input('File skip (default = 1)? ','s');
+fileskip = input('File skip (default = 1)? ');
 if isempty(fileskip)
     fileskip = 1;
 else

@@ -35,26 +35,32 @@ nchan = size(data.sig,2);
 gdata.chan = 1;
 if (size(opt.threshold,1) == 2) && (size(opt.threshold,2) == nchan)
     gdata.thresh = opt.threshold;
+elseif (size(data.spikethreshold,1) == 2) && (size(data.spikethreshold,2) == nchan)
+    gdata.thresh = data.spikethreshold;
 elseif length(opt.threshold) == nchan
     gdata.thresh = [-1; 1]*abs(opt.threshold(:)');
 else
     gdata.thresh = [-1; 1] * 2*nanstd(data.sig);
 end
-if (isempty(opt.interburstdur) || (length(opt.interburstdur) ~= nchan))
-    gdata.interburst = 0.3*ones(1,nchan);
-else
+if (~isempty(opt.interburstdur) && (length(opt.interburstdur) == nchan))
     gdata.interburst = opt.interburstdur;
-end
-if (isempty(opt.minspikes) || (length(opt.minspikes) ~= nchan))
-    gdata.minspikes = 2*ones(1,nchan);
+elseif (~isempty(data.interburstdur) && (length(data.interburstdur) == nchan))
+    gdata.interburst = data.interburstdur;
 else
+    gdata.interburst = 0.3*ones(1,nchan);
+end
+if (~isempty(opt.minspikes) && (length(opt.minspikes) == nchan))
     gdata.minspikes = opt.minspikes;
+elseif (~isempty(data.minspikes) && (length(data.minspikes) == nchan))
+    gdata.minspikes = data.minspikes;
+else
+    gdata.minspikes = 2*ones(1,nchan);
 end
 
-if (isempty(opt.goodchan) || (length(opt.goodchan) ~= nchan))
-    data.goodchan = true(1,nchan);
-else
+if (~isempty(opt.goodchan) && (length(opt.goodchan) == nchan))
     data.goodchan = opt.goodchan > 0;
+else
+    data.goodchan = true(1,nchan);
 end
 
 if (isfield(data,'burst'))
@@ -72,6 +78,8 @@ gdata.burstoverride = repmat(struct('on',[],'off',[],'remove',[]),[1 nchan]);
 gdata.data.spiket = cell(1,nchan);
 gdata.data.spikeamp = cell(1,nchan);
 gdata.eventtimes = opt.eventtimes;
+
+set_ui(gdata);
 
 gdata = update_spikes(gdata, true);
 
@@ -108,7 +116,7 @@ if (~opt.quiet)
 end
 
 data = gdata.data;
-data.burst = get_burst_override(gdata,1:nchan);
+[gdata, data.burst] = get_burst_data(gdata);
 for i = 1:nchan
     if ~isempty(data.burst(i).nspike)
         [c,ord] = sort(data.burst(i).ctr);
@@ -176,6 +184,14 @@ off1 = cellfun(@(x) x', off1, 'UniformOutput',false);
 data.burstoff = NaN(size(data.burstt));
 data.burstoff(:,data.goodchan) = catuneven(2,off1{:});
 
+freq1 = cellfun(@(x) x', gdata.burstfreq, 'UniformOutput',false);
+data.burstfreq = NaN(size(data.burstt));
+data.burstfreq(:,data.goodchan) = catuneven(2,freq1{:});
+
+dur1 = cellfun(@(x) x', gdata.burstdur, 'UniformOutput',false);
+data.burstdur = NaN(size(data.burstt));
+data.burstdur(:,data.goodchan) = catuneven(2,dur1{:});
+
 if isfield(data,'phase') && (~isfield(data,'amp') || (data.amp > 0))
     data.spikephase = NaN(size(data.spiket));
     data.burstphase = NaN(size(data.burstt));
@@ -241,9 +257,10 @@ if (~opt.quiet)
     goodtxt = sprintf('%d ',gdata.data.goodchan);
     
     if isdata
-        fprintf(['%s = findbursts_gui(%s, ''threshold'', [%s], ''interburstdur'', [%s],' ...
-            '''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
-            inputname(1), inputname(1), thtxt(1:end-1), ibdtxt(1:end-1), mstxt(1:end-1), goodtxt(1:end-1));
+        fprintf('data.spikethreshold = [%s];\n', thtxt(1:end-1));
+        fprintf('data.interburstdur = [%s];\n', ibdtxt(1:end-1));
+        fprintf('data.minspikes = [%s];\n', mstxt(1:end-1));
+        fprintf('data.goodchan = [%s];\n', goodtxt(1:end-1));
     else
         fprintf(['data = findbursts_gui(%s,%s, ''threshold'', [%s], ' ...
             '''interburstdur'', [%s], ''minspikes'', [%s], ''goodchan'', [%s], ''quiet'')\n'], ...
@@ -930,7 +947,7 @@ end
 guidata(obj,gdata);
 
 %*************************************************************************
-function gdata = show_diagnostics(gdata)
+function [gdata,b] = get_burst_data(gdata)
 
 chan = find(gdata.data.goodchan);
 
@@ -943,9 +960,15 @@ for i = 1:length(b)
     burstfreq1(ord(2:end-1)) = 2./(ctr1(3:end) - ctr1(1:end-2));
     
     j = chan(i);
-    gdata.data.burstfreq{j} = burstfreq1;
-    gdata.data.burstdur{j} = b(i).off - b(i).on;
+    gdata.burstfreq{j} = burstfreq1;
+    gdata.burstdur{j} = b(i).off - b(i).on;
 end
+
+%*************************************************************************
+function gdata = show_diagnostics(gdata)
+
+[gdata,b] = get_burst_data(gdata);
+chan = find(gdata.data.goodchan);
 
 for i = 1:length(chan)
     j = chan(i);
@@ -966,17 +989,17 @@ for i = 1:length(chan)
     end
 
     set(gdata.hburstrate(j), 'XData',b(i).ctr, ...
-        'YData',gdata.data.burstfreq{j}, 'Marker',m, 'Color',c, ...
+        'YData',gdata.burstfreq{j}, 'Marker',m, 'Color',c, ...
         'MarkerFaceColor',fc, 'MarkerSize',sz);
     set(gdata.hburstdur(j), 'XData',b(i).ctr, ...
-        'YData',gdata.data.burstdur{j}, 'Marker',m, 'Color',c, ...
+        'YData',gdata.burstdur{j}, 'Marker',m, 'Color',c, ...
         'MarkerFaceColor',fc, 'MarkerSize',sz);
     
     if ~isempty(s) && ishandle(gdata.hselburst(4)) && ishandle(gdata.hselburst(5))
         set(gdata.hselburst(4), 'XData', b(i).ctr(s), ...
-            'YData',gdata.data.burstfreq{j}(s));
+            'YData',gdata.burstfreq{j}(s));
         set(gdata.hselburst(5), 'XData', b(i).ctr(s), ...
-            'YData',gdata.data.burstdur{j}(s));
+            'YData',gdata.burstdur{j}(s));
     end    
 end
 axis(gdata.hdiag(1), 'tight');
@@ -1044,8 +1067,10 @@ else
     gdata.data.spikeamp{i} = [];
     
     gdata = update_burst_sel(gdata, 'none');
-    delete(gdata.hburstrate(i));
-    delete(gdata.hburstdur(i));
+    if ishandle(gdata.hburstrate(i))
+        delete(gdata.hburstrate(i));
+        delete(gdata.hburstdur(i));
+    end
     gdata.hburstrate(i) = -1;
     gdata.hburstdur(i) = -1;
     
@@ -1078,6 +1103,15 @@ function on_click_Done(obj,event)
 
 data = guidata(obj);
 uiresume(data.figure);
+
+%*************************************************************************
+function set_ui(gdata)
+
+set(gdata.spikeThreshLoEdit, 'String', num2str(gdata.thresh(1,gdata.chan),3));
+set(gdata.spikeThreshHiEdit, 'String', num2str(gdata.thresh(2,gdata.chan),3));
+set(gdata.interburstDurEdit, 'String', num2str(gdata.interburst(gdata.chan),3));
+set(gdata.minSpikesEdit, 'String', num2str(gdata.minspikes(gdata.chan),3));
+set(gdata.skipChannelCheck, 'Value', ~gdata.data.goodchan(gdata.chan));
 
 %*************************************************************************
 function setUICallbacks(data)

@@ -24,13 +24,14 @@ if (iscellstr(files)),
 
     handles.imFrameSkip = 1;
 elseif (ischar(files)),
-  info = aviinfo(files);
+  info = VideoReader(files);
   handles.imType = 'avi';
   handles.imNames = files;
   handles.imNum = 1;
-  handles.imTotal = info.NumFrames;
+  handles.imTotal = info.Duration*info.FrameRate;
   handles.imWidth = info.Width;
   handles.imHeight = info.Height;
+  handles.FrameRate = info.FrameRate;
   
   skip = inputdlg('Frame skip?','trackLine',1,{'1'});
   handles.imFrameSkip = str2num(skip{1});
@@ -197,7 +198,9 @@ switch (imdata.imType),
  case 'cellstr',
   im = imread(imdata.imNames{imdata.imNum});
  case 'avi',
-  im = frame2im(aviread(imdata.imNames,imdata.imNum));
+  vid = VideoReader(imdata.imNames);
+  vid.CurrentTime = imdata.imNum/imdata.FrameRate;
+  im = readFrame(vid);
 end;
 
 % --------------------------------------------------------------------

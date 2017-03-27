@@ -20,22 +20,26 @@ if (ischar(cmap0)),
     cmap0 = zeros(3,3);
     for i = 1:length(name),
         switch lower(name(i)),
-         case 'y',
-          cmap0(i,:) = [1 1 0];
-         case 'm',
-          cmap0(i,:) = [1 0 1];
-         case 'c',
-          cmap0(i,:) = [0 1 1];
-         case 'r',
-          cmap0(i,:) = [1 0 0];
-         case 'g',
-          cmap0(i,:) = [0 1 0];
-         case 'b',
-          cmap0(i,:) = [0 0 1];
-         case 'w',
-          cmap0(i,:) = [1 1 1];
-         case 'k',
-          cmap0(i,:) = [0 0 0];
+            case 'y',
+                cmap0(i,:) = [1 1 0];
+            case 'm',
+                cmap0(i,:) = [1 0 1];
+            case 'c',
+                cmap0(i,:) = [0 1 1];
+            case 'r',
+                cmap0(i,:) = [1 0 0];
+            case 'g',
+                cmap0(i,:) = [0 1 0];
+            case 'b',
+                cmap0(i,:) = [0 0 1];
+            case 'w',
+                cmap0(i,:) = [1 1 1];
+            case 'k',
+                cmap0(i,:) = [0 0 0];
+            case {'1','2','3','4','5','6','7','8','9'}
+                % gray levels
+                col = str2double(name(i));
+                cmap0(i,:) = [col col col]/10;
         end;
     end;
 end;
