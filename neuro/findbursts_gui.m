@@ -35,7 +35,8 @@ nchan = size(data.sig,2);
 gdata.chan = 1;
 if (size(opt.threshold,1) == 2) && (size(opt.threshold,2) == nchan)
     gdata.thresh = opt.threshold;
-elseif (size(data.spikethreshold,1) == 2) && (size(data.spikethreshold,2) == nchan)
+elseif isfield(data, 'spikethreshold') && (size(data.spikethreshold,1) == 2) && ...
+        (size(data.spikethreshold,2) == nchan)
     gdata.thresh = data.spikethreshold;
 elseif length(opt.threshold) == nchan
     gdata.thresh = [-1; 1]*abs(opt.threshold(:)');
@@ -44,14 +45,16 @@ else
 end
 if (~isempty(opt.interburstdur) && (length(opt.interburstdur) == nchan))
     gdata.interburst = opt.interburstdur;
-elseif (~isempty(data.interburstdur) && (length(data.interburstdur) == nchan))
+elseif isfield(data, 'interburstdur') && (~isempty(data.interburstdur) && ...
+        (length(data.interburstdur) == nchan))
     gdata.interburst = data.interburstdur;
 else
     gdata.interburst = 0.3*ones(1,nchan);
 end
 if (~isempty(opt.minspikes) && (length(opt.minspikes) == nchan))
     gdata.minspikes = opt.minspikes;
-elseif (~isempty(data.minspikes) && (length(data.minspikes) == nchan))
+elseif isfield(data,'minspikes') && (~isempty(data.minspikes) && ...
+        (length(data.minspikes) == nchan))
     gdata.minspikes = data.minspikes;
 else
     gdata.minspikes = 2*ones(1,nchan);
@@ -112,6 +115,8 @@ if (~opt.quiet)
         delete(f);
     end
 end
+
+gdata = get_burstfreqdur(gdata);
 
 data = gdata.data;
 data.burst = get_burst_override(gdata,1:nchan);
@@ -945,7 +950,7 @@ end
 guidata(obj,gdata);
 
 %*************************************************************************
-function gdata = show_diagnostics(gdata)
+function gdata = get_burstfreqdur(gdata)
 
 chan = find(gdata.data.goodchan);
 
@@ -961,6 +966,13 @@ for i = 1:length(b)
     gdata.burstfreq{j} = burstfreq1;
     gdata.burstdur{j} = b(i).off - b(i).on;
 end
+
+%*************************************************************************
+function gdata = show_diagnostics(gdata)
+
+chan = find(gdata.data.goodchan);
+
+gdata = get_burstfreqdur(gdata);
 
 for i = 1:length(chan)
     j = chan(i);
@@ -1059,7 +1071,7 @@ else
     gdata.data.spikeamp{i} = [];
     
     gdata = update_burst_sel(gdata, 'none');
-    if ishandle(gdata.hburstrate(i))
+    if (i <= length(gdata.hburstrate)) && ishandle(gdata.hburstrate(i))
         delete(gdata.hburstrate(i));
         delete(gdata.hburstdur(i));
     end
