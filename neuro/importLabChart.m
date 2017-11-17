@@ -98,7 +98,8 @@ else
     iscom = iscom0(F.com(:,5));
     commenttxt = comtext(F.com(iscom,5));
     commentt = F.com(iscom,3) / F.tickrate;
-
+    commentind = [];
+    
     isspike = isspike0(F.com(:,5));
     spiket = F.com(isspike,3) / F.tickrate;
     spikenum = spikenum0(F.com(isspike,5));

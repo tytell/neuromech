@@ -82,6 +82,8 @@ gdata.data.spiket = cell(1,nchan);
 gdata.data.spikeamp = cell(1,nchan);
 gdata.eventtimes = opt.eventtimes;
 
+set_ui(gdata);
+
 gdata = update_spikes(gdata, true);
 
 if ~isempty(opt.override)
@@ -119,7 +121,7 @@ end
 gdata = get_burstfreqdur(gdata);
 
 data = gdata.data;
-data.burst = get_burst_override(gdata,1:nchan);
+[gdata, data.burst] = get_burst_data(gdata);
 for i = 1:nchan
     if ~isempty(data.burst(i).nspike)
         [c,ord] = sort(data.burst(i).ctr);
@@ -950,7 +952,7 @@ end
 guidata(obj,gdata);
 
 %*************************************************************************
-function gdata = get_burstfreqdur(gdata)
+function [gdata,b] = get_burst_data(gdata)
 
 chan = find(gdata.data.goodchan);
 
@@ -970,9 +972,9 @@ end
 %*************************************************************************
 function gdata = show_diagnostics(gdata)
 
+[gdata,b] = get_burst_data(gdata);
 chan = find(gdata.data.goodchan);
 
-gdata = get_burstfreqdur(gdata);
 
 for i = 1:length(chan)
     j = chan(i);
@@ -1107,6 +1109,15 @@ function on_click_Done(obj,event)
 
 data = guidata(obj);
 uiresume(data.figure);
+
+%*************************************************************************
+function set_ui(gdata)
+
+set(gdata.spikeThreshLoEdit, 'String', num2str(gdata.thresh(1,gdata.chan),3));
+set(gdata.spikeThreshHiEdit, 'String', num2str(gdata.thresh(2,gdata.chan),3));
+set(gdata.interburstDurEdit, 'String', num2str(gdata.interburst(gdata.chan),3));
+set(gdata.minSpikesEdit, 'String', num2str(gdata.minspikes(gdata.chan),3));
+set(gdata.skipChannelCheck, 'Value', ~gdata.data.goodchan(gdata.chan));
 
 %*************************************************************************
 function setUICallbacks(data)
