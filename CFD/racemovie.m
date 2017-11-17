@@ -14,6 +14,8 @@ opt.showall = false;
 opt.outputfile = '';
 opt.fps = 5;
 opt.delay = 0;
+opt.videosize = [1024 512];
+opt.colors = [];
 opt = parsevarargin(opt,varargin,1);
 
 t = [];
@@ -87,13 +89,25 @@ end;
 
 nr = size(ox,2);
 
-fig = gcf;
+fig = figure('WindowStyle','normal', 'Units','pixels');
+pos = get(fig, 'Position');
+
+t = pos(2) + pos(4);
+b = t - opt.videosize(2);
+pos = [pos(1) b opt.videosize];
+
+set(fig, 'Position', pos, 'Color','w');
+
 clf;
 ax = axes('Position',[0 0 1 1]);
 hold(ax,'on');
+
 h = zeros(1,size(ox,2));
 for j = 1:nr,
     h(j) = fill(ox(:,j,1),oy(:,j,1),j, 'EdgeColor','none', 'Parent',ax);
+    if ~isempty(opt.colors)
+        set(h(j), 'FaceColor', opt.colors(j,:));
+    end
 end;
 hold(ax,'off');
 
