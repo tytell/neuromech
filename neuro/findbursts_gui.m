@@ -118,8 +118,6 @@ if (~opt.quiet)
     end
 end
 
-gdata = get_burstfreqdur(gdata);
-
 data = gdata.data;
 [gdata, data.burst] = get_burst_data(gdata);
 for i = 1:nchan
